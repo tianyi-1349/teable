@@ -154,9 +154,30 @@ export const chartConfigSchema = z.union([
 
 export type IChartConfig = z.infer<typeof chartConfigSchema>;
 
+export interface IChartInteractionFilter {
+  source: 'combo' | 'pie' | 'table';
+  dimensionColumn: string;
+  dimensionValues: (string | number)[];
+}
+
+export type IChartInteractionMode = 'single' | 'multi';
+
+export type IChartInteractionClearBehavior = 'toggle-empty' | 'explicit-only';
+
+export interface IChartInteractionConfig {
+  mode?: IChartInteractionMode;
+  clearBehavior?: IChartInteractionClearBehavior;
+}
+
+export interface IChartInteractionState {
+  filter?: IChartInteractionFilter;
+  config?: IChartInteractionConfig;
+}
+
 export interface IChartStorage {
   config?: IChartConfig;
   query: IBaseQuery;
+  interaction?: IChartInteractionState;
 }
 
 export interface IPageParams {

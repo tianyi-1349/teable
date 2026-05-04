@@ -1,5 +1,5 @@
 import { getRandomString } from '@teable/core';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Layout } from 'react-grid-layout';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import type { Bar } from '../../components/Chart/bar';
@@ -45,7 +45,6 @@ interface ILayout extends Layout {
 export const Dashboard = () => {
   const [layout, setLayout] = useState<ILayout[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const dashboardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     dashboardCharts.init();
@@ -63,24 +62,6 @@ export const Dashboard = () => {
     });
     setLayout(chartLayout);
     setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const resizeObserver = new ResizeObserver((entries) => {
-      entries.forEach(() => {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 200);
-      });
-    });
-
-    if (dashboardRef.current) {
-      resizeObserver.observe(dashboardRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
   }, []);
 
   const layoutChange = (_currentLayout: Layout[], allLayouts: ReactGridLayout.Layouts) => {
@@ -103,7 +84,7 @@ export const Dashboard = () => {
     );
   };
   return (
-    <div className="h-full overflow-y-auto" ref={dashboardRef}>
+    <div className="h-full overflow-y-auto">
       {!loading && (
         <ReactGridLayout
           layouts={{
@@ -122,7 +103,7 @@ export const Dashboard = () => {
         >
           {layout.map((v) => (
             <div className="rounded-lg border border-slate-600" key={v.i}>
-              {v.chartInstance && <Chart chartInstance={v.chartInstance} />}
+              {v.chartInstance && <Chart chartInstance={v.chartInstance} updateMode="replace" />}
             </div>
           ))}
         </ReactGridLayout>

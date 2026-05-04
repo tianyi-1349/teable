@@ -1,4 +1,5 @@
 /* eslint-disable sonarjs/cognitive-complexity */
+import { useIsMobile } from '@teable/sdk/hooks';
 import {
   ChartContainer,
   ChartLegend,
@@ -7,7 +8,7 @@ import {
   ChartTooltipContent,
   cn,
 } from '@teable/ui-lib';
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import {
   Area,
   Bar,
@@ -31,6 +32,7 @@ import type {
   IComboConfig,
   IComboType,
 } from '../../../../types';
+import { ChartContext } from '../../../ChartProvider';
 import { TooltipItem } from './TooltipItem';
 import { useComboConfig } from './useComboConfig';
 
@@ -38,8 +40,11 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
   const { config, defaultType = 'bar' } = props;
 
   const queryData = useBaseQueryData();
+  const { interactionFilter, interactionConfig, onInteractionFilterChange } =
+    useContext(ChartContext);
   const chartConfig = useComboConfig(config, queryData?.columns);
   const { isExpand } = useUIConfig();
+  const isMobile = useIsMobile();
   const [hoverLegend, setHoverLegend] = useState<string>();
   const [hiddenLegends, setHiddenLegends] = useState<string[]>([]);
   const [hoverBarIndex, setHoverBarIndex] = useState<number>();
@@ -98,6 +103,39 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
   const showGoalLine = defaultYAxisId && config.goalLine?.enabled;
   const xAxisConfig = config.xAxis?.[0];
 
+  const handleChartClick = (state?: { activeLabel?: string | number }) => {
+    if (!xAxisConfig || state?.activeLabel == null) {
+      return;
+    }
+    const nextValue = state.activeLabel;
+    const currentValues =
+      interactionFilter?.dimensionColumn === xAxisConfig.column
+        ? interactionFilter.dimensionValues
+        : [];
+    const exists = currentValues.includes(nextValue);
+    const nextValues =
+      interactionConfig.mode === 'single'
+        ? exists
+          ? interactionConfig.clearBehavior === 'toggle-empty'
+            ? []
+            : currentValues
+          : [nextValue]
+        : exists
+          ? currentValues.filter((value) => value !== nextValue)
+          : [...currentValues, nextValue];
+
+    if (!nextValues.length) {
+      void onInteractionFilterChange(undefined);
+      return;
+    }
+
+    void onInteractionFilterChange({
+      source: 'combo',
+      dimensionColumn: xAxisConfig.column,
+      dimensionValues: nextValues,
+    });
+  };
+
   const defaultMargin = isExpand
     ? {
         top: 20,
@@ -127,6 +165,7 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
           }}
           accessibilityLayer
           data={queryData?.rows}
+          onClick={handleChartClick}
         >
           <CartesianGrid vertical={false} />
           {xAxisConfig && (
@@ -205,7 +244,7 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
               case 'bar':
                 return (
                   <Bar
-                    isAnimationActive
+                    isAnimationActive={!isMobile}
                     activeIndex={hoverBarIndex}
                     key={column}
                     yAxisId={yAxisId}
@@ -229,7 +268,7 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
                       );
                     }}
                   >
-                    {config.showLabel && (
+                    {config.showLabel && !isMobile && (
                       <LabelList
                         position="top"
                         offset={12}
@@ -256,7 +295,7 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
                     fillOpacity={hoverLegend && hoverLegend !== column ? 0.5 : 1}
                     hide={hiddenLegends.includes(column)}
                   >
-                    {config.showLabel && (
+                    {config.showLabel && !isMobile && (
                       <LabelList
                         position="top"
                         offset={12}
@@ -283,7 +322,7 @@ export const ChartCombo = (props: { config: IComboConfig; defaultType?: IComboTy
                     fillOpacity={hoverLegend === column ? 1 : 0.4}
                     hide={hiddenLegends.includes(column)}
                   >
-                    {config.showLabel && (
+                    {config.showLabel && !isMobile && (
                       <LabelList
                         position="top"
                         offset={12}

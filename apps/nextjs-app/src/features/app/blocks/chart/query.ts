@@ -1,4 +1,5 @@
 import type { IBaseQueryVo } from '@teable/openapi';
+import type { IChartInteractionFilter } from './types';
 
 export const formatRes = (res?: IBaseQueryVo): IBaseQueryVo => {
   if (!res) {
@@ -22,5 +23,23 @@ export const formatRes = (res?: IBaseQueryVo): IBaseQueryVo => {
       });
       return newRow;
     }),
+  };
+};
+
+export const applyInteractionFilter = (
+  res: IBaseQueryVo,
+  interactionFilter?: IChartInteractionFilter
+): IBaseQueryVo => {
+  if (!interactionFilter) {
+    return res;
+  }
+  const { dimensionColumn, dimensionValues } = interactionFilter;
+  if (!dimensionValues.length) {
+    return res;
+  }
+  const valueSet = new Set(dimensionValues);
+  return {
+    ...res,
+    rows: res.rows.filter((row) => valueSet.has(row[dimensionColumn] as string | number)),
   };
 };
