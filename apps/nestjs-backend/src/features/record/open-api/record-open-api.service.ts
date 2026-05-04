@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/no-identical-functions */
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
   IAttachmentCellValue,
   IAttachmentItem,
@@ -46,6 +46,8 @@ import type { IUpdateRecordsInternalRo } from '../type';
 
 @Injectable()
 export class RecordOpenApiService {
+  private static readonly logger = new Logger(RecordOpenApiService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordService: RecordService,
@@ -514,6 +516,20 @@ export class RecordOpenApiService {
       fieldKeyType: FieldKeyType.Id,
     });
     updatedRecord.fields = pick(updatedRecord.fields, [fieldId]);
+
+    try {
+      await this.eventEmitterService.emitAsync(Events.TABLE_BUTTON_CLICK, {
+        tableId,
+        fieldId,
+        workflowId: options.workflow!.id as string,
+        record: updatedRecord,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      RecordOpenApiService.logger.warn(
+        `Emit ${Events.TABLE_BUTTON_CLICK} failed for table ${tableId}, field ${fieldId}, record ${recordId}: ${message}`
+      );
+    }
 
     return {
       tableId,
