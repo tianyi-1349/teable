@@ -82,17 +82,35 @@ export const useAppModeConfigEditor = (customBaseId?: string) => {
   };
 
   const updatePage = (pageId: string, updater: (page: IAppModePage) => IAppModePage) => {
-    patchDraft((config) => ({
-      ...config,
-      pages: config.pages.map((page) => (page.id === pageId ? updater(page) : page)),
-    }));
+    patchDraft((config) => {
+      const index = config.pages.findIndex((page) => page.id === pageId);
+      if (index < 0) {
+        return config;
+      }
+
+      const pages = [...config.pages];
+      pages[index] = updater(pages[index]);
+      return {
+        ...config,
+        pages,
+      };
+    });
   };
 
   const removePage = (pageId: string) => {
-    patchDraft((config) => ({
-      ...config,
-      pages: config.pages.filter((page) => page.id !== pageId),
-    }));
+    patchDraft((config) => {
+      const index = config.pages.findIndex((page) => page.id === pageId);
+      if (index < 0) {
+        return config;
+      }
+
+      const pages = [...config.pages];
+      pages.splice(index, 1);
+      return {
+        ...config,
+        pages,
+      };
+    });
   };
 
   const setWorkflowEnabled = (enabled: boolean) => {

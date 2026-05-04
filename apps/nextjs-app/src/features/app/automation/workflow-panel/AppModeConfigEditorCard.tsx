@@ -1,4 +1,4 @@
-import type { IAppModePage } from '@teable/openapi';
+import { appModeConfigSchema, type IAppModePage } from '@teable/openapi';
 import { useAppModeConfigEditor } from '@teable/sdk/hooks';
 import {
   Alert,
@@ -218,6 +218,15 @@ export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
                 return;
               }
 
+              if (draft.pages.some((page) => page.id === newPage.id.trim())) {
+                toast({
+                  title: 'Duplicate page id',
+                  description: 'Please use a unique page id.',
+                  variant: 'destructive',
+                });
+                return;
+              }
+
               editor.addPage({
                 ...newPage,
                 id: newPage.id.trim(),
@@ -333,8 +342,17 @@ export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
               variant="outline"
               onClick={() => {
                 try {
-                  const parsed = JSON.parse(jsonText) as typeof editor.draft;
-                  editor.patchDraft(() => parsed);
+                  const parsed = JSON.parse(jsonText);
+                  const validated = appModeConfigSchema.safeParse(parsed);
+                  if (!validated.success) {
+                    toast({
+                      title: 'Invalid app mode config',
+                      description: validated.error.issues[0]?.message ?? 'Schema validation failed',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  editor.patchDraft(() => validated.data);
                   toast({ title: 'Imported JSON to draft' });
                 } catch {
                   toast({
