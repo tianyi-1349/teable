@@ -5,17 +5,29 @@ import {
   getPluginPanelInstallPluginQuery,
   PluginPosition,
 } from '@teable/openapi';
-import { useMemo } from 'react';
-import { formatRes } from '../query';
+import { useContext, useMemo } from 'react';
+import { ChartContext } from '../components/ChartProvider';
+import { applyInteractionFilter, formatRes } from '../query';
 import { useEnv } from './useEnv';
 
 export const useBaseQueryData = (cellFormat?: CellFormat) => {
   const { baseId, positionId, positionType, tableId, pluginInstallId } = useEnv();
+  const { interactionFilter } = useContext(ChartContext);
+  const serializedInteractionFilter = interactionFilter
+    ? JSON.stringify(interactionFilter)
+    : undefined;
   const { data: dashboardQueryData } = useQuery({
-    queryKey: ['dashboard-plugin-query', baseId, positionId, pluginInstallId],
+    queryKey: [
+      'dashboard-plugin-query',
+      baseId,
+      positionId,
+      pluginInstallId,
+      serializedInteractionFilter,
+    ],
     queryFn: () =>
       getDashboardInstallPluginQuery(pluginInstallId, positionId, {
         baseId,
+        interactionFilter: serializedInteractionFilter,
         cellFormat,
       }).then((res) => res.data),
     enabled: Boolean(
@@ -24,10 +36,17 @@ export const useBaseQueryData = (cellFormat?: CellFormat) => {
   });
 
   const { data: pluginPanelQueryData } = useQuery({
-    queryKey: ['plugin-panel-plugin-query', tableId, positionId, pluginInstallId],
+    queryKey: [
+      'plugin-panel-plugin-query',
+      tableId,
+      positionId,
+      pluginInstallId,
+      serializedInteractionFilter,
+    ],
     queryFn: () =>
       getPluginPanelInstallPluginQuery(pluginInstallId, positionId, {
         tableId: tableId!,
+        interactionFilter: serializedInteractionFilter,
         cellFormat,
       }).then((res) => res.data),
     enabled: Boolean(
@@ -36,9 +55,11 @@ export const useBaseQueryData = (cellFormat?: CellFormat) => {
   });
 
   return useMemo(() => {
-    if (positionType === PluginPosition.Dashboard) {
-      return formatRes(dashboardQueryData);
-    }
-    return formatRes(pluginPanelQueryData);
-  }, [positionType, pluginPanelQueryData, dashboardQueryData]);
+    const formatted =
+      positionType === PluginPosition.Dashboard
+        ? formatRes(dashboardQueryData)
+        : formatRes(pluginPanelQueryData);
+
+    return applyInteractionFilter(formatted, interactionFilter);
+  }, [positionType, pluginPanelQueryData, dashboardQueryData, interactionFilter]);
 };

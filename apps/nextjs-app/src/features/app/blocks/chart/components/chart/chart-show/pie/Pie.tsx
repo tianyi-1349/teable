@@ -1,11 +1,13 @@
+import { useIsMobile } from '@teable/sdk/hooks';
 import { ChartContainer, ChartLegend, ChartTooltip, ChartTooltipContent } from '@teable/ui-lib';
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { PieChart, Pie, Label, Sector } from 'recharts';
 import type { Payload } from 'recharts/types/component/DefaultLegendContent';
 import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
 import { useBaseQueryData } from '../../../../hooks/useBaseQueryData';
 import { useUIConfig } from '../../../../hooks/useUIConfig';
 import type { IPieConfig } from '../../../../types';
+import { ChartContext } from '../../../ChartProvider';
 import { TooltipItem } from '../combo/TooltipItem';
 import { PieLegendContent } from './PieLegendContent';
 import { usePieConfig } from './usePieConfig';
@@ -14,11 +16,14 @@ import { useRefObserve } from './useRefObserve';
 export const ChartPie = (props: { config: IPieConfig }) => {
   const { config } = props;
   const queryData = useBaseQueryData();
+  const { interactionFilter, interactionConfig, onInteractionFilterChange } =
+    useContext(ChartContext);
   const pieConfig = usePieConfig(config.dimension, queryData?.rows);
   const [hoverLegend, setHoverLegend] = useState<number>();
   const [hoverPieIndex, setHoverPieIndex] = useState<number>();
 
   const { isExpand } = useUIConfig();
+  const isMobile = useIsMobile();
   const total = useMemo(() => {
     const measure = config.measure;
     if (!queryData?.rows || !measure) {
@@ -48,6 +53,42 @@ export const ChartPie = (props: { config: IPieConfig }) => {
   };
 
   const [totalRef, { width: totalWidth }] = useRefObserve();
+
+  const handlePieClick = (entry?: Record<string, unknown>) => {
+    if (!config.dimension || !entry) {
+      return;
+    }
+    const payload = (entry.payload as Record<string, unknown> | undefined) ?? entry;
+    const nextValue = payload[config.dimension];
+    if (nextValue == null) {
+      return;
+    }
+    const currentValues =
+      interactionFilter?.dimensionColumn === config.dimension
+        ? interactionFilter.dimensionValues
+        : [];
+    const normalizedValue = nextValue as string | number;
+    const exists = currentValues.includes(normalizedValue);
+    const nextValues =
+      interactionConfig.mode === 'single'
+        ? exists
+          ? interactionConfig.clearBehavior === 'toggle-empty'
+            ? []
+            : currentValues
+          : [normalizedValue]
+        : exists
+          ? currentValues.filter((value) => value !== normalizedValue)
+          : [...currentValues, normalizedValue];
+    if (!nextValues.length) {
+      void onInteractionFilterChange(undefined);
+      return;
+    }
+    void onInteractionFilterChange({
+      source: 'pie',
+      dimensionColumn: config.dimension,
+      dimensionValues: nextValues,
+    });
+  };
   const defaultMargin = isExpand
     ? {
         top: 20,
@@ -144,11 +185,12 @@ export const ChartPie = (props: { config: IPieConfig }) => {
             }
             activeIndex={hoverPieIndex ?? hoverLegend}
             onMouseEnter={(o) => setHoverPieIndex(o.index)}
+            onClick={handlePieClick}
             activeShape={({ outerRadius = 0, ...props }: PieSectorDataItem) => (
               <Sector {...props} outerRadius={outerRadius + 10} />
             )}
           >
-            {config.showTotal && (
+            {config.showTotal && !isMobile && (
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {

@@ -143,6 +143,48 @@ describe('PluginController', () => {
         )
       ).rejects.toThrow();
     });
+
+    it('merges interactionFilter into existing where for plugin panel query', async () => {
+      const { pluginPanelId, pluginInstallId } = await preparePluginPanel(table);
+      const textField = table.fields.find((field) => field.type === FieldType.SingleLineText)!;
+      const numberField = table.fields.find((field) => field.type === FieldType.Number)!;
+
+      await updatePluginPanelStorage(table.id, pluginPanelId, pluginInstallId, {
+        storage: {
+          config: {
+            type: 'bar',
+            xAxis: [{ column: textField.name, display: { type: 'bar', position: 'auto' } }],
+            yAxis: [{ column: numberField.name, display: { type: 'bar', position: 'auto' } }],
+          },
+          query: {
+            from: table.id,
+            select: [
+              { column: textField.id, alias: textField.name, type: 'field' },
+              { column: numberField.id, alias: numberField.name, type: 'field' },
+            ],
+            where: {
+              conjunction: 'or',
+              filterSet: [
+                { column: textField.id, type: 'field', operator: 'is', value: 'Alice' },
+                { column: textField.id, type: 'field', operator: 'is', value: 'Bob' },
+              ],
+            },
+          },
+        },
+      });
+
+      const queryRes = await getPluginPanelInstallPluginQuery(pluginInstallId, pluginPanelId, {
+        tableId: table.id,
+        interactionFilter: JSON.stringify({
+          dimensionColumn: textField.id,
+          dimensionValues: ['Alice'],
+        }),
+      });
+
+      expect(queryRes.status).toBe(200);
+      expect(queryRes.data.rows).toHaveLength(1);
+      expect(queryRes.data.rows[0]?.[textField.name]).toBe('Alice');
+    });
   });
 
   describe('Dashboard Chart', () => {
@@ -246,6 +288,46 @@ describe('PluginController', () => {
           }
         )
       ).rejects.toThrow();
+    });
+
+    it('merges interactionFilter into existing where for dashboard query', async () => {
+      const { pluginInstallId, dashboardId } = await prepareDashboard(table);
+      const textField = table.fields.find((field) => field.type === FieldType.SingleLineText)!;
+      const numberField = table.fields.find((field) => field.type === FieldType.Number)!;
+
+      await updateDashboardPluginStorage(baseId, dashboardId, pluginInstallId, {
+        config: {
+          type: 'bar',
+          xAxis: [{ column: textField.name, display: { type: 'bar', position: 'auto' } }],
+          yAxis: [{ column: numberField.name, display: { type: 'bar', position: 'auto' } }],
+        },
+        query: {
+          from: table.id,
+          select: [
+            { column: textField.id, alias: textField.name, type: 'field' },
+            { column: numberField.id, alias: numberField.name, type: 'field' },
+          ],
+          where: {
+            conjunction: 'or',
+            filterSet: [
+              { column: textField.id, type: 'field', operator: 'is', value: 'Alice' },
+              { column: textField.id, type: 'field', operator: 'is', value: 'Bob' },
+            ],
+          },
+        },
+      });
+
+      const queryRes = await getDashboardInstallPluginQuery(pluginInstallId, dashboardId, {
+        baseId,
+        interactionFilter: JSON.stringify({
+          dimensionColumn: textField.id,
+          dimensionValues: ['Bob'],
+        }),
+      });
+
+      expect(queryRes.status).toBe(200);
+      expect(queryRes.data.rows).toHaveLength(1);
+      expect(queryRes.data.rows[0]?.[textField.name]).toBe('Bob');
     });
   });
 });

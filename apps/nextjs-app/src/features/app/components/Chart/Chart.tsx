@@ -1,41 +1,55 @@
 import * as echarts from 'echarts';
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Bar } from './bar';
 import type { Line } from './line';
 import type { Pie } from './pie';
 
-export const Chart = (props: { chartInstance: Pie | Bar | Line }) => {
-  const { chartInstance } = props;
-  const chartContainerRef = useRef<HTMLDivElement>(null);
+type ChartUpdateMode = 'replace' | 'merge';
 
-  const renderEcharts = useCallback(
-    ({ width, height }: { width: number; height: number }) => {
-      if (!chartContainerRef.current) {
-        return;
-      }
-      // eslint-disable-next-line import/namespace
-      const myChart = echarts.init(chartContainerRef.current);
-      myChart.setOption(chartInstance.getOptions());
-      myChart.resize({ width, height });
-    },
-    [chartInstance]
-  );
+export const Chart = (props: { chartInstance: Pie | Bar | Line; updateMode?: ChartUpdateMode }) => {
+  const { chartInstance, updateMode = 'replace' } = props;
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<echarts.EChartsType | null>(null);
 
   useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    // Reuse an existing instance for React strict mode remounts.
+    chartRef.current = echarts.getInstanceByDom(container) || echarts.init(container);
+
     const resizeObserver = new ResizeObserver((entries) => {
+      const chart = chartRef.current;
+      if (!chart) {
+        return;
+      }
       entries.forEach((entry) => {
-        renderEcharts({ width: entry.contentRect.width, height: entry.contentRect.height });
+        chart.resize({ width: entry.contentRect.width, height: entry.contentRect.height });
       });
     });
 
-    if (chartContainerRef.current) {
-      resizeObserver.observe(chartContainerRef.current);
-    }
+    resizeObserver.observe(container);
 
     return () => {
       resizeObserver.disconnect();
+      chartRef.current?.dispose();
+      chartRef.current = null;
     };
-  }, [chartInstance, renderEcharts]);
+  }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) {
+      return;
+    }
+
+    chart.setOption(chartInstance.getOptions(), {
+      notMerge: updateMode === 'replace',
+      lazyUpdate: true,
+    });
+  }, [chartInstance, updateMode]);
 
   return (
     <div

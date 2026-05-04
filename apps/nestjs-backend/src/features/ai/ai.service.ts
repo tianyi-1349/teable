@@ -1,9 +1,18 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { OpenAIProvider } from '@ai-sdk/openai';
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpErrorCode } from '@teable/core';
+import type { IAttachmentItem, IColumnMeta, IFilter, IGroup, ISortItem } from '@teable/core';
+import {
+  FieldKeyType,
+  FieldType,
+  HttpErrorCode,
+  IdPrefix,
+  SingleLineTextDisplayType,
+} from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import {
+  AiStreamErrorCode,
+  aiExtractWritableFieldTypeSchema,
   IntegrationType,
   LLMProviderType,
   SettingKey,
@@ -13,11 +22,23 @@ import {
 } from '@teable/openapi';
 import type {
   IAIConfig,
+  IAiExtractWriteApplyRo,
+  IAiExtractWriteApplyVo,
+  IAiExtractWritePreviewField,
+  IAiExtractWritePreviewRo,
+  IAiExtractWritePreviewVo,
   IAiGenerateRo,
+  IAiRecordOperationRo,
+  IAiRecordOperationVo,
+  IAiViewContextField,
+  IAiViewContextQuery,
   IChatModelAbility,
   IGatewayApiModel,
   IGatewayApiModelRaw,
   IGetAIConfig,
+  IGetNativeAICapabilitiesQuery,
+  IAiViewContextVo,
+  IQueryNativeAICapabilitiesRo,
   GatewayModelTag,
   LLMProvider,
 } from '@teable/openapi';
@@ -28,7 +49,22 @@ import type { Response } from 'express';
 import { BaseConfig, IBaseConfig } from '../../configs/base.config';
 import { CustomHttpException } from '../../custom.exception';
 import { PerformanceCacheService } from '../../performance-cache';
+import { PermissionService } from '../auth/permission.service';
+import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
+import { RecordService } from '../record/record.service';
 import { SettingService } from '../setting/setting.service';
+import {
+  createAiStreamError,
+  getAiStreamErrorMessage,
+  handleAiStreamErrorResponse,
+} from './stream-error.helper';
+import {
+  buildNativeCapabilitiesVo,
+  filterNativeCapabilities,
+  queryNativeCapabilities,
+  resolveNativeCapabilities,
+} from './native-capability';
+import { isFieldVisible } from './view-context.helper';
 import { getAdaptedProviderOptions, getTaskModelKey, modelProviders } from './util';
 
 // Fixed name for all instance (platform-provided) providers in modelKey.
@@ -37,6 +73,28 @@ import { getAdaptedProviderOptions, getTaskModelKey, modelProviders } from './ut
 export const INSTANCE_PROVIDER_NAME = 'teable';
 
 export type ILanguageModelV2 = Exclude<LanguageModel, string>;
+
+type IExtractSupportedFieldType =
+  (typeof aiExtractWritableFieldTypeSchema)['enum'][keyof (typeof aiExtractWritableFieldTypeSchema)['enum']];
+
+type IExtractField = {
+  id: string;
+  name: string;
+  type: FieldType;
+  options?: string | null;
+  isComputed?: boolean | null;
+};
+
+type ITextShowAsType = SingleLineTextDisplayType | null;
+
+type IAttachmentApplyValue = {
+  keepAttachmentIds: string[];
+  urls: string[];
+};
+
+const AI_EXTRACT_SUPPORTED_FIELD_TYPES = new Set<FieldType>(
+  Object.values(aiExtractWritableFieldTypeSchema.enum)
+);
 
 // In-memory cache for Gateway models (TTL: 10 minutes)
 const gatewayModelsCacheTtl = 10 * 60 * 1000;
@@ -57,8 +115,1004 @@ export class AiService {
     private readonly settingService: SettingService,
     private readonly prismaService: PrismaService,
     @BaseConfig() private readonly baseConfig: IBaseConfig,
-    private readonly performanceCacheService: PerformanceCacheService
+    private readonly performanceCacheService: PerformanceCacheService,
+    private readonly recordService: RecordService,
+    private readonly recordOpenApiService: RecordOpenApiService,
+    private readonly permissionService: PermissionService
   ) {}
+
+  private async assertTableInBase(baseId: string, tableId: string) {
+    await this.prismaService.tableMeta.findFirstOrThrow({
+      where: {
+        id: tableId,
+        baseId,
+        deletedTime: null,
+      },
+      select: { id: true },
+    });
+  }
+
+  async recordOperation(baseId: string, body: IAiRecordOperationRo): Promise<IAiRecordOperationVo> {
+    const { action, tableId } = body;
+    await this.assertTableInBase(baseId, tableId);
+
+    if (action === 'create') {
+      await this.permissionService.validPermissions(tableId, ['record|create']);
+      const result = await this.recordOpenApiService.multipleCreateRecords(
+        tableId,
+        body.payload,
+        undefined,
+        'true'
+      );
+
+      return {
+        action,
+        tableId,
+        records: result.records,
+      };
+    }
+
+    if (action === 'update') {
+      await this.permissionService.validPermissions(tableId, ['record|update']);
+      const recordIds = body.payload.records.map((record) => record.id);
+      await this.recordService.assertRecordIdsInQueryScope(
+        tableId,
+        recordIds,
+        body.payload.aiContext
+      );
+
+      const result = await this.recordOpenApiService.updateRecords(
+        tableId,
+        body.payload,
+        undefined,
+        'true'
+      );
+
+      return {
+        action,
+        tableId,
+        records: result.records,
+      };
+    }
+
+    await this.permissionService.validPermissions(tableId, ['record|delete']);
+    await this.recordService.assertRecordIdsInQueryScope(
+      tableId,
+      body.payload.recordIds,
+      body.payload.aiContext
+    );
+    await this.recordOpenApiService.deleteRecords(tableId, body.payload.recordIds);
+
+    return {
+      action,
+      tableId,
+      deletedRecordIds: body.payload.recordIds,
+    };
+  }
+
+  private parseJsonString<T>(value?: string | null): T | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    return JSON.parse(value) as T;
+  }
+
+  private parseAiJson(text: string): Record<string, unknown> {
+    const trimmed = text.trim();
+    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const candidate = fencedMatch?.[1]?.trim() ?? trimmed;
+
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Fallback to object slice parsing below.
+    }
+
+    const firstBrace = candidate.indexOf('{');
+    const lastBrace = candidate.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      const objectSlice = candidate.slice(firstBrace, lastBrace + 1);
+      const parsed = JSON.parse(objectSlice) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    }
+
+    throw new CustomHttpException('AI response is not valid JSON', HttpErrorCode.VALIDATION_ERROR);
+  }
+
+  private buildExtractPrompt(
+    fields: Array<IExtractField & { choices?: string[] }>,
+    body: IAiExtractWritePreviewRo,
+    readonlyContext?: string
+  ) {
+    const fieldLines = fields
+      .map((field) => {
+        const choicesText = field.choices?.length ? ` Choices: ${field.choices.join(', ')}.` : '';
+        const formatText = this.getFieldFormatHint(field);
+        return `- ${field.id} | ${field.name} | ${field.type}.${choicesText}${formatText}`;
+      })
+      .join('\n');
+
+    return [
+      'Extract structured values from the source text for the target fields below.',
+      'Return strict JSON only. No markdown, no explanation, no code fences.',
+      'The JSON keys must be field IDs. If a value is missing or uncertain, use null.',
+      'Use exact choice names for select fields.',
+      'Use arrays of exact choice names for multipleSelect fields.',
+      'Use arrays of absolute file URLs for attachment fields.',
+      'Use booleans for checkbox fields.',
+      'Use numbers for number and rating fields.',
+      'Use ISO 8601 strings for date fields when possible.',
+      body.instructions ? `Additional instructions: ${body.instructions}` : null,
+      `Operation: ${body.recordId ? 'update existing record' : 'create new record'}.`,
+      readonlyContext ? `Current read-only field context:\n${readonlyContext}` : null,
+      'Target fields:',
+      fieldLines,
+      'Source text:',
+      body.sourceText,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  private getFieldChoices(field: IExtractField): string[] | undefined {
+    if (field.type !== FieldType.SingleSelect && field.type !== FieldType.MultipleSelect) {
+      return undefined;
+    }
+
+    const options = this.parseJsonString<{ choices?: Array<{ name?: string }> }>(field.options);
+    return options?.choices
+      ?.map((choice) => choice.name)
+      .filter((name): name is string => Boolean(name));
+  }
+
+  private getTextShowAsType(field: IExtractField): ITextShowAsType {
+    if (
+      field.type !== FieldType.SingleLineText &&
+      field.type !== FieldType.Barcode &&
+      field.type !== FieldType.QRCode
+    ) {
+      return null;
+    }
+
+    const options = this.parseJsonString<{ showAs?: { type?: SingleLineTextDisplayType } }>(
+      field.options
+    );
+    const showAsType = options?.showAs?.type;
+
+    return showAsType && Object.values(SingleLineTextDisplayType).includes(showAsType)
+      ? showAsType
+      : null;
+  }
+
+  private getFieldFormatHint(field: IExtractField): string {
+    const showAsType = this.getTextShowAsType(field);
+    if (!showAsType) {
+      return '';
+    }
+
+    switch (showAsType) {
+      case SingleLineTextDisplayType.Email:
+        return ' Format: valid email address only.';
+      case SingleLineTextDisplayType.Phone:
+        return ' Format: valid phone number only.';
+      case SingleLineTextDisplayType.Url:
+        return ' Format: absolute http or https URL only.';
+      case SingleLineTextDisplayType.Barcode:
+        return ' Format: barcode content as plain text only.';
+      case SingleLineTextDisplayType.QRCode:
+        return ' Format: QR code content as plain text only.';
+      default:
+        return '';
+    }
+  }
+
+  private normalizeChoiceValue(value: unknown, choices: string[]): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    return choices.find((choice) => choice.toLowerCase() === trimmed.toLowerCase()) ?? null;
+  }
+
+  private normalizeMultipleChoiceValue(value: unknown, choices: string[]): string[] | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    const normalized = value
+      .map((item) => this.normalizeChoiceValue(item, choices))
+      .filter((item): item is string => Boolean(item));
+
+    return normalized.length ? [...new Set(normalized)] : null;
+  }
+
+  private normalizeCheckboxValue(value: unknown): boolean | null {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (['true', 'yes', 'y', '1'].includes(normalized)) {
+      return true;
+    }
+
+    if (['false', 'no', 'n', '0'].includes(normalized)) {
+      return false;
+    }
+
+    return null;
+  }
+
+  private normalizeNumericValue(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = Number(value.replace(/,/g, '').trim());
+    return Number.isFinite(normalized) ? normalized : null;
+  }
+
+  private normalizeStructuredTextValue(value: unknown, showAsType: ITextShowAsType): string | null {
+    const normalized =
+      typeof value === 'string'
+        ? value.trim()
+        : typeof value === 'number' && Number.isFinite(value)
+          ? String(value).trim()
+          : null;
+    if (!normalized) {
+      return null;
+    }
+
+    if (!showAsType) {
+      return normalized;
+    }
+
+    switch (showAsType) {
+      case SingleLineTextDisplayType.Email:
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
+      case SingleLineTextDisplayType.Phone: {
+        const compact = normalized.replace(/[\s().-]/g, '');
+        return /^\+?\d{6,20}$/.test(compact) ? normalized : null;
+      }
+      case SingleLineTextDisplayType.Url:
+        try {
+          const url = new URL(normalized);
+          return ['http:', 'https:'].includes(url.protocol) ? normalized : null;
+        } catch {
+          return null;
+        }
+      case SingleLineTextDisplayType.Barcode:
+      case SingleLineTextDisplayType.QRCode:
+        return normalized;
+      default:
+        return normalized;
+    }
+  }
+
+  private normalizeAttachmentValue(value: unknown): string[] | null {
+    const values = Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value
+            .split(/[\n,]/)
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : null;
+
+    if (!values?.length) {
+      return null;
+    }
+
+    const normalized = values.filter((item): item is string => {
+      if (typeof item !== 'string') {
+        return false;
+      }
+
+      try {
+        const url = new URL(item);
+        return ['http:', 'https:'].includes(url.protocol);
+      } catch {
+        return false;
+      }
+    });
+
+    return normalized.length ? [...new Set(normalized)] : null;
+  }
+
+  private normalizeAttachmentKeepIds(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return [
+      ...new Set(
+        value.filter(
+          (item): item is string => typeof item === 'string' && item.startsWith(IdPrefix.Attachment)
+        )
+      ),
+    ];
+  }
+
+  private toAttachmentApplyValue(
+    value: unknown,
+    keepAttachmentIds: unknown
+  ): IAttachmentApplyValue {
+    return {
+      urls: this.normalizeAttachmentValue(value) ?? [],
+      keepAttachmentIds: this.normalizeAttachmentKeepIds(keepAttachmentIds),
+    };
+  }
+
+  private async getExistingAttachmentPreview(
+    tableId: string,
+    recordId: string,
+    fields: IExtractField[]
+  ): Promise<Map<string, { id: string; name: string; url: string }[]>> {
+    const attachmentFields = fields.filter((field) => field.type === FieldType.Attachment);
+    if (!attachmentFields.length) {
+      return new Map();
+    }
+
+    const record = await this.recordService.getRecord(
+      tableId,
+      recordId,
+      {
+        projection: attachmentFields.map((field) => field.id),
+        fieldKeyType: FieldKeyType.Id,
+      },
+      true,
+      true
+    );
+
+    return new Map(
+      attachmentFields.map((field) => {
+        const attachments = Array.isArray(record.fields[field.id])
+          ? (record.fields[field.id] as IAttachmentItem[])
+          : [];
+        return [
+          field.id,
+          attachments
+            .map((attachment) => ({
+              id: attachment.id,
+              name: attachment.name,
+              url:
+                attachment.presignedUrl ??
+                attachment.lgThumbnailUrl ??
+                attachment.smThumbnailUrl ??
+                attachment.path,
+            }))
+            .filter((attachment) => Boolean(attachment.url)),
+        ];
+      })
+    );
+  }
+
+  private formatReadonlyPromptValue(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return JSON.stringify(value);
+  }
+
+  private async getAutoNumberReadonlyContext(
+    tableId: string,
+    recordId: string
+  ): Promise<string | undefined> {
+    const autoNumberFields = await this.prismaService.field.findMany({
+      where: {
+        tableId,
+        deletedTime: null,
+        type: FieldType.AutoNumber,
+      },
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+      },
+    });
+
+    if (!autoNumberFields.length) {
+      return undefined;
+    }
+
+    const record = await this.recordService.getRecord(
+      tableId,
+      recordId,
+      {
+        projection: autoNumberFields.map((field) => field.id),
+        fieldKeyType: FieldKeyType.Id,
+      },
+      true,
+      true
+    );
+
+    const lines = autoNumberFields
+      .map((field) => {
+        const value = record.fields[field.id];
+        if (value == null) {
+          return null;
+        }
+
+        return `- ${field.id} | ${field.name} | ${field.type} | ${this.formatReadonlyPromptValue(value)}`;
+      })
+      .filter((line): line is string => Boolean(line));
+
+    return lines.length ? lines.join('\n') : undefined;
+  }
+
+  private normalizeDateValue(value: unknown): string | null {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value.toISOString();
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  private normalizeRatingValue(value: unknown, field: IExtractField): number | null {
+    const numericValue = this.normalizeNumericValue(value);
+    if (numericValue == null) {
+      return null;
+    }
+
+    const normalized = Math.round(numericValue);
+    const options = this.parseJsonString<{ max?: number }>(field.options);
+    const max = options?.max ?? 5;
+
+    if (normalized < 1 || normalized > max) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  private normalizeFieldPreview(
+    field: IExtractField,
+    rawValue: unknown,
+    includeUnsupported = true
+  ): IAiExtractWritePreviewField {
+    const choices = this.getFieldChoices(field);
+
+    if (!AI_EXTRACT_SUPPORTED_FIELD_TYPES.has(field.type)) {
+      return {
+        fieldId: field.id,
+        name: field.name,
+        type: field.type,
+        status: includeUnsupported ? 'unsupported' : 'empty',
+        reason: includeUnsupported ? `Field type ${field.type} is not supported yet.` : undefined,
+        choices,
+      };
+    }
+
+    if (rawValue == null || (typeof rawValue === 'string' && !rawValue.trim())) {
+      return {
+        fieldId: field.id,
+        name: field.name,
+        type: field.type,
+        status: 'empty',
+        value: null,
+        choices,
+      };
+    }
+
+    let value: unknown;
+    switch (field.type as IExtractSupportedFieldType) {
+      case FieldType.SingleLineText:
+      case FieldType.Barcode:
+      case FieldType.QRCode:
+        value = this.normalizeStructuredTextValue(rawValue, this.getTextShowAsType(field));
+        break;
+      case FieldType.LongText:
+        value = this.normalizeStructuredTextValue(rawValue, null);
+        break;
+      case FieldType.Date:
+        value = this.normalizeDateValue(rawValue);
+        break;
+      case FieldType.Number:
+        value = this.normalizeNumericValue(rawValue);
+        break;
+      case FieldType.Rating:
+        value = this.normalizeRatingValue(rawValue, field);
+        break;
+      case FieldType.Checkbox:
+        value = this.normalizeCheckboxValue(rawValue);
+        break;
+      case FieldType.Attachment:
+        value = this.normalizeAttachmentValue(rawValue);
+        break;
+      case FieldType.SingleSelect:
+        value = choices ? this.normalizeChoiceValue(rawValue, choices) : null;
+        break;
+      case FieldType.MultipleSelect:
+        value = choices ? this.normalizeMultipleChoiceValue(rawValue, choices) : null;
+        break;
+      default:
+        value = null;
+    }
+
+    if (value == null || (Array.isArray(value) && value.length === 0)) {
+      return {
+        fieldId: field.id,
+        name: field.name,
+        type: field.type,
+        status: 'invalid',
+        value: null,
+        reason: 'AI returned a value that does not match the field type.',
+        choices,
+      };
+    }
+
+    return {
+      fieldId: field.id,
+      name: field.name,
+      type: field.type,
+      status: 'filled',
+      value,
+      choices,
+    };
+  }
+
+  private async getExtractFields(baseId: string, tableId: string, fieldIds?: string[]) {
+    await this.assertTableInBase(baseId, tableId);
+    const fields = await this.prismaService.field.findMany({
+      where: {
+        tableId,
+        deletedTime: null,
+        ...(fieldIds?.length ? { id: { in: fieldIds } } : {}),
+      },
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        options: true,
+        isComputed: true,
+      },
+    });
+
+    const editableFields = fields
+      .filter((field) => !field.isComputed)
+      .map((field) => {
+        const options = this.parseJsonString<{ showAs?: { type?: string } }>(field.options);
+        if (field.type === FieldType.SingleLineText && options?.showAs?.type === 'barcode') {
+          return { ...field, type: FieldType.Barcode };
+        }
+
+        if (field.type === FieldType.SingleLineText && options?.showAs?.type === 'qrcode') {
+          return { ...field, type: FieldType.QRCode };
+        }
+
+        return field;
+      });
+    if (fieldIds?.length) {
+      const orderedFields = fieldIds
+        .map((fieldId) => editableFields.find((field) => field.id === fieldId))
+        .filter((field): field is (typeof editableFields)[number] => Boolean(field));
+      return orderedFields;
+    }
+
+    return editableFields.filter((field) =>
+      AI_EXTRACT_SUPPORTED_FIELD_TYPES.has(field.type as FieldType)
+    );
+  }
+
+  async previewExtractAndWrite(
+    baseId: string,
+    body: IAiExtractWritePreviewRo
+  ): Promise<IAiExtractWritePreviewVo> {
+    const fields = await this.getExtractFields(baseId, body.tableId, body.fieldIds);
+    const readonlyContext = body.recordId
+      ? await this.getAutoNumberReadonlyContext(body.tableId, body.recordId)
+      : undefined;
+    const warnings: string[] = [];
+
+    if (body.recordId) {
+      await this.permissionService.validPermissions(body.tableId, ['record|update']);
+    } else {
+      await this.permissionService.validPermissions(body.tableId, ['record|create']);
+    }
+
+    if (!fields.length) {
+      warnings.push('No writable target fields are available for AI extraction.');
+      return {
+        action: body.recordId ? 'update' : 'create',
+        tableId: body.tableId,
+        recordId: body.recordId,
+        fields: [],
+        warnings,
+      };
+    }
+
+    const modelInstance = await this.getGenerationModelInstance(baseId, {
+      prompt: body.sourceText,
+      task: Task.Coding,
+      modelKey: body.modelKey,
+    });
+
+    const { text } = await generateText({
+      model: modelInstance,
+      prompt: this.buildExtractPrompt(
+        fields.map((field) => ({
+          ...field,
+          type: field.type as FieldType,
+          choices: this.getFieldChoices(field as IExtractField),
+        })),
+        body,
+        readonlyContext
+      ),
+    });
+
+    const rawResult = this.parseAiJson(text);
+    const existingAttachmentPreview = body.recordId
+      ? await this.getExistingAttachmentPreview(
+          body.tableId,
+          body.recordId,
+          fields as IExtractField[]
+        )
+      : new Map<string, { id: string; name: string; url: string }[]>();
+    const previewFields = fields.map((field) => {
+      const normalizedField = this.normalizeFieldPreview(
+        field as IExtractField,
+        rawResult[field.id]
+      );
+      if (field.type !== FieldType.Attachment || !body.recordId) {
+        return normalizedField;
+      }
+
+      return {
+        ...normalizedField,
+        existingAttachments: existingAttachmentPreview.get(field.id) ?? [],
+        keepExistingAttachmentIds: [],
+      };
+    });
+
+    if (!previewFields.some((field) => field.status === 'filled')) {
+      warnings.push('AI did not return any valid writable values for the selected fields.');
+    }
+
+    return {
+      action: body.recordId ? 'update' : 'create',
+      tableId: body.tableId,
+      recordId: body.recordId,
+      fields: previewFields,
+      warnings,
+    };
+  }
+
+  async applyExtractAndWrite(
+    baseId: string,
+    body: IAiExtractWriteApplyRo
+  ): Promise<IAiExtractWriteApplyVo> {
+    const fields = await this.getExtractFields(
+      baseId,
+      body.tableId,
+      body.fields.map((field) => field.fieldId)
+    );
+    const fieldMap = new Map(fields.map((field) => [field.id, field as IExtractField]));
+    const appliedFields = body.fields
+      .map((field) => {
+        const targetField = fieldMap.get(field.fieldId);
+        if (!targetField) {
+          return null;
+        }
+
+        if (targetField.type === FieldType.Attachment) {
+          const attachmentValue = this.toAttachmentApplyValue(
+            field.value,
+            field.keepExistingAttachmentIds
+          );
+          if (body.recordId) {
+            return {
+              fieldId: targetField.id,
+              name: targetField.name,
+              value: attachmentValue,
+            };
+          }
+
+          if (!attachmentValue.urls.length) {
+            return null;
+          }
+
+          return {
+            fieldId: targetField.id,
+            name: targetField.name,
+            value: attachmentValue,
+          };
+        }
+
+        const normalized = this.normalizeFieldPreview(targetField, field.value, false);
+        return normalized.status === 'filled'
+          ? {
+              fieldId: targetField.id,
+              name: targetField.name,
+              value: normalized.value,
+            }
+          : null;
+      })
+      .filter(
+        (
+          field
+        ): field is {
+          fieldId: string;
+          name: string;
+          value: unknown;
+        } => Boolean(field)
+      );
+
+    const attachmentFields = appliedFields.filter(
+      (field) => fieldMap.get(field.fieldId)?.type === FieldType.Attachment
+    );
+    const regularFields = appliedFields.filter(
+      (field) => fieldMap.get(field.fieldId)?.type !== FieldType.Attachment
+    );
+
+    if (!appliedFields.length) {
+      throw new CustomHttpException('No valid fields to apply', HttpErrorCode.VALIDATION_ERROR);
+    }
+
+    let operation: IAiRecordOperationVo;
+    let targetRecordId = body.recordId;
+    if (body.recordId) {
+      await this.permissionService.validPermissions(body.tableId, ['record|update']);
+      const currentAttachmentRecord = attachmentFields.length
+        ? await this.recordService.getRecord(
+            body.tableId,
+            body.recordId,
+            {
+              projection: attachmentFields.map((field) => field.fieldId),
+              fieldKeyType: FieldKeyType.Id,
+            },
+            true,
+            true
+          )
+        : null;
+      const attachmentResetFields = Object.fromEntries(
+        attachmentFields.map((field) => {
+          const { keepAttachmentIds } = field.value as IAttachmentApplyValue;
+          const currentAttachments = Array.isArray(currentAttachmentRecord?.fields[field.fieldId])
+            ? (currentAttachmentRecord?.fields[field.fieldId] as IAttachmentItem[])
+            : [];
+          const retainedAttachments = keepAttachmentIds.length
+            ? currentAttachments.filter((attachment) => keepAttachmentIds.includes(attachment.id))
+            : [];
+          return [field.name, retainedAttachments];
+        })
+      );
+      const updateFields = {
+        ...Object.fromEntries(regularFields.map((field) => [field.name, field.value])),
+        ...attachmentResetFields,
+      };
+
+      if (Object.keys(updateFields).length) {
+        operation = await this.recordOperation(baseId, {
+          action: 'update',
+          tableId: body.tableId,
+          payload: {
+            fieldKeyType: FieldKeyType.Name,
+            records: [
+              {
+                id: body.recordId,
+                fields: updateFields,
+              },
+            ],
+            aiContext: {},
+          },
+        });
+      } else {
+        operation = {
+          action: 'update',
+          tableId: body.tableId,
+          records: [],
+        };
+      }
+    } else {
+      await this.permissionService.validPermissions(body.tableId, ['record|create']);
+      operation = await this.recordOperation(baseId, {
+        action: 'create',
+        tableId: body.tableId,
+        payload: {
+          fieldKeyType: FieldKeyType.Name,
+          records: [
+            {
+              fields: Object.fromEntries(regularFields.map((field) => [field.name, field.value])),
+            },
+          ],
+        },
+      });
+      targetRecordId = operation.action === 'create' ? operation.records[0]?.id : undefined;
+    }
+
+    if (!targetRecordId) {
+      throw new CustomHttpException(
+        'Target record is required for attachment upload',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+
+    for (const attachmentField of attachmentFields) {
+      const { urls } = attachmentField.value as IAttachmentApplyValue;
+      for (const url of urls) {
+        const record = await this.recordOpenApiService.uploadAttachment(
+          body.tableId,
+          targetRecordId,
+          attachmentField.fieldId,
+          undefined,
+          url
+        );
+
+        operation = body.recordId
+          ? {
+              action: 'update',
+              tableId: body.tableId,
+              records: [record],
+            }
+          : {
+              action: 'create',
+              tableId: body.tableId,
+              records: [record],
+            };
+      }
+    }
+
+    return {
+      operation,
+      appliedFieldIds: appliedFields.map((field) => field.fieldId),
+    };
+  }
+
+  async getViewContext(baseId: string, query: IAiViewContextQuery): Promise<IAiViewContextVo> {
+    const { tableId, viewId, ignoreViewQuery, filter, orderBy, groupBy, search } = query;
+    const sampleSize = query.sampleSize ?? 5;
+
+    await this.prismaService.tableMeta.findFirstOrThrow({
+      where: {
+        id: tableId,
+        baseId,
+        deletedTime: null,
+      },
+      select: { id: true },
+    });
+
+    const viewRaw = viewId
+      ? await this.prismaService.view.findFirstOrThrow({
+          where: {
+            id: viewId,
+            tableId,
+            deletedTime: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            filter: true,
+            sort: true,
+            group: true,
+            columnMeta: true,
+          },
+        })
+      : null;
+
+    const columnMeta = viewRaw?.columnMeta
+      ? (JSON.parse(viewRaw.columnMeta) as IColumnMeta)
+      : undefined;
+    const fieldRaws = await this.prismaService.field.findMany({
+      where: {
+        tableId,
+        deletedTime: null,
+      },
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        isPrimary: true,
+      },
+    });
+
+    const fields: IAiViewContextField[] = fieldRaws.map((field) => ({
+      id: field.id,
+      name: field.name,
+      type: field.type,
+      isPrimary: Boolean(field.isPrimary),
+      visible: isFieldVisible(columnMeta, field.id),
+    }));
+
+    const visibleFieldIds = fields.filter((field) => field.visible).map((field) => field.id);
+    const sampleFieldIds = (
+      visibleFieldIds.length ? visibleFieldIds : fields.map((field) => field.id)
+    ).slice(0, 8);
+
+    const effectiveQuery = await this.recordService.prepareQuery(tableId, {
+      viewId,
+      ignoreViewQuery,
+      filter,
+      orderBy,
+      groupBy,
+      search,
+    });
+
+    const effectiveGroupBy = (groupBy ??
+      (viewRaw?.group ? (JSON.parse(viewRaw.group) as IGroup) : undefined)) as IGroup | undefined;
+
+    const totalCount = await this.recordService.countRecordsByQuery(tableId, {
+      viewId,
+      ignoreViewQuery,
+      filter,
+      orderBy,
+      groupBy: effectiveGroupBy,
+      search,
+    });
+
+    const sampleRecords = await this.recordService.getRecords(
+      tableId,
+      {
+        viewId,
+        ignoreViewQuery,
+        filter,
+        orderBy,
+        groupBy: effectiveGroupBy,
+        search,
+        take: sampleSize,
+        fieldKeyType: FieldKeyType.Id,
+        projection: sampleFieldIds,
+      },
+      true
+    );
+
+    return {
+      tableId,
+      viewId,
+      summary: {
+        totalCount,
+        sampleSize,
+        appliedViewQuery: Boolean(viewId) && !ignoreViewQuery,
+      },
+      view: viewRaw
+        ? {
+            id: viewRaw.id,
+            name: viewRaw.name,
+            type: viewRaw.type,
+            filter: viewRaw.filter ? (JSON.parse(viewRaw.filter) as IFilter) : undefined,
+            sort: viewRaw.sort ? (JSON.parse(viewRaw.sort) as ISortItem[]) : undefined,
+            group: viewRaw.group ? (JSON.parse(viewRaw.group) as IGroup) : undefined,
+            columnMeta,
+          }
+        : undefined,
+      effectiveQuery: {
+        filter: effectiveQuery.filter,
+        orderBy: effectiveQuery.orderBy,
+        groupBy: effectiveGroupBy,
+        search,
+      },
+      fields,
+      sampleRecords: sampleRecords.records,
+    };
+  }
 
   public parseModelKey(modelKey: string) {
     const [type, model, name] = modelKey.split('@');
@@ -377,6 +1431,27 @@ export class AiService {
     }
   }
 
+  async getNativeCapabilities(baseId: string, query?: IGetNativeAICapabilitiesQuery) {
+    const [config, disableActionVo] = await Promise.all([
+      this.getSimplifiedAIConfig(baseId),
+      this.getAIDisableAIActions(baseId),
+    ]);
+    const items = filterNativeCapabilities(
+      resolveNativeCapabilities(config, disableActionVo.disableActions),
+      query
+    );
+    return buildNativeCapabilitiesVo(items);
+  }
+
+  async queryNativeCapabilities(baseId: string, queryRo: IQueryNativeAICapabilitiesRo) {
+    const [config, disableActionVo] = await Promise.all([
+      this.getSimplifiedAIConfig(baseId),
+      this.getAIDisableAIActions(baseId),
+    ]);
+    const items = resolveNativeCapabilities(config, disableActionVo.disableActions);
+    return queryNativeCapabilities(items, queryRo);
+  }
+
   private async getGenerationModelInstance(baseId: string, aiGenerateRo: IAiGenerateRo) {
     const { modelKey: _modelKey, task = Task.Coding } = aiGenerateRo;
     const config = await this.getAIConfig(baseId);
@@ -400,7 +1475,26 @@ export class AiService {
       prompt: prompt,
     });
 
-    result.pipeTextStreamToResponse(response);
+    response.status(200);
+    response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+    try {
+      for await (const chunk of result.textStream) {
+        response.write(chunk);
+      }
+
+      response.end();
+    } catch (error) {
+      const message = getAiStreamErrorMessage(error, 'Upstream response stream was aborted');
+      handleAiStreamErrorResponse(
+        response,
+        createAiStreamError(AiStreamErrorCode.StreamReadError, message),
+        (streamError) => {
+          response.write(`\n[stream_error] ${streamError.message}`);
+          response.end();
+        }
+      );
+    }
   }
 
   async generateText(baseId: string, aiGenerateRo: IAiGenerateRo) {

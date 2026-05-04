@@ -37,6 +37,7 @@
     "clean:backend": "rimraf --no-glob ./main",
     "test": "run-s test-unit",
     "test-unit": "vitest run --silent",
+    "benchmark:chart": "node ./scripts/chart-benchmark.cjs",
     "test-unit-cover": "pnpm test-unit --coverage",
     "typecheck": "tsc --project ./tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx,.cjs,.mjs,.mdx --cache --cache-location ../../.cache/eslint/nextjs-app.eslintcache",

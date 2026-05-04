@@ -24,11 +24,12 @@ export class PluginChartController {
     @Query(new ZodValidationPipe(getPluginPanelInstallPluginQueryRoSchema))
     query: IGetPluginPanelInstallPluginQueryRo
   ): Promise<IBaseQueryVo> {
-    const { tableId, cellFormat } = query;
+    const { tableId, interactionFilter, cellFormat } = query;
     return this.pluginChartService.getPluginPanelPluginQuery(
       pluginInstallId,
       positionId,
       tableId,
+      interactionFilter,
       cellFormat
     );
   }
@@ -42,11 +43,12 @@ export class PluginChartController {
     @Query(new ZodValidationPipe(getDashboardInstallPluginQueryRoSchema))
     query: IGetDashboardInstallPluginQueryRo
   ): Promise<IBaseQueryVo> {
-    const { baseId, cellFormat } = query;
+    const { baseId, interactionFilter, cellFormat } = query;
     return this.pluginChartService.getDashboardPluginQuery(
       pluginInstallId,
       positionId,
       baseId,
+      interactionFilter,
       cellFormat
     );
   }
