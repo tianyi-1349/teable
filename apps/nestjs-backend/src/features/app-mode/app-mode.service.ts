@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { HttpErrorCode } from '@teable/core';
 import { appModeConfigSchema, type IAppModeConfig } from '@teable/openapi';
 import { PrismaService } from '@teable/db-main-prisma';
 import { ClsService } from 'nestjs-cls';
+import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
 
 @Injectable()
@@ -37,6 +39,19 @@ export class AppModeService {
     }
   }
 
+  private validateGovernance(config: IAppModeConfig) {
+    const { governance } = config;
+    if (
+      governance.auditPolicy === 'strict' &&
+      (governance.permissionMode !== 'isolated' || governance.roleMatrixVersion < 2)
+    ) {
+      throw new CustomHttpException(
+        'Invalid governance policy: strict audit requires isolated permission mode and roleMatrixVersion >= 2',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+  }
+
   private async ensureBaseExists(baseId: string) {
     await this.prismaService.base.findUniqueOrThrow({
       where: { id: baseId, deletedTime: null },
@@ -57,6 +72,7 @@ export class AppModeService {
   async updateConfig(baseId: string, config: IAppModeConfig): Promise<IAppModeConfig> {
     await this.ensureBaseExists(baseId);
     const normalized = appModeConfigSchema.parse(config);
+    this.validateGovernance(normalized);
 
     await this.prismaService.setting.upsert({
       where: { name: this.getSettingName(baseId) },
