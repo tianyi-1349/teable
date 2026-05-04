@@ -51,6 +51,8 @@ model Base {
   lastModifiedTime DateTime?   @updatedAt @map("last_modified_time")
   space            Space       @relation(fields: [spaceId], references: [id])
   tables           TableMeta[]
+  workflows        Workflow[]
+  workflowExecutions WorkflowExecution[]
 
   @@index([order])
   @@map("base")
@@ -627,6 +629,51 @@ model Dashboard {
 
   @@index([baseId])
   @@map("dashboard")
+}
+
+model Workflow {
+  id               String    @id
+  baseId           String    @map("base_id")
+  name             String
+  description      String?
+  trigger          String?
+  conditions       String?
+  actions          String?
+  isActive         Boolean   @default(false) @map("is_active")
+  order            Float     @map("order")
+  deletedTime      DateTime? @map("deleted_time")
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  lastModifiedBy   String?   @map("last_modified_by")
+  base             Base      @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  executions       WorkflowExecution[]
+
+  @@index([order])
+  @@index([baseId, deletedTime])
+  @@map("workflow")
+}
+
+model WorkflowExecution {
+  id               String    @id @default(cuid())
+  workflowId       String    @map("workflow_id")
+  baseId           String    @map("base_id")
+  triggerType      String?   @map("trigger_type")
+  status           String    @map("status")
+  eventPayload     String?   @map("event_payload")
+  steps            String?   @map("steps")
+  actionCount      Int       @default(0) @map("action_count")
+  errorMessage     String?   @map("error_message")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  completedTime    DateTime? @map("completed_time")
+  createdBy        String?   @map("created_by")
+  workflow         Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  base             Base      @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, createdTime])
+  @@index([baseId, workflowId])
+  @@index([baseId, workflowId, id])
+  @@map("workflow_execution")
 }
 
 model Comment {
