@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HttpErrorCode } from '@teable/core';
 import { AppModeService } from './app-mode.service';
 
 describe('AppModeService', () => {
@@ -78,6 +79,69 @@ describe('AppModeService', () => {
       expect.objectContaining({
         where: { name: 'app-mode:base:base123' },
       })
+    );
+  });
+
+  it('rejects strict governance without isolated mode', async () => {
+    await expect(
+      service.updateConfig('base123', {
+        version: 1,
+        pages: [],
+        linkedBaseIds: [],
+        dashboardIds: [],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 2,
+          auditPolicy: 'strict',
+          permissionMode: 'inherited',
+        },
+      })
+    ).rejects.toMatchObject({ code: HttpErrorCode.VALIDATION_ERROR });
+  });
+
+  it('rejects strict governance with low role matrix version', async () => {
+    await expect(
+      service.updateConfig('base123', {
+        version: 1,
+        pages: [],
+        linkedBaseIds: [],
+        dashboardIds: [],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 1,
+          auditPolicy: 'strict',
+          permissionMode: 'isolated',
+        },
+      })
+    ).rejects.toMatchObject({ code: HttpErrorCode.VALIDATION_ERROR });
+  });
+
+  it('is idempotent for repeated valid updates', async () => {
+    const payload = {
+      version: 1,
+      pages: [{ id: 'p1', name: 'Home', type: 'list' as const }],
+      linkedBaseIds: ['baseA'],
+      dashboardIds: ['dashA'],
+      workflowEnabled: true,
+      governance: {
+        roleMatrixVersion: 2,
+        auditPolicy: 'strict' as const,
+        permissionMode: 'isolated' as const,
+      },
+    };
+
+    const first = await service.updateConfig('base123', payload);
+    const second = await service.updateConfig('base123', payload);
+
+    expect(first).toEqual(second);
+    expect(settingUpsert).toHaveBeenCalledTimes(2);
+    expect(settingUpsert).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ where: { name: 'app-mode:base:base123' } })
+    );
+    expect(settingUpsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ where: { name: 'app-mode:base:base123' } })
     );
   });
 });

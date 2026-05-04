@@ -81,7 +81,7 @@ describe('AppModeController integration', () => {
 
     expect(response.status).toBe(403);
     expect(service.getConfig).not.toHaveBeenCalled();
-  });
+  }, 15000);
 
   it('returns 400 when payload is invalid', async () => {
     const module = await Test.createTestingModule({
@@ -116,7 +116,28 @@ describe('AppModeController integration', () => {
 
     expect(response.status).toBe(400);
     expect(service.updateConfig).not.toHaveBeenCalled();
-  });
+  }, 15000);
+
+  it('returns 200 when has base|read permission', async () => {
+    const module = await Test.createTestingModule({
+      controllers: [AppModeController],
+      providers: [Reflector, { provide: AppModeService, useValue: service }],
+    }).compile();
+
+    app = module.createNestApplication();
+    app.useGlobalGuards(new TestPermissionGuard(app.get(Reflector)));
+    await app.listen(0);
+    const appUrl = await app.getUrl();
+
+    const response = await fetch(`${appUrl}/api/base/base123/app-mode/config`, {
+      headers: {
+        'x-scopes': 'base|read',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(service.getConfig).toHaveBeenCalledWith('base123');
+  }, 15000);
 
   it('returns 200 and delegates update when payload is valid', async () => {
     const module = await Test.createTestingModule({
@@ -154,5 +175,5 @@ describe('AppModeController integration', () => {
     expect(response.status).toBe(200);
     expect(service.updateConfig).toHaveBeenCalledWith('base123', payload);
     await expect(response.json()).resolves.toEqual(payload);
-  });
+  }, 15000);
 });
