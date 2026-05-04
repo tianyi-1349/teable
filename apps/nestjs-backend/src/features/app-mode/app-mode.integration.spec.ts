@@ -118,6 +118,44 @@ describe('AppModeController integration', () => {
     expect(service.updateConfig).not.toHaveBeenCalled();
   }, 15000);
 
+  it('returns 400 when payload contains duplicate page ids', async () => {
+    const module = await Test.createTestingModule({
+      controllers: [AppModeController],
+      providers: [Reflector, { provide: AppModeService, useValue: service }],
+    }).compile();
+
+    app = module.createNestApplication();
+    app.useGlobalGuards(new TestPermissionGuard(app.get(Reflector)));
+    await app.listen(0);
+    const appUrl = await app.getUrl();
+
+    const response = await fetch(`${appUrl}/api/base/base123/app-mode/config`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-scopes': 'base|update',
+      },
+      body: JSON.stringify({
+        version: 1,
+        pages: [
+          { id: 'p1', name: 'Home', type: 'list' },
+          { id: 'p1', name: 'Duplicate', type: 'detail' },
+        ],
+        linkedBaseIds: [],
+        dashboardIds: [],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 1,
+          auditPolicy: 'standard',
+          permissionMode: 'inherited',
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(service.updateConfig).not.toHaveBeenCalled();
+  }, 15000);
+
   it('returns 200 when has base|read permission', async () => {
     const module = await Test.createTestingModule({
       controllers: [AppModeController],

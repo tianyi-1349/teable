@@ -1,0 +1,140 @@
+import type * as ShadcnModule from '@teable/ui-lib/shadcn';
+import { render, screen, userEvent } from '@/test-utils';
+import { AppModeConfigEditorCard } from './AppModeConfigEditorCard';
+
+const mockEditor = {
+  config: {
+    version: 1,
+    pages: [{ id: 'p1', name: 'Home', type: 'list' as const }],
+    linkedBaseIds: ['baseA'],
+    dashboardIds: ['dashA'],
+    workflowEnabled: false,
+    governance: {
+      roleMatrixVersion: 1,
+      auditPolicy: 'standard' as const,
+      permissionMode: 'inherited' as const,
+    },
+  },
+  draft: {
+    version: 1,
+    pages: [{ id: 'p1', name: 'Home', type: 'list' as const }],
+    linkedBaseIds: ['baseA'],
+    dashboardIds: ['dashA'],
+    workflowEnabled: false,
+    governance: {
+      roleMatrixVersion: 1,
+      auditPolicy: 'standard' as const,
+      permissionMode: 'inherited' as const,
+    },
+  },
+  isDirty: true,
+  draftValidation: { ok: true as const },
+  isUpdating: false,
+  setWorkflowEnabled: vi.fn(),
+  setLinkedBaseIds: vi.fn(),
+  setDashboardIds: vi.fn(),
+  setGovernance: vi.fn(),
+  addPage: vi.fn(),
+  updatePage: vi.fn(),
+  removePage: vi.fn(),
+  patchDraft: vi.fn(),
+  saveDraft: vi.fn(),
+  resetDraft: vi.fn(),
+  refetch: vi.fn(),
+};
+
+const toast = vi.fn();
+
+vi.mock('@teable/sdk/hooks', () => ({
+  useAppModeConfigEditor: () => mockEditor,
+}));
+
+vi.mock('@teable/ui-lib/shadcn', async (importOriginal) => {
+  const actual = await importOriginal<typeof ShadcnModule>();
+  return {
+    ...actual,
+    useToast: () => ({ toast }),
+  };
+});
+
+describe('AppModeConfigEditorCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('updates linked base ids on blur', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const input = screen.getByPlaceholderText('baseA, baseB');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'baseX, baseY');
+    await userEvent.tab();
+
+    expect(mockEditor.setLinkedBaseIds).toHaveBeenCalledWith(['baseX', 'baseY']);
+  });
+
+  it('adds page when id and name are provided', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    await userEvent.type(screen.getAllByPlaceholderText('Page id')[0], 'p2');
+    await userEvent.type(screen.getAllByPlaceholderText('Page name')[0], 'Detail');
+    await userEvent.click(screen.getByRole('button', { name: 'Add page' }));
+
+    expect(mockEditor.addPage).toHaveBeenCalledWith({ id: 'p2', name: 'Detail', type: 'list' });
+  });
+
+  it('imports json into draft', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const payload = JSON.stringify({
+      ...mockEditor.draft,
+      workflowEnabled: true,
+    });
+    const input = screen.getByPlaceholderText('Paste app mode config JSON') as HTMLInputElement;
+    await userEvent.click(input);
+    await userEvent.paste(payload);
+    await userEvent.click(screen.getByRole('button', { name: 'Import JSON' }));
+
+    expect(mockEditor.patchDraft).toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith({ title: 'Imported JSON to draft' });
+  });
+
+  it('shows error toast when import json is invalid', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const input = screen.getByPlaceholderText('Paste app mode config JSON') as HTMLInputElement;
+    await userEvent.click(input);
+    await userEvent.paste('{invalid');
+    await userEvent.click(screen.getByRole('button', { name: 'Import JSON' }));
+
+    expect(toast).toHaveBeenCalledWith({
+      title: 'Invalid JSON',
+      variant: 'destructive',
+    });
+  });
+
+  it('updates governance by role matrix input', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const input = screen.getByDisplayValue('1');
+    await userEvent.clear(input);
+    await userEvent.type(input, '3');
+
+    expect(mockEditor.setGovernance).toHaveBeenCalled();
+    const calls = mockEditor.setGovernance.mock.calls.map((call) => call[0]?.roleMatrixVersion);
+    expect(calls.some((value) => typeof value === 'number' && value >= 3)).toBe(true);
+  });
+
+  it('moves page order when clicking up and down', async () => {
+    mockEditor.draft.pages = [
+      { id: 'p1', name: 'Home', type: 'list' },
+      { id: 'p2', name: 'Detail', type: 'detail' },
+    ] as typeof mockEditor.draft.pages;
+
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const downButtons = screen.getAllByRole('button', { name: 'Down' });
+    await userEvent.click(downButtons[0]);
+    expect(mockEditor.patchDraft).toHaveBeenCalled();
+  });
+});

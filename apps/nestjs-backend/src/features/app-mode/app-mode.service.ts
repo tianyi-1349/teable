@@ -71,7 +71,15 @@ export class AppModeService {
 
   async updateConfig(baseId: string, config: IAppModeConfig): Promise<IAppModeConfig> {
     await this.ensureBaseExists(baseId);
-    const normalized = appModeConfigSchema.parse(config);
+    const parsed = appModeConfigSchema.safeParse(config);
+    if (!parsed.success) {
+      throw new CustomHttpException(
+        parsed.error.issues[0]?.message ?? 'Invalid app mode config',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+
+    const normalized = parsed.data;
     this.validateGovernance(normalized);
 
     await this.prismaService.setting.upsert({

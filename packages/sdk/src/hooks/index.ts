@@ -50,3 +50,4 @@ export * from './use-is-readonly-preview';
 export * from './use-template';
 export * from './use-track';
 export * from './use-app-mode-config';
+export * from './use-app-mode-config-editor';

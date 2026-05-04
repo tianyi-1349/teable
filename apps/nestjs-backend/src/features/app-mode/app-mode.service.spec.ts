@@ -144,4 +144,58 @@ describe('AppModeService', () => {
       expect.objectContaining({ where: { name: 'app-mode:base:base123' } })
     );
   });
+
+  it('rejects duplicate page ids', async () => {
+    await expect(
+      service.updateConfig('base123', {
+        version: 1,
+        pages: [
+          { id: 'p1', name: 'Home', type: 'list' },
+          { id: 'p1', name: 'Duplicate', type: 'detail' },
+        ],
+        linkedBaseIds: [],
+        dashboardIds: [],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 1,
+          auditPolicy: 'standard',
+          permissionMode: 'inherited',
+        },
+      })
+    ).rejects.toMatchObject({ code: HttpErrorCode.VALIDATION_ERROR });
+  });
+
+  it('rejects duplicate linked base ids', async () => {
+    await expect(
+      service.updateConfig('base123', {
+        version: 1,
+        pages: [],
+        linkedBaseIds: ['baseA', 'baseA'],
+        dashboardIds: [],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 1,
+          auditPolicy: 'standard',
+          permissionMode: 'inherited',
+        },
+      })
+    ).rejects.toMatchObject({ code: HttpErrorCode.VALIDATION_ERROR });
+  });
+
+  it('rejects duplicate dashboard ids', async () => {
+    await expect(
+      service.updateConfig('base123', {
+        version: 1,
+        pages: [],
+        linkedBaseIds: [],
+        dashboardIds: ['dashA', 'dashA'],
+        workflowEnabled: false,
+        governance: {
+          roleMatrixVersion: 1,
+          auditPolicy: 'standard',
+          permissionMode: 'inherited',
+        },
+      })
+    ).rejects.toMatchObject({ code: HttpErrorCode.VALIDATION_ERROR });
+  });
 });
