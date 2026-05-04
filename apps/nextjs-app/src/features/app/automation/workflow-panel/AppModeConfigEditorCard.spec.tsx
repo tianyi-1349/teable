@@ -60,6 +60,7 @@ vi.mock('@teable/ui-lib/shadcn', async (importOriginal) => {
 describe('AppModeConfigEditorCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEditor.draft.pages = [{ id: 'p1', name: 'Home', type: 'list' }];
   });
 
   it('updates linked base ids on blur', async () => {
@@ -109,6 +110,38 @@ describe('AppModeConfigEditorCard', () => {
 
     expect(toast).toHaveBeenCalledWith({
       title: 'Invalid JSON',
+      variant: 'destructive',
+    });
+  });
+
+  it('shows error toast when import json does not match schema', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    const input = screen.getByPlaceholderText('Paste app mode config JSON') as HTMLInputElement;
+    await userEvent.click(input);
+    await userEvent.paste('{"pages":"invalid"}');
+    await userEvent.click(screen.getByRole('button', { name: 'Import JSON' }));
+
+    expect(mockEditor.patchDraft).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Invalid app mode config',
+        variant: 'destructive',
+      })
+    );
+  });
+
+  it('blocks adding page with duplicate id', async () => {
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    await userEvent.type(screen.getAllByPlaceholderText('Page id')[0], 'p1');
+    await userEvent.type(screen.getAllByPlaceholderText('Page name')[0], 'Duplicate');
+    await userEvent.click(screen.getByRole('button', { name: 'Add page' }));
+
+    expect(mockEditor.addPage).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith({
+      title: 'Duplicate page id',
+      description: 'Please use a unique page id.',
       variant: 'destructive',
     });
   });
