@@ -779,32 +779,36 @@ describe('AiService extract and write', () => {
       ],
     });
 
-    expect(serviceWithInternals.recordOperation).toHaveBeenCalledWith('base123', {
-      action: 'update',
-      tableId: 'tbl123',
-      payload: {
-        fieldKeyType: FieldKeyType.Name,
-        records: [
-          {
-            id: 'rec123',
-            fields: {
-              Title: 'Updated Invoice',
-              Screenshots: [
-                {
-                  id: 'actExisting2',
-                  name: 'existing-b.png',
-                  path: 'attachments/existing-b.png',
-                  token: 'tok-existing-b',
-                  size: 456,
-                  mimetype: 'image/png',
-                },
-              ],
+    expect(serviceWithInternals.recordOperation).toHaveBeenCalledWith(
+      'base123',
+      {
+        action: 'update',
+        tableId: 'tbl123',
+        payload: {
+          fieldKeyType: FieldKeyType.Name,
+          records: [
+            {
+              id: 'rec123',
+              fields: {
+                Title: 'Updated Invoice',
+                Screenshots: [
+                  {
+                    id: 'actExisting2',
+                    name: 'existing-b.png',
+                    path: 'attachments/existing-b.png',
+                    token: 'tok-existing-b',
+                    size: 456,
+                    mimetype: 'image/png',
+                  },
+                ],
+              },
             },
-          },
-        ],
-        aiContext: {},
+          ],
+          aiContext: {},
+        },
       },
-    });
+      true
+    );
     expect(recordOpenApiService.uploadAttachment).toHaveBeenCalledWith(
       'tbl123',
       'rec123',
@@ -860,22 +864,26 @@ describe('AiService extract and write', () => {
       ],
     });
 
-    expect(serviceWithInternals.recordOperation).toHaveBeenCalledWith('base123', {
-      action: 'update',
-      tableId: 'tbl123',
-      payload: {
-        fieldKeyType: FieldKeyType.Name,
-        records: [
-          {
-            id: 'rec123',
-            fields: {
-              Screenshots: [],
+    expect(serviceWithInternals.recordOperation).toHaveBeenCalledWith(
+      'base123',
+      {
+        action: 'update',
+        tableId: 'tbl123',
+        payload: {
+          fieldKeyType: FieldKeyType.Name,
+          records: [
+            {
+              id: 'rec123',
+              fields: {
+                Screenshots: [],
+              },
             },
-          },
-        ],
-        aiContext: {},
+          ],
+          aiContext: {},
+        },
       },
-    });
+      true
+    );
     expect(recordOpenApiService.uploadAttachment).not.toHaveBeenCalled();
     expect(result).toEqual({
       operation: {

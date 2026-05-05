@@ -15,8 +15,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import {
+  aiRecordScopeSchema,
   createRecordsRoSchema,
   getRecordQuerySchema,
   getRecordsRoSchema,
@@ -34,6 +36,7 @@ import type {
   IAutoFillCellVo,
   IButtonClickVo,
   ICreateRecordsVo,
+  IAiRecordScope,
   IRecord,
   IRecordGetCollaboratorsVo,
   IRecordStatusVo,
@@ -51,6 +54,7 @@ import type {
   IInsertAttachmentRo,
 } from '@teable/openapi';
 import { ClsService } from 'nestjs-cls';
+import { CustomHttpException } from '../../../custom.exception';
 import { EmitControllerEvent } from '../../../event-emitter/decorators/emit-controller-event.decorator';
 import { Events } from '../../../event-emitter/events';
 import { PerformanceCacheService } from '../../../performance-cache';
@@ -82,6 +86,25 @@ export class RecordOpenApiController {
     private readonly cls: ClsService<IClsStore>,
     private readonly recordOpenApiV2Service: RecordOpenApiV2Service
   ) {}
+
+  private async assertAiRecordScope(
+    tableId: string,
+    recordIds: string[],
+    aiContext?: IAiRecordScope
+  ) {
+    if (!aiContext) {
+      return;
+    }
+
+    if (!aiContext.viewId) {
+      throw new CustomHttpException(
+        'AI record scope requires a viewId to restrict the operation scope',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+
+    await this.recordService.assertRecordIdsInQueryScope(tableId, recordIds, aiContext);
+  }
 
   @Permissions('record|update')
   @Get(':recordId/history')
@@ -145,6 +168,8 @@ export class RecordOpenApiController {
     @Headers('x-window-id') windowId?: string,
     @Headers('x-ai-internal') isAiInternal?: string
   ): Promise<IRecord> {
+    await this.assertAiRecordScope(tableId, [recordId], updateRecordRo.aiContext);
+
     // Use V2 logic when canary config enables it for this space + feature
     if (this.cls.get('useV2')) {
       return this.recordOpenApiV2Service.updateRecord(tableId, recordId, updateRecordRo);
@@ -204,6 +229,12 @@ export class RecordOpenApiController {
     @Headers('x-window-id') windowId?: string,
     @Headers('x-ai-internal') isAiInternal?: string
   ): Promise<IRecord[]> {
+    await this.assertAiRecordScope(
+      tableId,
+      updateRecordsRo.records.map((record) => record.id),
+      updateRecordsRo.aiContext
+    );
+
     if (this.cls.get('useV2')) {
       return await this.recordOpenApiV2Service.updateRecords(tableId, updateRecordsRo);
     }
@@ -279,8 +310,11 @@ export class RecordOpenApiController {
   async deleteRecord(
     @Param('tableId') tableId: string,
     @Param('recordId') recordId: string,
+    @Query(new ZodValidationPipe(aiRecordScopeSchema)) aiContext?: IAiRecordScope,
     @Headers('x-window-id') windowId?: string
   ): Promise<IRecord> {
+    await this.assertAiRecordScope(tableId, [recordId], aiContext);
+
     // Use V2 logic when canary config enables it for this space + feature
     if (this.cls.get('useV2')) {
       const result = await this.recordOpenApiV2Service.deleteRecords(tableId, [recordId], windowId);
@@ -298,6 +332,8 @@ export class RecordOpenApiController {
     @Query(new ZodValidationPipe(deleteRecordsQuerySchema)) query: IDeleteRecordsQuery,
     @Headers('x-window-id') windowId?: string
   ): Promise<IRecordsVo> {
+    await this.assertAiRecordScope(tableId, query.recordIds, query);
+
     // Use V2 logic when canary config enables it for this space + feature
     if (this.cls.get('useV2')) {
       return this.recordOpenApiV2Service.deleteRecords(tableId, query.recordIds, windowId);

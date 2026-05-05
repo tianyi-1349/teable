@@ -1,3 +1,4 @@
+import { DriverClient } from '@teable/core';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { WorkflowService } from './workflow.service';
 
@@ -25,13 +26,15 @@ describe('WorkflowService', () => {
   const prismaService = {
     txClient: vi.fn(() => ({ workflow: txWorkflow, field: txField, ...txRaw })),
     workflow: directWorkflow,
+    tableMeta: { findFirst: vi.fn() },
     $tx: vi.fn(async (fn: () => Promise<unknown>) => await fn()),
-    driver: 'pg',
   };
 
   const cls = {
     get: vi.fn((key: string) => (key === 'user.id' ? 'usr123' : undefined)),
   };
+
+  const dbProvider = { driver: DriverClient.Pg };
 
   let service: WorkflowService;
 
@@ -40,7 +43,7 @@ describe('WorkflowService', () => {
     txField.findMany.mockResolvedValue([]);
     txField.updateMany.mockResolvedValue({ count: 1 });
     txRaw.$executeRaw.mockResolvedValue([]);
-    service = new WorkflowService(prismaService as never, cls as never);
+    service = new WorkflowService(prismaService as never, cls as never, dbProvider as never);
   });
 
   it('getWorkflowById should parse stored json fields', async () => {

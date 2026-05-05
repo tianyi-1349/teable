@@ -132,7 +132,27 @@ export class AiService {
     });
   }
 
-  async recordOperation(baseId: string, body: IAiRecordOperationRo): Promise<IAiRecordOperationVo> {
+  private assertAiScopeHasView(
+    aiContext: { viewId?: string } | undefined,
+    action: string,
+    skipScopeCheck?: boolean
+  ) {
+    if (skipScopeCheck) {
+      return;
+    }
+    if (!aiContext?.viewId) {
+      throw new CustomHttpException(
+        `AI ${action} operation requires a viewId in aiContext to restrict the operation scope`,
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+  }
+
+  async recordOperation(
+    baseId: string,
+    body: IAiRecordOperationRo,
+    skipScopeCheck?: boolean
+  ): Promise<IAiRecordOperationVo> {
     const { action, tableId } = body;
     await this.assertTableInBase(baseId, tableId);
 
@@ -154,6 +174,7 @@ export class AiService {
 
     if (action === 'update') {
       await this.permissionService.validPermissions(tableId, ['record|update']);
+      this.assertAiScopeHasView(body.payload.aiContext, 'update', skipScopeCheck);
       const recordIds = body.payload.records.map((record) => record.id);
       await this.recordService.assertRecordIdsInQueryScope(
         tableId,
@@ -176,6 +197,7 @@ export class AiService {
     }
 
     await this.permissionService.validPermissions(tableId, ['record|delete']);
+    this.assertAiScopeHasView(body.payload.aiContext, 'delete', skipScopeCheck);
     await this.recordService.assertRecordIdsInQueryScope(
       tableId,
       body.payload.recordIds,
@@ -909,20 +931,24 @@ export class AiService {
       };
 
       if (Object.keys(updateFields).length) {
-        operation = await this.recordOperation(baseId, {
-          action: 'update',
-          tableId: body.tableId,
-          payload: {
-            fieldKeyType: FieldKeyType.Name,
-            records: [
-              {
-                id: body.recordId,
-                fields: updateFields,
-              },
-            ],
-            aiContext: {},
+        operation = await this.recordOperation(
+          baseId,
+          {
+            action: 'update',
+            tableId: body.tableId,
+            payload: {
+              fieldKeyType: FieldKeyType.Name,
+              records: [
+                {
+                  id: body.recordId,
+                  fields: updateFields,
+                },
+              ],
+              aiContext: {},
+            },
           },
-        });
+          true
+        );
       } else {
         operation = {
           action: 'update',

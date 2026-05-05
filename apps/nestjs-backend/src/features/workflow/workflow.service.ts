@@ -18,6 +18,8 @@ import type {
 } from '@teable/openapi';
 import { ClsService } from 'nestjs-cls';
 import { CustomHttpException } from '../../custom.exception';
+import { InjectDbProvider } from '../../db-provider/db.provider';
+import { IDbProvider } from '../../db-provider/db.provider.interface';
 import type { IClsStore } from '../../types/cls';
 
 type IWorkflowRecord = {
@@ -47,11 +49,19 @@ type IButtonBinding = {
 export class WorkflowService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly cls: ClsService<IClsStore>
+    private readonly cls: ClsService<IClsStore>,
+    @InjectDbProvider() private readonly dbProvider: IDbProvider
   ) {}
 
   private get userId() {
     return this.cls.get('user.id');
+  }
+
+  async getTableBaseId(tableId: string) {
+    return this.prismaService.tableMeta.findFirst({
+      where: { id: tableId, deletedTime: null },
+      select: { baseId: true },
+    });
   }
 
   private parseJson<T>(value: string | null | undefined): T | undefined {
@@ -178,7 +188,7 @@ export class WorkflowService {
   }
 
   private async lockBaseRow(baseId: string) {
-    if (this.prismaService.driver !== DriverClient.Pg) {
+    if (this.dbProvider.driver !== DriverClient.Pg) {
       return;
     }
 
@@ -210,9 +220,13 @@ export class WorkflowService {
     return this.toVo(workflow);
   }
 
-  async getWorkflowRuntimeById(workflowId: string) {
+  async getWorkflowRuntimeById(workflowId: string, baseId?: string) {
     const workflow = (await this.prismaService.workflow.findFirst({
-      where: { id: workflowId, deletedTime: null },
+      where: {
+        id: workflowId,
+        ...(baseId ? { baseId } : {}),
+        deletedTime: null,
+      },
       select: {
         id: true,
         baseId: true,
