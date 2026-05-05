@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { FieldKeyType } from '@teable/core';
+import { FieldKeyType, HttpErrorCode } from '@teable/core';
 import type { IWorkflowAction, IWorkflowCondition, IWorkflowExecutionStep } from '@teable/openapi';
+import { workflowActionConfigSchemaMap } from '@teable/openapi';
 import axios from 'axios';
 import { OnEvent } from '@nestjs/event-emitter';
+import { isEqual } from 'lodash';
 import { Events, type IButtonClickEventPayload } from '../../event-emitter/events';
+import { CustomHttpException } from '../../custom.exception';
 import { getSsrfSafeAgents } from '../../utils/ssrf-guard';
 import { AiService } from '../ai/ai.service';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
@@ -26,6 +29,21 @@ export class WorkflowRuntimeListener {
     return config && typeof config === 'object' && !Array.isArray(config)
       ? (config as Record<string, unknown>)
       : {};
+  }
+
+  private validateActionConfig(action: IWorkflowAction) {
+    const schema = workflowActionConfigSchemaMap[action.type];
+    if (!schema) {
+      return;
+    }
+
+    const result = schema.safeParse(action.config);
+    if (!result.success) {
+      const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+      throw new Error(
+        `Workflow action ${action.id ?? action.type} config validation failed: ${issues}`
+      );
+    }
   }
 
   private getRecordIdFromValue(value: unknown): string | undefined {
@@ -127,7 +145,7 @@ export class WorkflowRuntimeListener {
   }
 
   private valuesEqual(left: unknown, right: unknown) {
-    return JSON.stringify(left) === JSON.stringify(right);
+    return isEqual(left, right);
   }
 
   private matchesCondition(condition: IWorkflowCondition, payload: IButtonClickEventPayload) {
@@ -246,6 +264,7 @@ export class WorkflowRuntimeListener {
     payload: IButtonClickEventPayload,
     baseId: string
   ) {
+    this.validateActionConfig(action);
     const config = this.getObjectConfig(action);
 
     if (action.type === 'ai') {

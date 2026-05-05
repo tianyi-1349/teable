@@ -2062,6 +2062,93 @@ export class RecordService {
     return { ids, extra: { groupPoints, allGroupHeaderRefs } };
   }
 
+  async countRecordsByQuery(tableId: string, query: IGetRecordsRo, useQueryModel = false) {
+    const { filter: filterWithGroup } = await this.getGroupRelatedData(
+      tableId,
+      query,
+      useQueryModel
+    );
+    const { queryBuilder, dbTableName } = await this.buildFilterSortQuery(
+      tableId,
+      {
+        ...query,
+        filter: filterWithGroup,
+      },
+      useQueryModel
+    );
+    const countBuilder = this.knex
+      .from(queryBuilder.as('matched_records'))
+      .count<{ count: number }[]>({
+        count: '*',
+      });
+    const sqlNative = countBuilder.toSQL().toNative();
+    const sqlDebug = countBuilder.toQuery();
+
+    try {
+      await this.prismaService.txClient().$executeRawUnsafe('SET LOCAL statement_timeout = 10000');
+      const result = await this.prismaService
+        .txClient()
+        .$queryRawUnsafe<Array<{ count: number | string }>>(sqlNative.sql, ...sqlNative.bindings);
+
+      return Number(result[0]?.count ?? 0);
+    } catch (error) {
+      this.handleRawQueryError(error, sqlNative.sql, {
+        tableId,
+        dbTableName,
+        viewId: query.viewId,
+        ignoreViewQuery: query.ignoreViewQuery,
+        useQueryModel,
+        orderBy: query.orderBy,
+        groupBy: query.groupBy,
+        filter: filterWithGroup,
+        search: query.search,
+        bindings: sqlNative.bindings,
+        sqlDebug,
+      });
+    }
+  }
+
+  async assertRecordIdsInQueryScope(
+    tableId: string,
+    recordIds: string[],
+    query: Pick<IGetRecordsRo, 'viewId' | 'ignoreViewQuery' | 'filter' | 'search'>
+  ) {
+    if (!recordIds.length) {
+      return;
+    }
+
+    const cappedTake = Math.min(recordIds.length, 1000);
+    const { ids } = await this.getDocIdsByQuery(
+      tableId,
+      {
+        ...query,
+        selectedRecordIds: recordIds.slice(0, cappedTake),
+        take: cappedTake,
+      },
+      true
+    );
+
+    const checkedIds = recordIds.slice(0, cappedTake);
+    const outOfScopeIds = difference(checkedIds, ids);
+    if (!outOfScopeIds.length && recordIds.length <= 1000) {
+      return;
+    }
+
+    if (recordIds.length > 1000 && outOfScopeIds.length === 0) {
+      return;
+    }
+
+    if (outOfScopeIds.length) {
+      throw new CustomHttpException(
+        `Some records are outside the current AI view scope: ${outOfScopeIds.join(',')}`,
+        HttpErrorCode.VALIDATION_ERROR,
+        {
+          outOfScopeIds,
+        }
+      );
+    }
+  }
+
   async getSearchFields(
     originFieldInstanceMap: Record<string, IFieldInstance>,
     search?: [string, string?, boolean?],
