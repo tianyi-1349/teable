@@ -436,8 +436,8 @@ export function LLMApiConfigStep({
                     </span>
                   </div>
                   {/* Warning if URL mode failed but Base64 works */}
-                    {!effectiveAttachmentTest.urlMode?.success &&
-                      effectiveAttachmentTest.base64Mode?.success && (
+                  {!effectiveAttachmentTest.urlMode?.success &&
+                    effectiveAttachmentTest.base64Mode?.success && (
                       <div className="ui-warning-surface ui-interactive mt-2 flex items-start gap-2 rounded-md p-2">
                         <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                         <span className="text-xs">
