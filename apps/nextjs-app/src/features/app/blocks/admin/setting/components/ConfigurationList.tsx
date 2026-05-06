@@ -67,9 +67,9 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
   }, [list]);
 
   return (
-    <div className="flex h-44 w-full min-w-full flex-col space-y-4 overflow-y-auto rounded-lg border bg-secondary p-4 sm:h-auto sm:max-h-[80vh] sm:w-[360px] sm:min-w-[360px]">
+    <div className="flex h-44 w-full min-w-full flex-col space-y-4 overflow-y-auto rounded-3xl border border-border/60 bg-background/95 p-4 shadow-sm sm:h-auto sm:max-h-[80vh] sm:w-[360px] sm:min-w-[360px]">
       <div className="flex flex-col">
-        <span className="mb-1 justify-start self-stretch text-base font-semibold text-foreground">
+        <span className="mb-1 justify-start self-stretch text-base font-semibold tracking-tight text-foreground">
           {t('admin.configuration.title')}
         </span>
         <span className="justify-start self-stretch text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
 
       {/* Progress */}
       {requiredList.length > 0 && (
-        <div className="rounded-lg border bg-card p-4">
+        <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium">
               {t('admin.configuration.progressTitle', '配置进度')}
@@ -115,7 +115,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
       {/* Grouped checklist */}
       {grouped.map((group: { key: IList['group']; items: IList[] }) => (
         <div key={group.key ?? 'system'} className="space-y-1">
-          <div className="px-2 text-xs font-medium text-muted-foreground">
+          <div className="px-2 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
             {t(`admin.configuration.group.${group.key ?? 'system'}` as any)}
           </div>
           {group.items.map((item: IList) => (
@@ -123,7 +123,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
               <button
                 type="button"
                 className={cn(
-                  'flex w-full items-start gap-2 rounded-md p-2 text-left transition-colors hover:bg-muted/40',
+                  'flex w-full items-start gap-2 rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-border/60 hover:bg-muted/20',
                   item.isComplete && 'opacity-80'
                 )}
                 onClick={() => {

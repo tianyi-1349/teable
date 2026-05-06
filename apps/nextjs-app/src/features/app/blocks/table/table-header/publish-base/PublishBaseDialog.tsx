@@ -397,17 +397,19 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="max-w-[960px] gap-0">
-          <DialogHeader className="h-20">
-            <DialogTitle>{t('publishBase.title')}</DialogTitle>
+        <DialogContent className="max-w-[960px] gap-0 rounded-3xl border border-border/60 bg-background/95 shadow-xl">
+          <DialogHeader className="h-20 border-b border-border/60 pb-5">
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              {t('publishBase.title')}
+            </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               {t('publishBase.description')}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex w-full gap-10 overflow-x-hidden">
+          <div className="flex w-full gap-10 overflow-x-hidden pt-6">
             <div className="relative flex min-w-[358px] flex-1 flex-col gap-6 px-0.5">
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-semibold">{t('publishBase.infoTitle')}</div>
+              <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                <div className="text-sm font-semibold tracking-tight">{t('publishBase.infoTitle')}</div>
                 <div className="flex flex-col gap-2">
                   <span className="text-sm">{t('publishBase.form.title')}</span>
                   <Input
@@ -428,9 +430,11 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{t('publishBase.form.publishNode')}</span>
+                  <span className="text-sm font-semibold tracking-tight">
+                    {t('publishBase.form.publishNode')}
+                  </span>
                 </div>
                 <NodeTreeSelect
                   showCheckbox
@@ -443,8 +447,10 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-semibold">{t('publishBase.form.security')}</span>
+              <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-4">
+                <span className="text-sm font-semibold tracking-tight">
+                  {t('publishBase.form.security')}
+                </span>
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="include-data"
@@ -456,8 +462,10 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-semibold">{t('publishBase.form.advanced')}</span>
+              <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-4">
+                <span className="text-sm font-semibold tracking-tight">
+                  {t('publishBase.form.advanced')}
+                </span>
                 <span className="text-sm">{t('publishBase.form.defaultActiveNode')}</span>
                 <NodeSelect
                   nodeIds={selectedNodeIds}
@@ -513,7 +521,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
               </div>
             </div>
 
-            <div className="relative h-[520px] w-[512px] shrink-0 overflow-hidden rounded-lg border bg-muted">
+            <div className="relative h-[520px] w-[512px] shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
               <input
                 ref={uploadRef}
                 type="file"
@@ -522,11 +530,11 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                 onChange={handleFileSelect}
               />
               <div className="relative flex size-full flex-col items-center justify-center gap-6 p-5">
-                <div className="text-base font-semibold">{t('publishBase.previewTips')}</div>
+                <div className="text-base font-semibold tracking-tight">{t('publishBase.previewTips')}</div>
 
                 <div className="flex w-[432px] flex-col gap-3 bg-transparent">
                   <div
-                    className="group relative h-[240px] cursor-pointer overflow-hidden rounded-lg bg-surface"
+                    className="group relative h-[240px] cursor-pointer overflow-hidden rounded-2xl border border-border/50 bg-surface"
                     onClick={handleUploadClick}
                     role="button"
                     tabIndex={0}
