@@ -201,4 +201,14 @@ describe('AppModeConfigEditorCard', () => {
       screen.getByText('Stored app mode config is invalid and cannot be loaded')
     ).toBeInTheDocument();
   });
+
+  it('retries loading app mode config from error state', async () => {
+    mockEditor.error = new Error('Stored app mode config is invalid and cannot be loaded');
+
+    render(<AppModeConfigEditorCard baseId="base123" />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(mockEditor.refetch).toHaveBeenCalledTimes(1);
+  });
 });

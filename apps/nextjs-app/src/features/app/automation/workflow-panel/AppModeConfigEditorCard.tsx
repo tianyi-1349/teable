@@ -75,6 +75,11 @@ export const AppModeConfigEditorCard = ({
                 : 'The stored app mode config could not be loaded.'}
             </AlertDescription>
           </Alert>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => void editor.refetch()}>
+              Retry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

@@ -1,6 +1,6 @@
 import type { IAppModeConfig, IAppModePage } from '@teable/openapi';
 import { appModeConfigSchema } from '@teable/openapi';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppModeConfig } from './use-app-mode-config';
 
 const cloneConfig = (config: IAppModeConfig): IAppModeConfig => ({
@@ -48,6 +48,10 @@ export const validateAppModeDraft = (draft: IAppModeConfig) => {
 export const useAppModeConfigEditor = (customBaseId?: string) => {
   const appMode = useAppModeConfig(customBaseId);
   const [draft, setDraft] = useState<IAppModeConfig>();
+
+  useEffect(() => {
+    setDraft(undefined);
+  }, [appMode.baseId]);
 
   const effectiveDraft = draft ?? appMode.config;
   const isDirty = Boolean(
