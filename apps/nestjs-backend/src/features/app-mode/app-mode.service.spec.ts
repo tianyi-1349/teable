@@ -50,12 +50,12 @@ describe('AppModeService', () => {
     });
   });
 
-  it('falls back to default config when stored content is invalid', async () => {
+  it('throws validation error when stored content is invalid', async () => {
     settingFindUnique.mockResolvedValue({ content: '{invalid-json' });
 
-    const config = await service.getConfig('base123');
-    expect(config.governance.auditPolicy).toBe('standard');
-    expect(config.workflowEnabled).toBe(false);
+    await expect(service.getConfig('base123')).rejects.toMatchObject({
+      code: HttpErrorCode.VALIDATION_ERROR,
+    });
   });
 
   it('updates config with normalized defaults', async () => {

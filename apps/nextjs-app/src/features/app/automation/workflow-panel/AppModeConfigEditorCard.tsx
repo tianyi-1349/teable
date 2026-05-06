@@ -1,5 +1,5 @@
 import { appModeConfigSchema, type IAppModePage } from '@teable/openapi';
-import { useAppModeConfigEditor } from '@teable/sdk/hooks';
+import { useAppModeConfigEditor, validateAppModeDraft } from '@teable/sdk/hooks';
 import {
   Alert,
   AlertDescription,
@@ -79,29 +79,6 @@ export const AppModeConfigEditorCard = ({
       form: 0,
     }
   );
-
-  const movePage = (pageId: string, direction: -1 | 1) => {
-    const index = draft.pages.findIndex((page) => page.id === pageId);
-    if (index < 0) {
-      return;
-    }
-
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= draft.pages.length) {
-      return;
-    }
-
-    editor.patchDraft((config) => {
-      const nextPages = [...config.pages];
-      const current = nextPages[index];
-      nextPages[index] = nextPages[targetIndex];
-      nextPages[targetIndex] = current;
-      return {
-        ...config,
-        pages: nextPages,
-      };
-    });
-  };
 
   return (
     <Card className="ui-panel-surface">
@@ -340,13 +317,13 @@ export const AppModeConfigEditorCard = ({
         <div className="space-y-2 rounded border p-3">
           <Label>Pages</Label>
           {editor.draft.pages.length ? (
-            draft.pages.map((page) => (
+            draft.pages.map((page, index) => (
               <div key={page.id} className="space-y-2 rounded border p-2">
                 <div className="grid gap-2">
                   <Input
                     value={page.name}
                     onChange={(event) =>
-                      editor.updatePage(page.id, (state) => ({
+                      editor.updatePageByIndex(index, (state) => ({
                         ...state,
                         name: event.target.value,
                       }))
@@ -357,7 +334,7 @@ export const AppModeConfigEditorCard = ({
                     <Input
                       value={page.id}
                       onChange={(event) =>
-                        editor.updatePage(page.id, (state) => ({
+                        editor.updatePageByIndex(index, (state) => ({
                           ...state,
                           id: event.target.value.trim(),
                         }))
@@ -367,7 +344,7 @@ export const AppModeConfigEditorCard = ({
                     <Select
                       value={page.type}
                       onValueChange={(value) =>
-                        editor.updatePage(page.id, (state) => ({
+                        editor.updatePageByIndex(index, (state) => ({
                           ...state,
                           type: value as IAppModePage['type'],
                         }))
@@ -387,7 +364,7 @@ export const AppModeConfigEditorCard = ({
                   <Input
                     value={page.sourceId ?? ''}
                     onChange={(event) =>
-                      editor.updatePage(page.id, (state) => ({
+                      editor.updatePageByIndex(index, (state) => ({
                         ...state,
                         sourceId: event.target.value.trim() || undefined,
                       }))
@@ -396,13 +373,21 @@ export const AppModeConfigEditorCard = ({
                   />
                 </div>
                 <div className="flex justify-end">
-                  <Button size="sm" variant="ghost" onClick={() => movePage(page.id, -1)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => editor.movePageByIndex(index, -1)}
+                  >
                     Up
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => movePage(page.id, 1)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => editor.movePageByIndex(index, 1)}
+                  >
                     Down
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => editor.removePage(page.id)}>
+                  <Button size="sm" variant="ghost" onClick={() => editor.removePageByIndex(index)}>
                     Remove
                   </Button>
                 </div>
@@ -446,6 +431,15 @@ export const AppModeConfigEditorCard = ({
                     toast({
                       title: 'Invalid app mode config',
                       description: validated.error.issues[0]?.message ?? 'Schema validation failed',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  const draftValidation = validateAppModeDraft(validated.data);
+                  if (!draftValidation.ok) {
+                    toast({
+                      title: 'Invalid app mode config',
+                      description: draftValidation.reason,
                       variant: 'destructive',
                     });
                     return;

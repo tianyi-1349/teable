@@ -81,6 +81,59 @@ export const useAppModeConfigEditor = (customBaseId?: string) => {
     }));
   };
 
+  const updatePageByIndex = (index: number, updater: (page: IAppModePage) => IAppModePage) => {
+    patchDraft((config) => {
+      if (index < 0 || index >= config.pages.length) {
+        return config;
+      }
+
+      const pages = [...config.pages];
+      pages[index] = updater(pages[index]);
+      return {
+        ...config,
+        pages,
+      };
+    });
+  };
+
+  const removePageByIndex = (index: number) => {
+    patchDraft((config) => {
+      if (index < 0 || index >= config.pages.length) {
+        return config;
+      }
+
+      const pages = [...config.pages];
+      pages.splice(index, 1);
+      return {
+        ...config,
+        pages,
+      };
+    });
+  };
+
+  const movePageByIndex = (index: number, direction: -1 | 1) => {
+    patchDraft((config) => {
+      const targetIndex = index + direction;
+      if (
+        index < 0 ||
+        index >= config.pages.length ||
+        targetIndex < 0 ||
+        targetIndex >= config.pages.length
+      ) {
+        return config;
+      }
+
+      const pages = [...config.pages];
+      const current = pages[index];
+      pages[index] = pages[targetIndex];
+      pages[targetIndex] = current;
+      return {
+        ...config,
+        pages,
+      };
+    });
+  };
+
   const updatePage = (pageId: string, updater: (page: IAppModePage) => IAppModePage) => {
     patchDraft((config) => {
       const index = config.pages.findIndex((page) => page.id === pageId);
@@ -177,6 +230,9 @@ export const useAppModeConfigEditor = (customBaseId?: string) => {
     addPage,
     updatePage,
     removePage,
+    updatePageByIndex,
+    removePageByIndex,
+    movePageByIndex,
     setWorkflowEnabled,
     setLinkedBaseIds,
     setDashboardIds,

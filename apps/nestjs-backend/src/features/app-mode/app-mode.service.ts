@@ -35,7 +35,10 @@ export class AppModeService {
     try {
       return appModeConfigSchema.parse(JSON.parse(content));
     } catch {
-      return this.defaultConfig();
+      throw new CustomHttpException(
+        'Stored app mode config is invalid and cannot be loaded',
+        HttpErrorCode.VALIDATION_ERROR
+      );
     }
   }
 
