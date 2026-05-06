@@ -197,6 +197,8 @@ describe('AppModeConfigEditorCard', () => {
     render(<AppModeConfigEditorCard baseId="base123" />);
 
     expect(screen.getByText('Failed to load app mode config')).toBeInTheDocument();
-    expect(screen.getByText('Stored app mode config is invalid and cannot be loaded')).toBeInTheDocument();
+    expect(
+      screen.getByText('Stored app mode config is invalid and cannot be loaded')
+    ).toBeInTheDocument();
   });
 });
