@@ -302,24 +302,32 @@ export const SignForm: FC<ISignForm> = (props) => {
     [t, type]
   );
 
+  const isSignup = type === 'signup';
+
   return (
     <div
       className={cn(
-        'flex flex-col gap-3',
+        'rounded-3xl border border-border/70 bg-background/95 p-5 shadow-sm backdrop-blur sm:p-6',
         {
           'pointer-events-none': isLoading,
         },
         className
       )}
     >
-      <div className="relative mb-4 text-muted-foreground">
-        <h2 className="text-center text-xl">
-          {type === 'signin' ? t('auth:title.signin') : t('auth:title.signup')}
+      <div className="mb-5 space-y-2 text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">
+          {isSignup ? t('auth:button.signup') : t('auth:button.signin')}
+        </p>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          {isSignup ? t('auth:title.signup') : t('auth:title.signin')}
         </h2>
+        <p className="text-sm text-muted-foreground">
+          {isSignup ? t('auth:label.verificationCode') : t('auth:forgetPassword.trigger')}
+        </p>
       </div>
       <form className="relative" onSubmit={onSubmit} onChange={() => setError(undefined)}>
-        <div className="grid gap-3">
-          <div className="grid gap-3">
+        <div className="grid gap-4">
+          <div className="grid gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:p-5">
             <Label htmlFor="email">{t('auth:label.email')}</Label>
             <Input
               id="email"
@@ -333,57 +341,72 @@ export const SignForm: FC<ISignForm> = (props) => {
               }}
               disabled={isLoading}
             />
-          </div>
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">{t('auth:label.password')}</Label>
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">{t('auth:label.password')}</Label>
+              </div>
+              <Input
+                id="password"
+                placeholder={t('auth:placeholder.password')}
+                type="password"
+                autoComplete={type === 'signup' ? 'new-password' : 'current-password'}
+                disabled={isLoading}
+              />
+              {type === 'signin' && (
+                <Link
+                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  href="/auth/forget-password"
+                >
+                  {t('auth:forgetPassword.trigger')}
+                </Link>
+              )}
             </div>
-            <Input
-              id="password"
-              placeholder={t('auth:placeholder.password')}
-              type="password"
-              autoComplete={type === 'signup' ? 'new-password' : 'current-password'}
-              disabled={isLoading}
-            />
-            {type === 'signin' && (
-              <Link
-                className="absolute right-0 text-xs text-muted-foreground underline-offset-4 hover:underline"
-                href="/auth/forget-password"
-              >
-                {t('auth:forgetPassword.trigger')}
-              </Link>
+
+            {enableWaitlist && type === 'signup' && (
+              <div className="grid gap-3 rounded-2xl border border-dashed border-border/70 bg-background/80 p-3">
+                <div className="space-y-1">
+                  <Label htmlFor="invite-code">{t('common:waitlist.code')}</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('common:waitlist.inviteCodePlaceholder')}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    id="invite-code"
+                    type="text"
+                    placeholder={t('common:waitlist.inviteCodePlaceholder')}
+                    autoComplete="off"
+                    disabled={isLoading}
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                  />
+                  <Button
+                    variant="link"
+                    className="h-auto self-start p-0 text-xs sm:self-center"
+                    type="button"
+                    onClick={joinWaitlist}
+                  >
+                    {t('common:waitlist.join')}
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
 
-          {enableWaitlist && type === 'signup' && (
-            <div className="grid gap-3">
-              <Label htmlFor="invite-code">{t('common:waitlist.code')}</Label>
-              <div className="flex items-center">
-                <Input
-                  id="invite-code"
-                  type="text"
-                  placeholder={t('common:waitlist.inviteCodePlaceholder')}
-                  autoComplete="off"
-                  disabled={isLoading}
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                />
-                <Button variant="link" className="p-2 text-xs" type="button" onClick={joinWaitlist}>
-                  {t('common:waitlist.join')}
-                </Button>
-              </div>
-            </div>
-          )}
-
           <div
             data-state={showVerificationCode ? 'show' : 'hide'}
-            className={cn('transition-all data-[state=show]:mt-4', {
-              'h-0 overflow-hidden': !showVerificationCode,
+            className={cn('overflow-hidden transition-all', {
+              'h-0': !showVerificationCode,
             })}
           >
             {showVerificationCode && (
-              <div className="grid gap-3">
-                <Label htmlFor="verification-code">{t('auth:label.verificationCode')}</Label>
+              <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:p-5">
+                <div className="space-y-1">
+                  <Label htmlFor="verification-code">{t('auth:label.verificationCode')}</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('auth:placeholder.verificationCode')}
+                  </p>
+                </div>
                 <Input
                   id="verification-code"
                   type="text"
@@ -429,28 +452,36 @@ export const SignForm: FC<ISignForm> = (props) => {
 
           {/* Turnstile Widget */}
           {turnstileSiteKey && (
-            <div className="flex justify-center">
-              <TurnstileWidget
-                key={turnstileKey}
-                siteKey={turnstileSiteKey}
-                onVerify={handleTurnstileVerify}
-                onError={handleTurnstileError}
-                onExpire={handleTurnstileExpire}
-                onTimeout={handleTurnstileTimeout}
-                action={type}
-                theme="auto"
-                size="normal"
-              />
+            <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+              <div className="mb-3 space-y-1 text-center sm:text-left">
+                <p className="text-sm font-medium text-foreground">Security check</p>
+                <p className="text-xs text-muted-foreground">
+                  Complete verification before continuing.
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <TurnstileWidget
+                  key={turnstileKey}
+                  siteKey={turnstileSiteKey}
+                  onVerify={handleTurnstileVerify}
+                  onError={handleTurnstileError}
+                  onExpire={handleTurnstileExpire}
+                  onTimeout={handleTurnstileTimeout}
+                  action={type}
+                  theme="auto"
+                  size="normal"
+                />
+              </div>
             </div>
           )}
 
-          <div>
-            <Button className="w-full" disabled={isLoading}>
+          <div className="grid gap-3">
+            <Button className="h-11 w-full rounded-full" disabled={isLoading}>
               {isLoading && <Spin />}
               {buttonText}
             </Button>
             {(!disallowSignUp || hasInvitationRedirect) && (
-              <div className="flex justify-end py-2">
+              <div className="flex justify-center">
                 <Link
                   href={{
                     pathname: type === 'signin' ? '/auth/signup' : '/auth/login',

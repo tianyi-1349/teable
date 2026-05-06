@@ -40,7 +40,6 @@ export * from './use-comment-count-map';
 export * from './use-organization';
 export * from './use-personal-view';
 export * from './use-field-operations';
-export * from './use-ai-record-operations';
 export * from './use-record-operations';
 export * from './use-button-click-status';
 export * from './use-is-anonymous';

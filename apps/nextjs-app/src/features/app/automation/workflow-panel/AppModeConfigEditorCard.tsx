@@ -34,7 +34,20 @@ const emptyPageDraft: IAppModePage = {
   type: 'list',
 };
 
-export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
+interface IWorkflowContext {
+  workflowId: string;
+  workflowLabel: string;
+  triggerFieldName?: string;
+  tableId?: string;
+}
+
+export const AppModeConfigEditorCard = ({
+  baseId,
+  workflowContext,
+}: {
+  baseId: string;
+  workflowContext?: IWorkflowContext;
+}) => {
   const { toast } = useToast();
   const editor = useAppModeConfigEditor(baseId);
   const [newPage, setNewPage] = useState<IAppModePage>(emptyPageDraft);
@@ -54,6 +67,18 @@ export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
   const draft = editor.draft;
 
   const canSave = editor.isDirty && editor.draftValidation.ok && !editor.isUpdating;
+  const pagesByType = draft.pages.reduce<Record<IAppModePage['type'], number>>(
+    (acc, page) => {
+      acc[page.type] += 1;
+      return acc;
+    },
+    {
+      list: 0,
+      detail: 0,
+      dashboard: 0,
+      form: 0,
+    }
+  );
 
   const movePage = (pageId: string, direction: -1 | 1) => {
     const index = draft.pages.findIndex((page) => page.id === pageId);
@@ -79,9 +104,47 @@ export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">App mode config</CardTitle>
+    <Card className="border-border/60 bg-background/95 shadow-sm">
+      <CardHeader className="space-y-3 border-b border-border/60 pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base">App mode config</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Keep workflow rollout, page structure, and governance aligned before saving.
+            </p>
+          </div>
+          <div className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            Governance workspace
+          </div>
+        </div>
+        {workflowContext ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                Workflow link
+              </div>
+              <div className="mt-1 text-sm font-medium text-foreground">
+                {workflowContext.workflowLabel}
+              </div>
+              <div className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                {workflowContext.workflowId}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                Trigger context
+              </div>
+              <div className="mt-1 text-sm font-medium text-foreground">
+                {workflowContext.triggerFieldName ?? 'No trigger field linked'}
+              </div>
+              <div className="mt-1 truncate text-xs text-muted-foreground">
+                {workflowContext.tableId
+                  ? `Table ${workflowContext.tableId}`
+                  : 'Base-level workflow'}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -89,8 +152,43 @@ export const AppModeConfigEditorCard = ({ baseId }: { baseId: string }) => {
           <Badge variant={draft.workflowEnabled ? 'default' : 'secondary'}>
             Workflow {draft.workflowEnabled ? 'enabled' : 'disabled'}
           </Badge>
+          <Badge variant="outline">Pages {draft.pages.length}</Badge>
           {editor.isDirty ? <Badge variant="outline">Draft changed</Badge> : null}
         </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
+              Page mix
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary">List {pagesByType.list}</Badge>
+              <Badge variant="secondary">Detail {pagesByType.detail}</Badge>
+              <Badge variant="secondary">Dashboard {pagesByType.dashboard}</Badge>
+              <Badge variant="secondary">Form {pagesByType.form}</Badge>
+            </div>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
+              Current guardrails
+            </div>
+            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+              <div>Audit policy: {draft.governance.auditPolicy}</div>
+              <div>Permission mode: {draft.governance.permissionMode}</div>
+              <div>Role matrix: v{draft.governance.roleMatrixVersion}</div>
+            </div>
+          </div>
+        </div>
+
+        {!draft.workflowEnabled ? (
+          <Alert>
+            <AlertTitle>Workflow currently disabled</AlertTitle>
+            <AlertDescription>
+              This base can keep page and governance changes as a draft, but workflow entry points
+              will stay inactive until workflow mode is enabled.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="flex items-center justify-between rounded border px-3 py-2">
           <div>

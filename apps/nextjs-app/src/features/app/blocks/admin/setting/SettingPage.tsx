@@ -170,19 +170,31 @@ export const SettingPage = (props: ISettingPageProps) => {
   } = setting;
 
   return (
-    <div className="flex h-screen flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-8">
-      <div className="pb-6">
-        <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
-        <div className="mt-2 text-sm text-muted-foreground">{t('admin.setting.description')}</div>
+    <div className="flex h-screen flex-1 flex-col overflow-y-auto overflow-x-hidden bg-muted/20 p-4 sm:p-8">
+      <div className="rounded-3xl border border-border/60 bg-background/95 px-5 py-6 shadow-sm sm:px-6">
+        <div className="max-w-3xl space-y-2">
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">
+            Workspace settings
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('settings.title')}</h1>
+          <div className="text-sm text-muted-foreground">{t('admin.setting.description')}</div>
+        </div>
       </div>
 
-      <div className="relative flex flex-1 flex-col overflow-hidden sm:flex-row">
+      <div className="relative flex flex-1 flex-col overflow-hidden pt-6 sm:flex-row">
         <div className="setting-page-left-container flex-1 overflow-y-auto overflow-x-hidden sm:pr-10">
           {/* General Settings Section */}
           <div className="pb-6">
-            <h2 className="mb-4 text-lg font-medium">{t('admin.setting.generalSettings')}</h2>
+            <div className="mb-4 space-y-1">
+              <h2 className="text-lg font-medium tracking-tight">
+                {t('admin.setting.generalSettings')}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Keep account access, invitations, and verification rules calm and predictable.
+              </p>
+            </div>
             <div className="flex w-full flex-col space-y-4">
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label htmlFor="allow-sign-up">{t('admin.setting.allowSignUp')}</Label>
                   <div className="text-xs text-muted-foreground">
@@ -195,7 +207,7 @@ export const SettingPage = (props: ISettingPageProps) => {
                   onCheckedChange={(checked) => onValueChange('disallowSignUp', !checked)}
                 />
               </div>
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label htmlFor="allow-space-invitation">
                     {t('admin.setting.allowSpaceInvitation')}
@@ -210,7 +222,7 @@ export const SettingPage = (props: ISettingPageProps) => {
                   onCheckedChange={(checked) => onValueChange('disallowSpaceInvitation', !checked)}
                 />
               </div>
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label htmlFor="allow-space-creation">
                     {t('admin.setting.allowSpaceCreation')}
@@ -225,7 +237,7 @@ export const SettingPage = (props: ISettingPageProps) => {
                   onCheckedChange={(checked) => onValueChange('disallowSpaceCreation', !checked)}
                 />
               </div>
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label htmlFor="enable-email-verification">
                     {t('admin.setting.enableEmailVerification')}
@@ -287,9 +299,14 @@ export const SettingPage = (props: ISettingPageProps) => {
 
           {/* email config */}
           <div className="pb-6" ref={emailRef}>
-            <h2 className="mb-4 text-lg font-medium">{t('email.config')}</h2>
+            <div className="mb-4 space-y-1">
+              <h2 className="text-lg font-medium tracking-tight">{t('email.config')}</h2>
+              <p className="text-sm text-muted-foreground">
+                Keep notification and automation delivery paths readable before changing transport.
+              </p>
+            </div>
             <div className="flex w-full flex-col space-y-4">
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label>{t('email.notify')}</Label>
                   <div className="text-xs text-muted-foreground">
@@ -315,7 +332,7 @@ export const SettingPage = (props: ISettingPageProps) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between space-x-2 rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between space-x-2 rounded-2xl border border-border/60 bg-background/95 p-4 shadow-sm">
                 <div className="space-y-1">
                   <Label>{t('email.automation')}</Label>
                   <div className="text-xs text-muted-foreground">

@@ -79,14 +79,14 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
   }, [isRenaming]);
 
   return (
-    <div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
+    <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-950/60 px-4 backdrop-blur-sm">
       <Head>
         <title>{dashboardName ? `${dashboardName} - ${brandName}` : brandName}</title>
       </Head>
       {isRenaming ? (
         <Input
           ref={renameRef}
-          className="max-w-60"
+          className="max-w-60 border-slate-700 bg-slate-950/80 text-slate-100 placeholder:text-slate-500 focus-visible:border-emerald-500/70 focus-visible:ring-emerald-500/30"
           value={editName ?? ''}
           onBlur={submitRename}
           onKeyDown={handleKeyDown}
@@ -96,7 +96,7 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
         <Button
           variant="ghost"
           size="sm"
-          className="justify-start text-sm"
+          className="justify-start rounded-md border border-transparent px-3 text-sm text-slate-100 transition-colors hover:border-emerald-500/30 hover:bg-slate-900 hover:text-emerald-300"
           disabled={!canManage}
           onClick={startRename}
         >
@@ -107,7 +107,11 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
       <div className="flex items-center gap-2">
         {canManage && (
           <AddPluginDialog dashboardId={dashboardId}>
-            <Button variant={'outline'} size={'xs'}>
+            <Button
+              variant={'outline'}
+              size={'xs'}
+              className="border-slate-700 bg-slate-950/70 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,0.08)_inset] transition-colors hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
+            >
               <Plus className="size-4 shrink-0" />
               {t('dashboard:addPlugin')}
             </Button>
@@ -119,7 +123,11 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
             resourceId={dashboardId}
             onRename={startRename}
           >
-            <Button size="icon-xs" variant="outline">
+            <Button
+              size="icon-xs"
+              variant="outline"
+              className="border-slate-700 bg-slate-950/70 text-slate-200 transition-colors hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
+            >
               <MoreHorizontal className="size-4" />
             </Button>
           </BaseNodeMore>

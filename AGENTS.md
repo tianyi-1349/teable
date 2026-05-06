@@ -57,6 +57,7 @@
 - In `apps/nextjs-app`, use `src/features/app/components/Chart/Chart` as the ECharts runtime entry; do not call `echarts.init(...)` from feature or page code.
 - Prefer `updateMode="replace"` for chart option updates; only use `merge` when incremental merge is required.
 - For chart changes, run `pnpm --filter @teable/app exec vitest run src/features/app/components/Chart/Chart.spec.tsx` and `pnpm --filter @teable/app typecheck`.
+- For page visual, layout, or interaction changes in `apps/nextjs-app`, read `.monkeycode/docs/design-system/DESIGN.md` first; if the task targets a specific page type and a matching file exists under `.monkeycode/docs/design-system/page-recipes/`, read that too before editing code.
 
 ## Hooks
 
