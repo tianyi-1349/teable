@@ -24,17 +24,9 @@ const WorkFlowPanel = forwardRef<WorkFlowPanelRef, WorkFlowPanelProps>((_props, 
   const { baseId, workflowId, tableId, buttonField, headLeft } = _props;
   const workflowLabel = buttonField?.name || workflowId;
 
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        getWorkflow: () => undefined,
-        checkCanActive: () => ({ canActive: false, message: '' }),
-        activeWorkflow: async () => undefined,
-      };
-    },
-    []
-  );
+  // The enterprise automation runtime is still a placeholder here, so avoid
+  // advertising imperative workflow APIs that we cannot fulfill correctly.
+  useImperativeHandle(ref, () => ({}), []);
 
   return (
     <div className="grid h-full gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">

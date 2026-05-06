@@ -60,8 +60,37 @@ export const AppModeConfigEditorCard = ({
     setDashboardIdsText(editor.draft?.dashboardIds.join(', ') ?? '');
   }, [editor.draft?.linkedBaseIds, editor.draft?.dashboardIds]);
 
-  if (!editor.config || !editor.draft) {
-    return null;
+  if (editor.error) {
+    return (
+      <Card className="ui-panel-surface">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <CardTitle className="text-base">App mode config</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTitle>Failed to load app mode config</AlertTitle>
+            <AlertDescription>
+              {editor.error instanceof Error
+                ? editor.error.message
+                : 'The stored app mode config could not be loaded.'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (editor.isLoading || !editor.config || !editor.draft) {
+    return (
+      <Card className="ui-panel-surface">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <CardTitle className="text-base">App mode config</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground">Loading app mode config...</div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const draft = editor.draft;

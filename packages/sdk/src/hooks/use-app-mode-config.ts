@@ -14,6 +14,7 @@ export const useAppModeConfig = (customBaseId?: string) => {
     data: config,
     isLoading,
     isFetching,
+    error,
   } = useQuery({
     queryKey: appModeConfigQueryKey(resolvedBaseId),
     queryFn: () => getAppModeConfig(resolvedBaseId).then((res) => res.data),
@@ -41,6 +42,7 @@ export const useAppModeConfig = (customBaseId?: string) => {
     config,
     isLoading,
     isFetching,
+    error,
     isUpdating,
     updateConfig,
     refetch,

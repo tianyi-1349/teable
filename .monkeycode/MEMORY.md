@@ -157,3 +157,10 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 当前仓库前端存在 `createWorkflow` 接口和 workflow 路由入口，但 `apps/nextjs-app/src/features/app/automation/Pages.tsx` 仍是企业版占位页，不存在真实 workflow 编辑运行时组件
   - 在没有真实 automation 编辑器实现前，`WorkFlowPanel` 最合理的职责是承载 workflow 上下文、入口动作和右侧 `app-mode` 配置，而不是伪造不存在的 `AutomationPageApi`
   - 当从按钮字段配置进入 workflow 面板时，优先展示 `workflowId`、`baseId`、触发字段等上下文，帮助用户把 automation 配置与 app-mode 治理放在同一工作区理解
+
+[用户要求连续执行直到修复完成]
+- Date: 2026-05-06
+- Context: 用户在 PR 自检后要求继续修复所有发现的问题
+- Instructions:
+  - 对已识别的问题持续执行修复、验证和收口，直到全部处理完成
+  - 中间不必重复询问用户是否继续，除非遇到真实阻塞或冲突
