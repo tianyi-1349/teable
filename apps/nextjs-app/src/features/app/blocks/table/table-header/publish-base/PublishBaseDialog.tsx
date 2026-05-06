@@ -409,7 +409,9 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
           <div className="flex w-full gap-10 overflow-x-hidden pt-6">
             <div className="relative flex min-w-[358px] flex-1 flex-col gap-6 px-0.5">
               <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                <div className="text-sm font-semibold tracking-tight">{t('publishBase.infoTitle')}</div>
+                <div className="text-sm font-semibold tracking-tight">
+                  {t('publishBase.infoTitle')}
+                </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-sm">{t('publishBase.form.title')}</span>
                   <Input
@@ -530,7 +532,9 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                 onChange={handleFileSelect}
               />
               <div className="relative flex size-full flex-col items-center justify-center gap-6 p-5">
-                <div className="text-base font-semibold tracking-tight">{t('publishBase.previewTips')}</div>
+                <div className="text-base font-semibold tracking-tight">
+                  {t('publishBase.previewTips')}
+                </div>
 
                 <div className="flex w-[432px] flex-col gap-3 bg-transparent">
                   <div
