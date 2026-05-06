@@ -32,6 +32,7 @@
     "fix-all-files": "eslint . --ext .ts,.js,.mjs,.cjs,.mts,.cts --fix"
   },
   "dependencies": {
+    "@teable/core": "workspace:*",
     "@teable/formula": "workspace:*",
     "@teable/i18n-keys": "workspace:*",
     "@teable/v2-di": "workspace:*",

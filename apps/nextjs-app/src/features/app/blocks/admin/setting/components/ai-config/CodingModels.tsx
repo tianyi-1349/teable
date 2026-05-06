@@ -247,9 +247,9 @@ export const CodingModels = ({
 
             {/* Warning for missing abilities */}
             {hasMissingAbilities && getMissingAbilitiesMessage && (
-              <div className="ui-interactive mt-3 flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-50/50 p-2.5 dark:bg-amber-900/20">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-                <div className="text-xs text-amber-700 dark:text-amber-400">
+              <div className="ui-warning-surface ui-interactive mt-3 flex items-start gap-2 rounded-md p-2.5">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <div className="text-xs">
                   <p className="font-medium">
                     {t('admin.setting.ai.chatModelTest.modelNotSuitable')}
                   </p>

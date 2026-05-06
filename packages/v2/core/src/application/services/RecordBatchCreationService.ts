@@ -18,7 +18,7 @@ import type { TableRecord } from '../../domain/table/records/TableRecord';
 import type { Table } from '../../domain/table/Table';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { RecordWriteOperationKind } from '../../ports/RecordWritePlugin';
-import { ITableRecordRepository } from '../../ports/TableRecordRepository';
+import type { ITableRecordRepository } from '../../ports/TableRecordRepository';
 import type {
   BatchRecordMutationResult,
   RecordStoredSnapshot,

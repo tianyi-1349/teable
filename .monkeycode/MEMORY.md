@@ -31,6 +31,16 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[v2-core typecheck 与声明打包需区分源码边界和跨包类型依赖]
+- Date: 2026-05-06
+- Context: Agent 在清理 `packages/v2/core` 的 typecheck 与 build warning 时发现
+- Category: 构建方法
+- Instructions:
+  - `packages/v2/core` 的 `typecheck` 需要显式补齐 `@teable/core` path 和 `../../core/src` include，否则会把上游类型解析成缺失依赖
+  - `packages/v2/core` 的 `tsconfig.json` 应排除 `src/**/*.spec.ts`、`src/**/*.test.ts` 和 `src/testkit/**`，避免生产源码 typecheck 被测试桩拖垮
+  - `rolldown-plugin-dts` 对跨包接口和值导出较敏感，端口接口和 visitor 类型应优先使用 `import type`
+  - `IExecutionContext.$t` 作为通用执行上下文翻译钩子可接受 `string` key，不必在 `v2-core` 声明层强绑定 `@teable/i18n-keys` 类型导出
+
 [设计系统收敛执行顺序需先 ai-config 后其他邻接页面]
 - Date: 2026-05-06
 - Context: 用户在继续推进第三轮共享语义类收敛时明确要求执行顺序

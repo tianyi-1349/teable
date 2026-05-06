@@ -20,6 +20,7 @@
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/core": ["../../core/src"],
       "@teable/v2-di": ["../di/src"],
       "@teable/formula": ["../../formula/src"],
       "@teable/i18n-keys": ["../../i18n-keys/src"]
@@ -31,7 +32,10 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "./src/**/*.spec.ts",
+    "./src/**/*.test.ts",
+    "./src/testkit/**",
     "../../formula/src/**/*.spec.ts"
   ],
-  "include": ["src", "../di/src", "../../formula/src", "../../i18n-keys/src"]
+  "include": ["src", "../di/src", "../../formula/src", "../../i18n-keys/src", "../../core/src"]
 }

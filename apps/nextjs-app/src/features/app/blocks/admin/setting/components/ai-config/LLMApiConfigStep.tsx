@@ -355,8 +355,8 @@ export function LLMApiConfigStep({
 
             {/* Status indicator - only show after test */}
             {testResult === 'success' && (
-              <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
-                <Check className="size-4" />
+              <div className="ui-success-surface ui-interactive flex items-center gap-1.5 rounded-md p-2 text-sm">
+                <Check className="size-4 shrink-0" />
                 <span>{t('admin.setting.app.aiGatewayKeyConfigured')}</span>
               </div>
             )}
@@ -373,7 +373,7 @@ export function LLMApiConfigStep({
 
             {/* Origin Changed Warning */}
             {originChanged && savedAttachmentTest && (
-              <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+              <div className="ui-warning-surface ui-interactive mt-3 flex items-start gap-2 rounded-md p-3">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                 <div className="text-sm">
                   <div className="font-medium">
@@ -394,11 +394,18 @@ export function LLMApiConfigStep({
                 </div>
                 <div className="space-y-2 text-sm">
                   {/* URL Mode Result */}
-                  <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'ui-interactive flex items-center gap-2 rounded-md p-2',
+                      effectiveAttachmentTest.urlMode?.success
+                        ? 'ui-success-surface'
+                        : 'ui-warning-surface'
+                    )}
+                  >
                     {effectiveAttachmentTest.urlMode?.success ? (
-                      <Check className="size-4 text-green-600 dark:text-green-400" />
+                      <Check className="size-4 shrink-0" />
                     ) : (
-                      <AlertTriangle className="size-4 text-amber-500" />
+                      <AlertTriangle className="size-4 shrink-0" />
                     )}
                     <span>
                       {t('admin.setting.ai.wizard.attachmentTest.urlMode')}:{' '}
@@ -408,11 +415,18 @@ export function LLMApiConfigStep({
                     </span>
                   </div>
                   {/* Base64 Mode Result */}
-                  <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'ui-interactive flex items-center gap-2 rounded-md p-2',
+                      effectiveAttachmentTest.base64Mode?.success
+                        ? 'ui-success-surface'
+                        : 'ui-warning-surface'
+                    )}
+                  >
                     {effectiveAttachmentTest.base64Mode?.success ? (
-                      <Check className="size-4 text-green-600 dark:text-green-400" />
+                      <Check className="size-4 shrink-0" />
                     ) : (
-                      <AlertTriangle className="size-4 text-amber-500" />
+                      <AlertTriangle className="size-4 shrink-0" />
                     )}
                     <span>
                       {t('admin.setting.ai.wizard.attachmentTest.base64Mode')}:{' '}
@@ -422,9 +436,9 @@ export function LLMApiConfigStep({
                     </span>
                   </div>
                   {/* Warning if URL mode failed but Base64 works */}
-                  {!effectiveAttachmentTest.urlMode?.success &&
-                    effectiveAttachmentTest.base64Mode?.success && (
-                      <div className="ui-interactive mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                    {!effectiveAttachmentTest.urlMode?.success &&
+                      effectiveAttachmentTest.base64Mode?.success && (
+                      <div className="ui-warning-surface ui-interactive mt-2 flex items-start gap-2 rounded-md p-2">
                         <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                         <span className="text-xs">
                           {t('admin.setting.ai.wizard.attachmentTest.urlNotAccessibleWarning')}
@@ -589,7 +603,7 @@ export function LLMApiConfigStep({
                     {/* Warning if URL mode not supported */}
                     {!aiConfig.attachmentTest.urlMode?.success &&
                       aiConfig.attachmentTest.base64Mode?.success && (
-                        <div className="ui-interactive mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                        <div className="ui-warning-surface ui-interactive mt-2 flex items-start gap-2 rounded-md p-2">
                           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                           <span className="text-xs">
                             {t('admin.setting.ai.wizard.attachmentTest.urlNotAccessibleWarning')}

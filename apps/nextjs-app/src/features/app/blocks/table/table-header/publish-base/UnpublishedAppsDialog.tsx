@@ -118,8 +118,8 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[480px]">
         <DialogHeader className="flex flex-row items-start gap-4 space-y-0 text-left">
-          <div className="ui-interactive flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-            <AlertTriangle className="size-5 text-amber-600 dark:text-amber-500" />
+          <div className="ui-warning-surface ui-interactive flex size-10 shrink-0 items-center justify-center rounded-full">
+            <AlertTriangle className="size-5" />
           </div>
           <div className="flex flex-col gap-1.5 pt-0.5">
             <DialogTitle className="leading-none">
@@ -142,18 +142,17 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
                 key={app.nodeId}
                 className={cn(
                   'ui-interactive-strong flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3',
-                  app.isPublished &&
-                    'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950',
-                  app.error && 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+                  app.isPublished && 'ui-success-surface',
+                  app.error && 'ui-danger-surface'
                 )}
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{nodeName}</div>
-                  {app.error && <div className="truncate text-xs text-red-600">{app.error}</div>}
+                  {app.error && <div className="truncate text-xs">{app.error}</div>}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {app.isPublished ? (
-                    <div className="flex items-center gap-1 text-green-600">
+                    <div className="flex items-center gap-1">
                       <Check className="size-4 shrink-0" />
                       <span className="text-xs">{t('publishBase.unpublishedApps.published')}</span>
                     </div>

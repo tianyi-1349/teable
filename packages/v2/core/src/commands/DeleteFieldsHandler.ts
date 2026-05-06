@@ -11,9 +11,9 @@ import { domainError, type DomainError } from '../domain/shared/DomainError';
 import type { IDomainEvent } from '../domain/shared/DomainEvent';
 import type { Table } from '../domain/table/Table';
 import { Table as TableAggregate } from '../domain/table/Table';
-import { ICommandBus } from '../ports/CommandBus';
+import type { ICommandBus } from '../ports/CommandBus';
 import * as ExecutionContextPort from '../ports/ExecutionContext';
-import { ITableRepository } from '../ports/TableRepository';
+import type { ITableRepository } from '../ports/TableRepository';
 import { v2CoreTokens } from '../ports/tokens';
 import { TraceSpan } from '../ports/TraceSpan';
 import {

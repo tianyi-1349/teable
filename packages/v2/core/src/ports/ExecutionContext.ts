@@ -1,5 +1,3 @@
-import type { TableI18nKey } from '@teable/i18n-keys';
-
 import type { ActorId } from '../domain/shared/ActorId';
 import type { IDomainContext, IDomainContextConfig } from '../domain/shared/DomainContext';
 import type { ITracer } from './Tracer';
@@ -37,7 +35,7 @@ export interface IExecutionContext {
     selectFieldOptions?: IDomainContextConfig['selectFieldOptions'];
     tableFields?: IDomainContextConfig['tableFields'];
   };
-  $t?: (key: TableI18nKey, options?: Record<string, unknown>) => string;
+  $t?: (key: string, options?: Record<string, unknown>) => string;
 }
 
 export const getDomainContext = (context?: IExecutionContext): IDomainContext | undefined => {
@@ -48,8 +46,7 @@ export const getDomainContext = (context?: IExecutionContext): IDomainContext | 
   }
 
   const translate = context?.$t
-    ? (key: string, options?: Record<string, unknown>) =>
-        context.$t?.(key as TableI18nKey, options) ?? key
+    ? (key: string, options?: Record<string, unknown>) => context.$t?.(key, options) ?? key
     : undefined;
 
   return {

@@ -6,7 +6,7 @@ import type { DomainError } from '../../domain/shared/DomainError';
 import { FieldType } from '../../domain/table/fields/FieldType';
 import type { AttachmentItem } from '../../domain/table/records/specs/values/SetAttachmentValueSpec';
 import type { Table } from '../../domain/table/Table';
-import { IAttachmentUrlSignerService } from '../../ports/AttachmentUrlSignerService';
+import type { IAttachmentUrlSignerService } from '../../ports/AttachmentUrlSignerService';
 import type { AttachmentSignRequest } from '../../ports/AttachmentUrlSignerService';
 import { v2CoreTokens } from '../../ports/tokens';
 import type { IRecordChangedValueDecoratorService } from './RecordChangedValueDecoratorService';
