@@ -322,7 +322,7 @@ export const SignForm: FC<ISignForm> = (props) => {
           {isSignup ? t('auth:title.signup') : t('auth:title.signin')}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {isSignup ? t('auth:label.verificationCode') : t('auth:forgetPassword.trigger')}
+          {isSignup ? t('auth:title.signup') : t('auth:title.signin')}
         </p>
       </div>
       <form className="relative" onSubmit={onSubmit} onChange={() => setError(undefined)}>

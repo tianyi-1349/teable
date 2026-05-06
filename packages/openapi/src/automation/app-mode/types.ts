@@ -1,7 +1,7 @@
 import { z } from '../../zod';
 
 export const appModePageSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1),
   name: z.string(),
   type: z.enum(['list', 'detail', 'dashboard', 'form']),
   sourceId: z.string().optional(),

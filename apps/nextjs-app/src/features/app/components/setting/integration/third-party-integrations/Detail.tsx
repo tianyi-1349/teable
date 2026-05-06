@@ -16,12 +16,12 @@ export const Detail = (props: { detail?: AuthorizedVo; onBack: () => void }) => 
   const { t } = useTranslation('common');
   return (
     <div className="space-y-6 px-5 py-1">
-      <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 shadow-sm">
+      <div className="rounded-xl border border-border/70 bg-background/95 p-4 shadow-sm">
         <div className="flex items-start gap-4">
           <OAuthLogo logo={logo || ''} name={name || ''} />
           <div className="min-w-0 space-y-2">
-            <p className="truncate text-base font-medium text-slate-900">{name}</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
+            <p className="truncate text-base font-medium text-foreground">{name}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
               <p className="flex items-center gap-2">
                 <Clock4 />
                 {t('settings.integration.thirdPartyIntegrations.lastUsed', {
@@ -47,21 +47,21 @@ export const Detail = (props: { detail?: AuthorizedVo; onBack: () => void }) => 
         </div>
       </div>
       <div className="space-y-3">
-        <Separator className="bg-slate-200/80" />
-        <div className="text-sm leading-6 text-slate-600">{description}</div>
+        <Separator className="bg-border/80" />
+        <div className="text-sm leading-6 text-muted-foreground">{description}</div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-medium text-slate-900">
+        <div className="text-sm font-medium text-foreground">
           {t('settings.integration.thirdPartyIntegrations.scopeTitle')}
         </div>
         <RevokeButton clientId={clientId || ''} name={name || ''} onSuccess={onBack} />
       </div>
-      <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
+      <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
         <OAuthScope
           className="p-0"
           scopes={scopes}
           description={
-            <div className="text-sm leading-6 text-slate-600">
+            <div className="text-sm leading-6 text-muted-foreground">
               {t('settings.integration.thirdPartyIntegrations.scopeDesc')}
             </div>
           }
