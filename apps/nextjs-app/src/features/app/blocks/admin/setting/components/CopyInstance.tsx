@@ -14,7 +14,7 @@ export const CopyInstance = (props: ICopyInstanceProps) => {
   const displayBuildVersion = buildVersion ?? process.env.APP_VERSION ?? 'develop';
 
   return (
-    <div className="flex w-full shrink-0 items-center justify-between gap-x-2 overflow-hidden rounded-md bg-secondary p-4">
+    <div className="ui-card-surface flex w-full shrink-0 items-center justify-between gap-x-2 overflow-hidden rounded-md bg-secondary p-4">
       <div className="flex flex-col gap-y-1">
         <span>
           <span className="text-sm font-semibold">{t('noun.instanceId')} </span>
@@ -35,7 +35,7 @@ export const CopyInstance = (props: ICopyInstanceProps) => {
       <CopyButton
         size="xs"
         text={instanceId}
-        className="bg-surface hover:bg-surface hover:opacity-80"
+        className="ui-interactive bg-surface hover:bg-surface hover:opacity-80"
         iconClassName="text-foreground"
         label={t('admin.configuration.copyInstance')}
       />

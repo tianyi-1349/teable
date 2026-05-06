@@ -67,7 +67,7 @@ export const FormView = () => {
       </SessionProvider>
       {needLogin && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 rounded-lg border bg-background p-8 shadow-lg">
+          <div className="ui-card-surface flex flex-col items-center gap-4 rounded-lg border bg-background p-8 shadow-lg">
             <Lock className="size-10 text-muted-foreground" />
             <p className="text-center text-sm text-muted-foreground">
               {t('share:form.requireLoginTip')}

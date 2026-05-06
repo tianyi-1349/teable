@@ -74,7 +74,7 @@ export const CanarySettings = ({ setting }: ICanarySettingsProps) => {
   return (
     <div className="pb-6">
       <h2 className="mb-4 text-lg font-medium">{t('admin.canary.title')}</h2>
-      <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm">
+      <div className="ui-card-surface flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <Label htmlFor="enable-canary">{t('admin.canary.enable')}</Label>
@@ -158,7 +158,7 @@ const SpaceIdsEditor = ({ spaceIds, onSave }: ISpaceIdsEditorProps) => {
             <Label className="text-xs">
               {t('admin.canary.preview' as never, { count: parsedSpaceIds.length })}
             </Label>
-            <div className="max-h-[120px] overflow-y-auto rounded-md border bg-muted/50 p-2">
+            <div className="ui-panel-surface max-h-[120px] overflow-y-auto rounded-md border bg-muted/50 p-2">
               {parsedSpaceIds.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {parsedSpaceIds.map((id, index) => (

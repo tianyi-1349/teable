@@ -104,7 +104,7 @@ export function DefaultModelsStep({
 
   if (disabled) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+      <div className="ui-muted-surface rounded-lg border border-dashed bg-muted/30 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {t('admin.setting.ai.wizard.completeStep2First')}
         </p>
@@ -114,7 +114,7 @@ export function DefaultModelsStep({
 
   if (textModels.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+      <div className="ui-muted-surface rounded-lg border border-dashed bg-muted/30 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {t('admin.setting.ai.wizard.noModelsAvailable')}
         </p>
@@ -126,7 +126,7 @@ export function DefaultModelsStep({
     <div className="space-y-4">
       {/* Quick Setup - only show if no model selected */}
       {recommendedDefault && !chatModel?.lg && (
-        <div className="rounded-lg border bg-muted p-4">
+        <div className="ui-card-surface rounded-lg border bg-muted p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -173,9 +173,12 @@ export function DefaultModelsStep({
         {/* Model tiers - collapsible */}
         {chatModel?.lg && (
           <Collapsible open={tiersOpen} onOpenChange={setTiersOpen}>
-            <CollapsibleTrigger className="flex w-full items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <CollapsibleTrigger className="ui-interactive flex w-full items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ChevronRight
-                className={cn('size-4 shrink-0 transition-transform', tiersOpen && 'rotate-90')}
+                className={cn(
+                  'size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none',
+                  tiersOpen && 'rotate-90'
+                )}
               />
               <span>{t('admin.setting.ai.chatModels.modelTiers')}</span>
               {!tiersOpen && (
@@ -190,7 +193,7 @@ export function DefaultModelsStep({
               <div className="mt-2 text-xs text-muted-foreground">
                 {t('admin.setting.ai.chatModels.modelTiersDescription')}
               </div>
-              <div className="mt-3 flex flex-col gap-4 rounded-md border bg-muted/30 p-4">
+              <div className="ui-panel-surface mt-3 flex flex-col gap-4 rounded-md border bg-muted/30 p-4">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-medium">

@@ -523,7 +523,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
               </div>
             </div>
 
-            <div className="relative h-[520px] w-[512px] shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
+            <div className="ui-muted-surface relative h-[520px] w-[512px] shrink-0 overflow-hidden rounded-2xl bg-muted/30">
               <input
                 ref={uploadRef}
                 type="file"
@@ -538,7 +538,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
 
                 <div className="flex w-[432px] flex-col gap-3 bg-transparent">
                   <div
-                    className="group relative h-[240px] cursor-pointer overflow-hidden rounded-2xl border border-border/50 bg-surface"
+                    className="group ui-interactive-strong relative h-[240px] cursor-pointer overflow-hidden rounded-2xl border border-border/50 bg-surface"
                     onClick={handleUploadClick}
                     role="button"
                     tabIndex={0}
@@ -555,7 +555,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                           className="size-full object-cover"
                           alt="published base preview"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 ui-interactive group-hover:opacity-100">
                           <div className="flex flex-col items-center gap-2">
                             <Camera className="size-8 text-white" />
                             <span className="text-sm text-white">
@@ -565,7 +565,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                         </div>
                       </>
                     ) : (
-                      <div className="flex size-full flex-col items-center justify-center gap-3 transition-colors hover:bg-black/5 dark:hover:bg-white/10">
+                      <div className="ui-interactive flex size-full flex-col items-center justify-center gap-3 hover:bg-black/5 dark:hover:bg-white/10">
                         {isUploading ? (
                           <>
                             <Spin className="size-8" />
@@ -637,13 +637,13 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                   </div>
                 </div>
                 {templateDetail?.isPublished && (
-                  <div className="z-50 flex h-9 w-[432px] items-center gap-2 overflow-hidden rounded-md border bg-background pl-3">
+                  <div className="ui-card-surface z-50 flex h-9 w-[432px] items-center gap-2 overflow-hidden rounded-md border bg-background pl-3">
                     <Link className="size-4 shrink-0" />
                     <div className="grow truncate text-sm text-muted-foreground">{shareUrl}</div>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="size-9 shrink-0 rounded-none border-l p-0"
+                      className="ui-interactive size-9 shrink-0 rounded-none border-l p-0"
                       onClick={handleCopyUrl}
                     >
                       <Copy className="size-4" />
@@ -651,7 +651,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="size-9 shrink-0 rounded-none border-l p-0"
+                      className="ui-interactive size-9 shrink-0 rounded-none border-l p-0"
                       onClick={() => window.open(shareUrl, '_blank')}
                     >
                       <ExternalLink className="size-4" />
@@ -687,7 +687,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
             </span>
 
             <div className="flex w-full items-center gap-2 py-2">
-              <div className="flex h-9 flex-1 items-center gap-2 truncate rounded-md border px-3 text-sm">
+              <div className="ui-card-surface flex h-9 flex-1 items-center gap-2 truncate rounded-md border px-3 text-sm">
                 <Link className="size-4 shrink-0" />
                 <div className="flex-1 truncate">{shareUrl}</div>
               </div>

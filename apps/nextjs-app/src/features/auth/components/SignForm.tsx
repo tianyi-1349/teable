@@ -395,9 +395,12 @@ export const SignForm: FC<ISignForm> = (props) => {
 
           <div
             data-state={showVerificationCode ? 'show' : 'hide'}
-            className={cn('overflow-hidden transition-all', {
-              'h-0': !showVerificationCode,
-            })}
+            className={cn(
+              'overflow-hidden transition-[height,opacity] duration-200 motion-reduce:transition-none',
+              {
+                'h-0': !showVerificationCode,
+              }
+            )}
           >
             {showVerificationCode && (
               <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:p-5">

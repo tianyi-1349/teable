@@ -67,7 +67,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
   }, [list]);
 
   return (
-    <div className="flex h-44 w-full min-w-full flex-col space-y-4 overflow-y-auto rounded-3xl border border-border/60 bg-background/95 p-4 shadow-sm sm:h-auto sm:max-h-[80vh] sm:w-[360px] sm:min-w-[360px]">
+    <div className="ui-panel-surface flex h-44 w-full min-w-full flex-col space-y-4 overflow-y-auto rounded-3xl p-4 sm:h-auto sm:max-h-[80vh] sm:w-[360px] sm:min-w-[360px]">
       <div className="flex flex-col">
         <span className="mb-1 justify-start self-stretch text-base font-semibold tracking-tight text-foreground">
           {t('admin.configuration.title')}
@@ -79,7 +79,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
 
       {/* Progress */}
       {requiredList.length > 0 && (
-        <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+        <div className="ui-muted-surface rounded-2xl p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium">
               {t('admin.configuration.progressTitle', '配置进度')}
@@ -123,7 +123,7 @@ export const ConfigurationList = (props: IConfigurationListProps) => {
               <button
                 type="button"
                 className={cn(
-                  'flex w-full items-start gap-2 rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-border/60 hover:bg-muted/20',
+                  'ui-interactive flex w-full items-start gap-2 rounded-2xl border border-transparent p-3 text-left hover:border-border/60 hover:bg-muted/20',
                   item.isComplete && 'opacity-80'
                 )}
                 onClick={() => {

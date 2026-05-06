@@ -118,7 +118,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[480px]">
         <DialogHeader className="flex flex-row items-start gap-4 space-y-0 text-left">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+          <div className="ui-interactive flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
             <AlertTriangle className="size-5 text-amber-600 dark:text-amber-500" />
           </div>
           <div className="flex flex-col gap-1.5 pt-0.5">
@@ -131,7 +131,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
           </div>
         </DialogHeader>
 
-        <div className="my-4 flex max-h-[400px] flex-col gap-2 overflow-auto">
+        <div className="ui-panel-surface my-4 flex max-h-[400px] flex-col gap-2 overflow-auto rounded-lg border p-2">
           {apps.map((app) => {
             const node = treeItems[app.nodeId];
             const nodeName =
@@ -141,7 +141,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
               <div
                 key={app.nodeId}
                 className={cn(
-                  'flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3',
+                  'ui-interactive-strong flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3',
                   app.isPublished &&
                     'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950',
                   app.error && 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
@@ -169,7 +169,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
                           size="xs"
                           variant="outline"
                           onClick={() => handlePublishApp(app)}
-                          className="h-7 shrink-0 gap-1 px-2"
+                          className="ui-interactive h-7 shrink-0 gap-1 px-2"
                         >
                           <Rocket className="size-3 shrink-0" />
                           <span className="truncate">
@@ -181,7 +181,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
                         <Button
                           size="xs"
                           variant="outline"
-                          className="h-7 shrink-0 gap-1 px-2"
+                          className="ui-interactive h-7 shrink-0 gap-1 px-2"
                           asChild
                         >
                           <Link href={`/base/${baseId}/app/${app.resourceId}`} target="_blank">
@@ -198,7 +198,7 @@ export const UnpublishedAppsDialog = (props: IUnpublishedAppsDialogProps) => {
                       size="xs"
                       variant="outline"
                       onClick={() => handlePublishApp(app)}
-                      className="h-7 gap-1"
+                      className="ui-interactive h-7 gap-1"
                     >
                       <Rocket className="size-3" />
                       {t('publishBase.unpublishedApps.publish')}

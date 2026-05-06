@@ -27,7 +27,7 @@ const CodeTable = (props: { list: IWaitlistInviteCodeVo }) => {
   const { list } = props;
   return (
     <div className="w-full ">
-      <div className="mt-4 max-h-[420px] overflow-y-auto overflow-x-hidden rounded-md border ">
+      <div className="ui-card-surface mt-4 max-h-[420px] overflow-y-auto overflow-x-hidden rounded-md border">
         <Table className="relative scroll-smooth">
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow className="h-8 text-sm font-semibold ">
@@ -73,7 +73,12 @@ export const InviteCodeManage = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" onClick={() => setOpen(true)}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="ui-interactive"
+          onClick={() => setOpen(true)}
+        >
           <PencilIcon className="size-4" />
         </Button>
       </DialogTrigger>

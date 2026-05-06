@@ -286,7 +286,7 @@ export function GatewayModelsStep({
 
   if (disabled) {
     return (
-      <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+      <div className="ui-muted-surface rounded-lg border border-dashed bg-muted/30 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {t('admin.setting.ai.wizard.completeStep1First')}
         </p>
@@ -336,7 +336,7 @@ export function GatewayModelsStep({
         </div>
       ) : (
         availableRecommendedIds.length === 0 && (
-          <div className="rounded-lg border border-dashed p-6 text-center">
+          <div className="ui-muted-surface rounded-lg border border-dashed p-6 text-center">
             <p className="text-sm text-muted-foreground">{t('admin.setting.ai.noGatewayModels')}</p>
           </div>
         )

@@ -125,7 +125,7 @@ export const KanbanCard = (props: IKanbanCardProps) => {
           <div
             {...provided.dragHandleProps}
             className={cn(
-              'relative flex w-full grow flex-col space-y-2  gap-1 overflow-hidden rounded-md border border-border bg-card hover:border-primary/15 p-3 cursor-pointer',
+              'ui-interactive-strong relative flex w-full grow cursor-pointer flex-col gap-1 space-y-2 overflow-hidden rounded-md border border-border bg-card p-3 hover:border-primary/15 hover:shadow-sm',
               isDragging && 'shadow-md'
             )}
             onClick={onExpand}

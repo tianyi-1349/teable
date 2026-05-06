@@ -20,14 +20,14 @@ export const Branding = ({
     <div className="pb-6">
       <h2 className="mb-4 text-lg font-medium">{t('admin.setting.brandingSettings.title')}</h2>
       <div className="flex w-full flex-col space-y-4">
-        <div className="space-y-2 rounded-lg border p-4 shadow-sm">
+        <div className="ui-card-surface space-y-2 rounded-lg border p-4 shadow-sm">
           <p className="text-xs text-gray-500">{t('admin.setting.brandingSettings.description')}</p>
           <div className="flex items-center justify-between">
             <Label htmlFor="brand-name">{t('admin.setting.brandingSettings.brandName')}</Label>
             <input
               id="brand-name"
               type="text"
-              className="rounded-md border px-3 py-2"
+              className="ui-interactive rounded-md border px-3 py-2"
               placeholder="Teable"
               value={name}
               onChange={(e) => {

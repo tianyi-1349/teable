@@ -16,7 +16,7 @@ export const Detail = (props: { detail?: AuthorizedVo; onBack: () => void }) => 
   const { t } = useTranslation('common');
   return (
     <div className="space-y-6 px-5 py-1">
-      <div className="rounded-xl border border-border/70 bg-background/95 p-4 shadow-sm">
+      <div className="ui-panel-surface p-4">
         <div className="flex items-start gap-4">
           <OAuthLogo logo={logo || ''} name={name || ''} />
           <div className="min-w-0 space-y-2">
@@ -56,7 +56,7 @@ export const Detail = (props: { detail?: AuthorizedVo; onBack: () => void }) => 
         </div>
         <RevokeButton clientId={clientId || ''} name={name || ''} onSuccess={onBack} />
       </div>
-      <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+      <div className="ui-muted-surface p-4">
         <OAuthScope
           className="p-0"
           scopes={scopes}

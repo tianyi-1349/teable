@@ -33,7 +33,7 @@ export function PricingSection({
   return (
     <Collapsible open={expanded} onOpenChange={onExpandedChange}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-between">
+        <Button variant="ghost" size="sm" className="ui-interactive w-full justify-between">
           <span className="flex items-center gap-2">
             <DollarSign className="size-4" />
             Pricing (USD per token)
@@ -46,7 +46,7 @@ export function PricingSection({
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-2 space-y-3 rounded-lg border bg-muted/30 p-3">
+        <div className="ui-panel-surface mt-2 space-y-3 rounded-lg border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground">
             USD per token (same format as Vercel AI Gateway API). e.g., 0.000003 = $3/1M tokens
           </p>

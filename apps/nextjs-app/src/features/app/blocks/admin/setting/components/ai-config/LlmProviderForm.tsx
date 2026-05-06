@@ -318,7 +318,7 @@ const ModelRatesConfig = ({ models, modelConfigs = {}, onChange }: ModelRatesCon
       </button>
 
       {expanded && (
-        <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+        <div className="ui-panel-surface space-y-3 rounded-md border bg-muted/20 p-3">
           {/* Rate explanation */}
           <div className="rounded bg-blue-50 p-2 text-xs text-blue-800 dark:bg-blue-950 dark:text-blue-200">
             <div className="font-medium">{t('admin.setting.ai.rateExplanationTitle')}</div>
@@ -910,7 +910,7 @@ export const LLMProviderForm = ({
 
           {/* Test Error Display */}
           {testResult && !testResult.success && (
-            <div className="space-y-2 rounded-md border bg-muted p-3 text-sm">
+            <div className="ui-card-surface space-y-2 rounded-md border bg-muted p-3 text-sm">
               <div className="flex items-start gap-2">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 <p className="break-all font-medium">{testResult.message}</p>
@@ -933,7 +933,7 @@ export const LLMProviderForm = ({
 
           {/* Test Progress Display */}
           {modelTestStatuses.length > 0 && (
-            <div className="space-y-3 rounded-md border bg-muted p-3">
+            <div className="ui-card-surface space-y-3 rounded-md border bg-muted p-3">
               {/* Progress bar */}
               {testProgress.total > 0 && (
                 <div className="flex items-center gap-3">
@@ -1075,7 +1075,7 @@ const ModelTestPill = ({ status }: IModelTestPillProps) => {
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
+        'ui-interactive inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
         getStatusStyles(),
         isImageModel && 'ring-1 ring-blue-200 dark:bg-blue-500/10 dark:ring-blue-500/20'
       )}

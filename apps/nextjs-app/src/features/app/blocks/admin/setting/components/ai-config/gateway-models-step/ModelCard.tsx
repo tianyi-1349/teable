@@ -61,7 +61,7 @@ export function ModelCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-3 rounded-lg border p-4 transition-colors',
+        'ui-interactive-strong flex items-center gap-3 rounded-lg border p-4',
         model.enabled ? 'bg-card' : 'bg-muted text-muted-foreground',
         isDragging && 'z-10 opacity-50 shadow-lg'
       )}
@@ -166,7 +166,7 @@ export function ModelCard({
         <Button
           size="sm"
           variant="ghost"
-          className="size-7 p-0 text-muted-foreground"
+          className="ui-interactive size-7 p-0 text-muted-foreground"
           onClick={() => onRemove(model.id)}
         >
           <Trash2 className="size-4" />

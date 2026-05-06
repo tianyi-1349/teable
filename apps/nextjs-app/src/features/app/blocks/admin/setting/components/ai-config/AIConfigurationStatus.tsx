@@ -133,7 +133,7 @@ export const AIConfigurationStatus = ({ aiConfig, onNavigate }: IAIConfiguration
   const hasWarning = checkItems.some((item) => item.status === 'warning');
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="ui-card-surface rounded-lg border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-foreground">
           {t('admin.setting.ai.guide.configStatus')}
@@ -163,7 +163,7 @@ export const AIConfigurationStatus = ({ aiConfig, onNavigate }: IAIConfiguration
             type="button"
             onClick={item.onClick}
             className={cn(
-              'flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors',
+              'ui-interactive flex w-full items-center gap-3 rounded-md p-2 text-left',
               item.onClick && 'hover:bg-muted/50 cursor-pointer'
             )}
           >

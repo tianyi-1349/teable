@@ -114,7 +114,7 @@ export const LLMProviderManage = ({
 
           return (
             <div
-              className="group rounded-lg border p-4 pr-3 hover:border-primary/50"
+              className="ui-interactive-strong group rounded-lg border p-4 pr-3 hover:border-primary/50"
               key={provider.name}
             >
               {/* Provider header */}
@@ -156,7 +156,7 @@ export const LLMProviderManage = ({
                     onClick={() => handleRemove(index)}
                     size="xs"
                     variant="ghost"
-                    className="w-7 p-0 opacity-0 group-hover:opacity-100"
+                    className="ui-interactive w-7 p-0 opacity-0 group-hover:opacity-100"
                   >
                     <XIcon className="size-4 text-muted-foreground" />
                   </Button>
@@ -321,7 +321,7 @@ const ModelRow = ({
   };
 
   return (
-    <div className="rounded-md border bg-muted p-3">
+    <div className="ui-card-surface rounded-md border bg-muted p-3">
       {/* Model header row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -351,7 +351,7 @@ const ModelRow = ({
             variant="ghost"
             onClick={() => onTestModel?.()}
             disabled={isCurrentlyTesting}
-            className="h-5 gap-1 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+            className="ui-interactive h-5 gap-1 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
           >
             {isCurrentlyTesting ? (
               <Loader2 className="size-3 animate-spin" />
@@ -393,7 +393,7 @@ const ModelRow = ({
                   <div
                     key={abilityType}
                     className={cn(
-                      'flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-colors',
+                      'ui-interactive flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]',
                       tested && supported
                         ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500'
                         : 'bg-muted text-muted-foreground'
@@ -414,7 +414,7 @@ const ModelRow = ({
                 const badge = (
                   <div
                     className={cn(
-                      'flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-colors',
+                      'ui-interactive flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]',
                       tested && supported
                         ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500'
                         : 'bg-muted text-muted-foreground'

@@ -78,7 +78,7 @@ const WaitlistTable = (props: IWaitlistTableProps) => {
           onChange={(event) => setSearch(event.target.value)}
         />
       </div>
-      <div className="mt-4 max-h-[400px] overflow-y-auto overflow-x-hidden rounded-md border ">
+      <div className="ui-card-surface mt-4 max-h-[400px] overflow-y-auto overflow-x-hidden rounded-md border">
         <Table className="relative scroll-smooth">
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow className="h-8 text-sm font-semibold ">
@@ -157,7 +157,7 @@ export const WaitlistManage = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="outline" size="icon" className="ui-interactive">
           <SettingsIcon className="size-4" />
         </Button>
       </DialogTrigger>

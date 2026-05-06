@@ -31,6 +31,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[设计系统收敛执行顺序需先 ai-config 后其他邻接页面]
+- Date: 2026-05-06
+- Context: 用户在继续推进第三轮共享语义类收敛时明确要求执行顺序
+- Instructions:
+  - 继续扫 `apps/nextjs-app/src/features/app/blocks/admin/setting/components/ai-config` 目录，把剩余零散 `transition-colors` / `transition-all` 先收一批
+  - 完成 `ai-config` 收口后，再回到 `publish` / `form` / `settings` 其他邻接页面继续铺开相同语义类
+
 [维护 AGENTS.md 时优先覆盖全仓库高价值来源]
 - Date: 2026-05-06
 - Context: 用户要求创建或更新仓库级 `AGENTS.md`

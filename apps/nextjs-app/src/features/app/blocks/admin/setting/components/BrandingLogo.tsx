@@ -52,19 +52,19 @@ export const BrandingLogo = (props: { value?: string }) => {
           onChange={handleLogoChange}
         />
         <div
-          className="group relative flex h-fit items-center justify-center"
+          className="ui-interactive group relative flex h-fit items-center justify-center rounded-md"
           onClick={() => fileInput.current?.click()}
         >
           {logoUrl ? (
-            <div className="relative size-14 overflow-hidden rounded-md border border-border">
+            <div className="ui-card-surface relative size-14 overflow-hidden rounded-md border border-border">
               <img src={logoUrl} alt="logo" className="absolute inset-0 size-full object-contain" />
             </div>
           ) : (
-            <div className="flex size-14 items-center justify-center rounded-md border border-border">
+            <div className="ui-card-surface flex size-14 items-center justify-center rounded-md border border-border">
               {isLoading ? <Spin /> : <Plus className="size-8 text-foreground" />}
             </div>
           )}
-          <div className="absolute left-0 top-0 size-full rounded-md bg-transparent group-hover:bg-muted-foreground/20" />
+          <div className="ui-interactive absolute left-0 top-0 size-full rounded-md bg-transparent group-hover:bg-muted-foreground/20" />
         </div>
       </div>
     </div>

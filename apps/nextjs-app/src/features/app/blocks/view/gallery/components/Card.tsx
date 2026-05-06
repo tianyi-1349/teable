@@ -109,7 +109,7 @@ export const Card = (props: IKanbanCardProps) => {
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className="size-full cursor-pointer overflow-hidden rounded-md border border-input bg-card hover:border-primary/15"
+          className="ui-interactive-strong size-full cursor-pointer overflow-hidden rounded-md border border-input bg-card hover:border-primary/15 hover:shadow-sm"
           onClick={onExpand}
         >
           {coverFieldId && (

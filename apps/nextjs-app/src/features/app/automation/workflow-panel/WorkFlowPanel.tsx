@@ -38,7 +38,7 @@ const WorkFlowPanel = forwardRef<WorkFlowPanelRef, WorkFlowPanelProps>((_props, 
 
   return (
     <div className="grid h-full gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background">
+      <div className="ui-panel-surface min-h-0 overflow-hidden rounded-2xl bg-background">
         <div className="border-b border-border/60 px-3 py-2">{headLeft}</div>
         <div className="grid h-[calc(100%-45px)] min-h-0 grid-rows-[auto_minmax(0,1fr)]">
           <div className="border-b border-border/60 bg-muted/20 px-4 py-3">
@@ -49,30 +49,30 @@ const WorkFlowPanel = forwardRef<WorkFlowPanelRef, WorkFlowPanelProps>((_props, 
                   Keep automation setup and app-mode governance in the same workspace.
                 </div>
               </div>
-              <div className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <div className="ui-interactive rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 Enterprise preview
               </div>
             </div>
             <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+              <div className="ui-card-surface rounded-xl bg-background/80 px-3 py-2">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                   Workflow
                 </div>
                 <div className="mt-1 truncate font-medium text-foreground">{workflowLabel}</div>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+              <div className="ui-card-surface rounded-xl bg-background/80 px-3 py-2">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                   Workflow ID
                 </div>
                 <div className="mt-1 truncate font-mono text-foreground">{workflowId}</div>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+              <div className="ui-card-surface rounded-xl bg-background/80 px-3 py-2">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                   Base ID
                 </div>
                 <div className="mt-1 truncate font-mono text-foreground">{baseId}</div>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+              <div className="ui-card-surface rounded-xl bg-background/80 px-3 py-2">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                   Trigger field
                 </div>

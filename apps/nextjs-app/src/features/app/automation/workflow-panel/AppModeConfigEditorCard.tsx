@@ -104,7 +104,7 @@ export const AppModeConfigEditorCard = ({
   };
 
   return (
-    <Card className="border-border/60 bg-background/95 shadow-sm">
+    <Card className="ui-panel-surface">
       <CardHeader className="space-y-3 border-b border-border/60 pb-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -119,7 +119,7 @@ export const AppModeConfigEditorCard = ({
         </div>
         {workflowContext ? (
           <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+            <div className="ui-muted-surface rounded-xl px-3 py-2">
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                 Workflow link
               </div>
@@ -130,7 +130,7 @@ export const AppModeConfigEditorCard = ({
                 {workflowContext.workflowId}
               </div>
             </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+            <div className="ui-muted-surface rounded-xl px-3 py-2">
               <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
                 Trigger context
               </div>
@@ -157,7 +157,7 @@ export const AppModeConfigEditorCard = ({
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+          <div className="ui-muted-surface rounded-xl px-3 py-2">
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
               Page mix
             </div>
@@ -168,7 +168,7 @@ export const AppModeConfigEditorCard = ({
               <Badge variant="secondary">Form {pagesByType.form}</Badge>
             </div>
           </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+          <div className="ui-muted-surface rounded-xl px-3 py-2">
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70">
               Current guardrails
             </div>

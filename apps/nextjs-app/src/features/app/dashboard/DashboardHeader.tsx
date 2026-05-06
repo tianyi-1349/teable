@@ -96,7 +96,7 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
         <Button
           variant="ghost"
           size="sm"
-          className="justify-start rounded-md border border-transparent px-3 text-sm text-slate-100 transition-colors hover:border-emerald-500/30 hover:bg-slate-900 hover:text-emerald-300"
+          className="ui-interactive justify-start rounded-md border border-transparent px-3 text-sm text-slate-100 hover:border-emerald-500/30 hover:bg-slate-900 hover:text-emerald-300"
           disabled={!canManage}
           onClick={startRename}
         >
@@ -110,7 +110,7 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
             <Button
               variant={'outline'}
               size={'xs'}
-              className="border-slate-700 bg-slate-950/70 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,0.08)_inset] transition-colors hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
+              className="ui-interactive border-slate-700 bg-slate-950/70 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,0.08)_inset] hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
             >
               <Plus className="size-4 shrink-0" />
               {t('dashboard:addPlugin')}
@@ -126,7 +126,7 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
             <Button
               size="icon-xs"
               variant="outline"
-              className="border-slate-700 bg-slate-950/70 text-slate-200 transition-colors hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
+              className="ui-interactive border-slate-700 bg-slate-950/70 text-slate-200 hover:border-emerald-500/40 hover:bg-slate-900 hover:text-emerald-200"
             >
               <MoreHorizontal className="size-4" />
             </Button>

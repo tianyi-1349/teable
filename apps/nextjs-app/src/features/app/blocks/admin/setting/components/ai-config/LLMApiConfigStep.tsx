@@ -225,7 +225,7 @@ export function LLMApiConfigStep({
         {/* Gateway Option */}
         <div
           className={cn(
-            'relative flex cursor-pointer flex-col rounded-lg border p-4 transition-all',
+            'ui-interactive-strong relative flex cursor-pointer flex-col rounded-lg border p-4',
             mode === 'gateway'
               ? 'border-primary bg-accent'
               : 'border-border hover:border-primary/30'
@@ -266,7 +266,7 @@ export function LLMApiConfigStep({
         {/* Custom Provider Option */}
         <div
           className={cn(
-            'relative flex cursor-pointer flex-col rounded-lg border p-4 transition-all',
+            'ui-interactive-strong relative flex cursor-pointer flex-col rounded-lg border p-4',
             mode === 'custom' ? 'border-primary bg-accent' : 'border-border hover:border-primary/30'
           )}
           role="button"
@@ -300,7 +300,7 @@ export function LLMApiConfigStep({
 
       {/* Gateway Configuration */}
       {mode === 'gateway' && (
-        <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+        <div className="ui-panel-surface space-y-4 rounded-lg border bg-muted/30 p-4">
           {/* Help text */}
           <div className="rounded-md bg-background text-sm text-muted-foreground">
             {t('admin.setting.ai.wizard.gatewayHelp')}{' '}
@@ -388,7 +388,7 @@ export function LLMApiConfigStep({
 
             {/* Attachment Transfer Mode Test Results */}
             {effectiveAttachmentTest && !originChanged && (
-              <div className="mt-3 rounded-md border bg-muted p-3">
+              <div className="ui-card-surface mt-3 rounded-md border bg-muted p-3">
                 <div className="mb-2 text-sm font-medium">
                   {t('admin.setting.ai.wizard.attachmentTest.title')}
                 </div>
@@ -424,7 +424,7 @@ export function LLMApiConfigStep({
                   {/* Warning if URL mode failed but Base64 works */}
                   {!effectiveAttachmentTest.urlMode?.success &&
                     effectiveAttachmentTest.base64Mode?.success && (
-                      <div className="mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                      <div className="ui-interactive mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
                         <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                         <span className="text-xs">
                           {t('admin.setting.ai.wizard.attachmentTest.urlNotAccessibleWarning')}
@@ -475,7 +475,7 @@ export function LLMApiConfigStep({
 
       {/* Custom Provider Configuration */}
       {mode === 'custom' && (
-        <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+        <div className="ui-panel-surface space-y-4 rounded-lg border bg-muted/30 p-4">
           <p className="text-sm text-muted-foreground">
             {t('admin.setting.ai.wizard.customProviderHelp')}
           </p>
@@ -553,7 +553,7 @@ export function LLMApiConfigStep({
 
               {/* Custom Provider Attachment Test Results (reuse same UI) */}
               {aiConfig?.attachmentTest && (
-                <div className="rounded-md border bg-background p-3">
+                <div className="ui-card-surface rounded-md border bg-background p-3">
                   <div className="mb-2 text-sm font-medium">
                     {t('admin.setting.ai.wizard.attachmentTest.title')}
                   </div>
@@ -589,7 +589,7 @@ export function LLMApiConfigStep({
                     {/* Warning if URL mode not supported */}
                     {!aiConfig.attachmentTest.urlMode?.success &&
                       aiConfig.attachmentTest.base64Mode?.success && (
-                        <div className="mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                        <div className="ui-interactive mt-2 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
                           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                           <span className="text-xs">
                             {t('admin.setting.ai.wizard.attachmentTest.urlNotAccessibleWarning')}

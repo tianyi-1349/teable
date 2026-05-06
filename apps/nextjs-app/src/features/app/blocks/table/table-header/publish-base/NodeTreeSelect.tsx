@@ -475,7 +475,7 @@ export const NodeTreeSelect = (props: INodeSelectProps) => {
                       {...item.getProps()}
                       type="button"
                       className={cn(
-                        'flex min-w-0 flex-1 items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent',
+                        'ui-interactive flex min-w-0 flex-1 items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent',
                         isSelected && 'bg-accent',
                         'cursor-pointer'
                       )}
@@ -486,7 +486,7 @@ export const NodeTreeSelect = (props: INodeSelectProps) => {
                       {isFolder && (
                         <ChevronDown
                           className={cn(
-                            'size-4 shrink-0 transition-transform',
+                            'size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none',
                             !isExpanded && '-rotate-90'
                           )}
                         />

@@ -31,7 +31,7 @@ export function SetupStepCard({
     <Collapsible open={isExpanded} onOpenChange={disabled ? undefined : onToggle}>
       <div
         className={cn(
-          'rounded-lg border bg-card transition-colors overflow-hidden',
+          'ui-interactive-strong overflow-hidden rounded-lg border bg-card',
           isExpanded && 'border-primary/50',
           isExpanded && !isComplete && 'border-primary shadow-sm',
           disabled && 'opacity-50'
@@ -40,14 +40,14 @@ export function SetupStepCard({
         <CollapsibleTrigger asChild disabled={disabled}>
           <button
             className={cn(
-              'flex w-full items-center gap-4 p-4 text-left',
+              'ui-interactive flex w-full items-center gap-4 p-4 text-left',
               !disabled && 'hover:bg-muted'
             )}
           >
             {/* Step indicator */}
             <div
               className={cn(
-                'flex size-7 shrink-0 items-center justify-center border rounded-full text-sm font-medium text-muted-foreground transition-colors',
+                'ui-interactive flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium text-muted-foreground',
                 isComplete &&
                   'border-green-600 text-green-600 dark:text-green-400 dark:border-green-400'
               )}
@@ -67,7 +67,7 @@ export function SetupStepCard({
             {/* Expand indicator */}
             <ChevronDown
               className={cn(
-                'size-5 shrink-0 text-muted-foreground transition-transform',
+                'size-5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
                 isExpanded && 'rotate-180'
               )}
             />

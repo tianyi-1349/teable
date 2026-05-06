@@ -226,7 +226,7 @@ export function GatewayModelPickerDialog({
               placeholder={t('admin.setting.ai.searchModelPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-9 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="ui-interactive flex h-9 w-full rounded-md border border-input bg-transparent px-9 py-1 text-sm shadow-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
@@ -258,7 +258,7 @@ export function GatewayModelPickerDialog({
                       onClick={() => !isDisabled && onSelectModel(model)}
                       disabled={isDisabled}
                       className={cn(
-                        'flex w-full flex-col rounded-sm p-2 py-1.5 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none',
+                        'ui-interactive flex w-full flex-col rounded-sm p-2 py-1.5 text-left hover:bg-accent focus:bg-accent focus:outline-none',
                         isSelected && 'bg-accent',
                         isDisabled && 'cursor-not-allowed opacity-50'
                       )}

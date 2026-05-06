@@ -189,7 +189,7 @@ export const CodingModels = ({
 
         {/* Model Ability Section - directly under model select */}
         {value?.lg && (
-          <div className="mt-2 rounded-md border bg-muted p-3">
+          <div className="ui-card-surface mt-2 rounded-md border bg-muted p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
                 {t('admin.setting.ai.chatModelAbility.lgModelAbility')}
@@ -207,7 +207,7 @@ export const CodingModels = ({
                   const badge = (
                     <div
                       className={cn(
-                        'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors',
+                        'ui-interactive flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs',
                         supported
                           ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500'
                           : 'bg-muted text-muted-foreground'
@@ -247,7 +247,7 @@ export const CodingModels = ({
 
             {/* Warning for missing abilities */}
             {hasMissingAbilities && getMissingAbilitiesMessage && (
-              <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-50/50 p-2.5 dark:bg-amber-900/20">
+              <div className="ui-interactive mt-3 flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-50/50 p-2.5 dark:bg-amber-900/20">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
                 <div className="text-xs text-amber-700 dark:text-amber-400">
                   <p className="font-medium">
@@ -268,9 +268,12 @@ export const CodingModels = ({
       {/* Model tiers - collapsible */}
       {value?.lg && (
         <Collapsible open={tiersOpen} onOpenChange={setTiersOpen}>
-          <CollapsibleTrigger className="flex w-full items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <CollapsibleTrigger className="ui-interactive flex w-full items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ChevronRight
-              className={cn('size-4 shrink-0 transition-transform', tiersOpen && 'rotate-90')}
+              className={cn(
+                'size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none',
+                tiersOpen && 'rotate-90'
+              )}
             />
             <span>{t('admin.setting.ai.chatModels.modelTiers')}</span>
             {!tiersOpen && (
@@ -285,7 +288,7 @@ export const CodingModels = ({
             <div className="mt-2 text-xs text-muted-foreground">
               {t('admin.setting.ai.chatModels.modelTiersDescription')}
             </div>
-            <div className="mt-3 flex flex-col gap-4 rounded-md border bg-muted/30 p-4">
+            <div className="ui-panel-surface mt-3 flex flex-col gap-4 rounded-md border bg-muted/30 p-4">
               {/* MD - Standard */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-baseline gap-2">

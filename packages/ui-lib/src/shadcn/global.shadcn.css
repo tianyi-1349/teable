@@ -92,3 +92,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .ui-interactive {
+    @apply transition-colors duration-150 motion-reduce:transition-none;
+  }
+
+  .ui-interactive-strong {
+    @apply transition-colors transition-shadow duration-200 motion-reduce:transition-none;
+  }
+
+  .ui-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+  }
+
+  .ui-hover-surface {
+    @apply ui-interactive hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .ui-hover-border {
+    @apply ui-interactive hover:border-primary/20;
+  }
+
+  .ui-card-surface {
+    @apply rounded-xl border border-border/70 bg-background;
+  }
+
+  .ui-panel-surface {
+    @apply rounded-xl border border-border/70 bg-background/95 shadow-sm;
+  }
+
+  .ui-muted-surface {
+    @apply rounded-xl border border-border/60 bg-muted/20;
+  }
+}
