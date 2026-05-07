@@ -34,6 +34,38 @@ describe('OpenAPI AttachmentController (e2e)', () => {
   let table: ITableFullVo;
   let filePath: string;
   let appUrl: string;
+  const pdfBuffer = Buffer.from(
+    [
+      '%PDF-1.4',
+      '1 0 obj',
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      'endobj',
+      '2 0 obj',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      'endobj',
+      '3 0 obj',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>',
+      'endobj',
+      '4 0 obj',
+      '<< /Length 44 >>',
+      'stream',
+      'BT /F1 18 Tf 40 100 Td (Teable PDF) Tj ET',
+      'endstream',
+      'endobj',
+      'xref',
+      '0 5',
+      '0000000000 65535 f ',
+      '0000000010 00000 n ',
+      '0000000063 00000 n ',
+      '0000000122 00000 n ',
+      '0000000208 00000 n ',
+      'trailer',
+      '<< /Root 1 0 R /Size 5 >>',
+      'startxref',
+      '302',
+      '%%EOF',
+    ].join('\n')
+  );
   beforeAll(async () => {
     const appCtx = await initApp();
     app = appCtx.app;
@@ -46,7 +78,9 @@ describe('OpenAPI AttachmentController (e2e)', () => {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   beforeEach(async () => {
@@ -140,6 +174,38 @@ describe('OpenAPI AttachmentController (e2e)', () => {
     expect(attachment?.lgThumbnailUrl).toBe(attachment.presignedUrl);
     expect(attachment?.smThumbnailUrl).toBeDefined();
     expect(attachment.smThumbnailUrl).not.toBe(attachment.presignedUrl);
+  });
+
+  it('should generate pdf thumbnail urls without falling back to the original file url', async () => {
+    const eventEmitterService = app.get(EventEmitterService);
+    const awaitWithEvent = createAwaitWithEvent(eventEmitterService, Events.CROP_IMAGE_COMPLETE);
+    const pdfPath = path.join(StorageAdapter.TEMPORARY_DIR, `./${getRandomString(12)}.pdf`);
+    fs.writeFileSync(pdfPath, pdfBuffer);
+    const pdfStream = fs.createReadStream(pdfPath);
+    const field = await createField(table.id, { type: FieldType.Attachment });
+
+    await awaitWithEvent(async () => {
+      await uploadAttachment(table.id, table.records[0].id, field.id, pdfStream, {
+        filename: 'preview.pdf',
+      });
+      fs.unlinkSync(pdfPath);
+    });
+    eventEmitterService.eventEmitter.removeAllListeners(Events.CROP_IMAGE_COMPLETE);
+
+    const record = await getRecord(table.id, table.records[0].id);
+    const attachment = (record.data.fields[field.name] as IAttachmentCellValue)[0];
+
+    expect(attachment?.mimetype).toBe('application/pdf');
+    expect(attachment?.presignedUrl).toBeDefined();
+    expect(attachment?.smThumbnailUrl || attachment?.lgThumbnailUrl).toBeDefined();
+
+    if (attachment?.smThumbnailUrl) {
+      expect(attachment.smThumbnailUrl).not.toBe(attachment.presignedUrl);
+    }
+
+    if (attachment?.lgThumbnailUrl) {
+      expect(attachment.lgThumbnailUrl).not.toBe(attachment.presignedUrl);
+    }
   });
 
   it('should write attachment with simplified ro format without typecast', async () => {

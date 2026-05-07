@@ -6,7 +6,7 @@ import { useCallback, useMemo } from 'react';
 import { useTranslation } from '../../../context/app/i18n/useTranslation';
 import { useFields, useView } from '../../../hooks';
 import type { IFieldInstance } from '../../../model';
-import { getFileCover, isSystemFileIcon } from '../../editor';
+import { resolveAttachmentCover } from '../../editor';
 import { GRID_DEFAULT } from '../../grid/configs';
 import type { IGridColumn } from '../../grid/interface';
 import type { ChartType, ICell, INumberShowAs as IGridNumberShowAs } from '../../grid/renderers';
@@ -227,15 +227,23 @@ const useGenerateGroupCellFn = () => {
           }
           case FieldType.Attachment: {
             const cv = (cellValue ?? []) as IAttachmentCellValue;
-            const data = cv.map(({ id, mimetype, presignedUrl, smThumbnailUrl, width, height }) => {
-              const url = getFileCover(mimetype, presignedUrl, resolvedTheme as 'light' | 'dark');
-              return {
-                id,
-                url: isSystemFileIcon(mimetype) ? url : smThumbnailUrl ?? url,
-                width,
-                height,
-              };
-            });
+            const data = cv.map(
+              ({ id, mimetype, presignedUrl, smThumbnailUrl, lgThumbnailUrl, width, height }) => {
+                return {
+                  id,
+                  url: resolveAttachmentCover({
+                    mimetype,
+                    presignedUrl,
+                    smThumbnailUrl,
+                    lgThumbnailUrl,
+                    theme: resolvedTheme as 'light' | 'dark',
+                    size: 'sm',
+                  }),
+                  width,
+                  height,
+                };
+              }
+            );
             const displayData = data.map(({ url }) => url);
             return {
               type: CellType.Image,

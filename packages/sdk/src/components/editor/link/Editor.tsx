@@ -19,6 +19,7 @@ const { toast } = sonner;
 interface ILinkEditorProps {
   options: ILinkFieldOptions;
   fieldId: string;
+  tableId?: string;
   recordId?: string;
   readonly?: boolean;
   className?: string;
@@ -169,6 +170,7 @@ export const LinkEditor = (props: ILinkEditorProps) => {
             recordId={expandRecordId}
             recordIds={recordIds}
             isLinkedRecord
+            sourceTableId={props.tableId}
             onUpdateRecordIdCallback={updateExpandRecordId}
             onClose={() => updateExpandRecordId(undefined)}
           />

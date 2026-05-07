@@ -1,3 +1,4 @@
+import type { ILinkedRecordNavEntry } from '@teable/sdk';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGridSearchStore } from '../blocks/view/grid/useGridSearchStore';
 
@@ -64,46 +65,33 @@ const computePoints = (sourceEl: HTMLElement, targetEl: HTMLElement): ILinePoint
   };
 };
 
-export const LinkConnectorLine = () => {
+interface ILinkConnectorLineProps {
+  entries: ILinkedRecordNavEntry[];
+}
+
+export const LinkConnectorLine = ({ entries }: ILinkConnectorLineProps) => {
   const { setHighlightedTableId } = useGridSearchStore();
-  const stackRef = useRef<string[]>([]);
-  const [activeTableId, setActiveTableId] = useState<string | null>(null);
   const [points, setPoints] = useState<ILinePoints | null>(null);
   const rafRef = useRef(0);
   const prevPointsRef = useRef<ILinePoints | null>(null);
+  const activeEntry = entries[entries.length - 1] ?? null;
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { tableId, action } = (e as CustomEvent).detail;
-      if (action === 'push' && tableId) {
-        stackRef.current = [...stackRef.current, tableId];
-      } else if (action === 'pop' && tableId) {
-        const idx = stackRef.current.lastIndexOf(tableId);
-        if (idx !== -1) {
-          stackRef.current = [
-            ...stackRef.current.slice(0, idx),
-            ...stackRef.current.slice(idx + 1),
-          ];
-        }
-      }
-      const top = stackRef.current[stackRef.current.length - 1] || null;
-      setActiveTableId(top);
-      setHighlightedTableId(top);
-    };
-    window.addEventListener('teable:highlight-table', handler);
-    return () => window.removeEventListener('teable:highlight-table', handler);
-  }, [setHighlightedTableId]);
+    setHighlightedTableId(activeEntry?.tableId ?? null);
+  }, [activeEntry, setHighlightedTableId]);
 
   const update = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-      const targets = document.querySelectorAll<HTMLElement>('[data-link-highlight-target]');
-      const targetEl = targets[targets.length - 1] || null;
+      if (!activeEntry) return clearPoints(prevPointsRef, setPoints);
+
+      const targetEl = document.querySelector<HTMLElement>(
+        `[data-linked-record-target-anchor="${activeEntry.targetAnchorId}"]`
+      );
       if (!targetEl) return clearPoints(prevPointsRef, setPoints);
 
-      const tableId = targetEl.getAttribute('data-link-highlight-target');
-      const source = tableId
-        ? document.querySelector<HTMLElement>(`[data-table-id="${tableId}"]`)
+      const source = activeEntry.sourceTableId
+        ? document.querySelector<HTMLElement>(`[data-table-id="${activeEntry.sourceTableId}"]`)
         : null;
       const sourceEl = source || document.querySelector<HTMLElement>('[data-sidebar-toggle]');
       if (!sourceEl) return clearPoints(prevPointsRef, setPoints);
@@ -116,10 +104,10 @@ export const LinkConnectorLine = () => {
         setPoints(next);
       }
     });
-  }, []);
+  }, [activeEntry]);
 
   useEffect(() => {
-    if (!activeTableId) {
+    if (!activeEntry) {
       setPoints(null);
       return;
     }
@@ -139,7 +127,7 @@ export const LinkConnectorLine = () => {
       window.removeEventListener('resize', update);
       observer.disconnect();
     };
-  }, [activeTableId, update]);
+  }, [activeEntry, update]);
 
   if (!points) return null;
 

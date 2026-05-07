@@ -30,6 +30,7 @@ interface IExpandRecordHeader {
   recordHistoryVisible?: boolean;
   commentVisible?: boolean;
   foreignTableName?: string;
+  targetAnchorId?: string;
   disabledPrev?: boolean;
   disabledNext?: boolean;
   onClose?: () => void;
@@ -56,6 +57,7 @@ export const ExpandRecordHeader = (props: IExpandRecordHeader) => {
     recordHistoryVisible,
     commentVisible,
     foreignTableName,
+    targetAnchorId,
     disabledPrev,
     disabledNext,
     onPrev,
@@ -115,7 +117,8 @@ export const ExpandRecordHeader = (props: IExpandRecordHeader) => {
       {showTitle && (
         <div
           className="min-w-0 flex-1"
-          data-link-highlight-target={foreignTableName ? tableId : undefined}
+          data-link-highlight-target={targetAnchorId}
+          data-linked-record-target-anchor={targetAnchorId}
         >
           <h4 title={title} className="scroll-m-20 truncate text-xl font-semibold tracking-tight">
             {title || t('common.unnamedRecord')}

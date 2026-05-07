@@ -17,6 +17,7 @@ import {
 import { syncCopy } from '../../utils';
 import { ExpandRecord } from './ExpandRecord';
 import { useExpandRecordNavigation } from './ExpandRecordNavigationContext';
+import type { ILinkedRecordNavEntry } from './ExpandRecordNavigationContext';
 import type { ExpandRecordModel } from './type';
 
 const { toast } = sonner;
@@ -55,6 +56,7 @@ interface IExpandRecorderProps {
   showHistory?: boolean;
   showComment?: boolean;
   onAttachmentDownload?: (attachments: IAttachmentCellValue) => void;
+  sourceTableId?: string;
 }
 
 export const ExpandRecorder = (props: IExpandRecorderProps) => {
@@ -73,11 +75,13 @@ export const ExpandRecorder = (props: IExpandRecorderProps) => {
     showComment,
     onAttachmentDownload,
     isLinkedRecord,
+    sourceTableId,
   } = props;
   const { t } = useTranslation();
   const tables = useTables();
   const currentTableId = useTableId();
-  const { onHighlightTable, navigateToTable } = useExpandRecordNavigation();
+  const { onHighlightTable, navigateToTable, pushLinkedRecordNav, popLinkedRecordNav } =
+    useExpandRecordNavigation();
   const permission = useTablePermission();
   const { duplicateRecord } = useRecordOperations();
 
@@ -86,6 +90,14 @@ export const ExpandRecorder = (props: IExpandRecorderProps) => {
     if (!isForeignTable) return undefined;
     return tables.find((table) => table.id === tableId)?.name;
   }, [isForeignTable, tables, tableId]);
+  const entryId = useMemo(() => {
+    if (!recordId) return undefined;
+    return `${tableId}-${recordId}`;
+  }, [tableId, recordId]);
+  const targetAnchorId = useMemo(() => {
+    if (!recordId) return undefined;
+    return `linked-record-target-${tableId}-${recordId}`;
+  }, [tableId, recordId]);
 
   useEffect(() => {
     if (!isLinkedRecord || !recordId) return;
@@ -97,18 +109,31 @@ export const ExpandRecorder = (props: IExpandRecorderProps) => {
   }, [isLinkedRecord, tableId, recordId]);
 
   useEffect(() => {
-    if (isForeignTable && recordId) {
+    if (isForeignTable && recordId && entryId && targetAnchorId) {
       onHighlightTable?.(tableId);
-      window.dispatchEvent(
-        new CustomEvent('teable:highlight-table', { detail: { tableId, action: 'push' } })
-      );
+      const entry: ILinkedRecordNavEntry = {
+        entryId,
+        tableId,
+        recordId,
+        sourceTableId,
+        targetAnchorId,
+      };
+      pushLinkedRecordNav?.(entry);
       return () => {
-        window.dispatchEvent(
-          new CustomEvent('teable:highlight-table', { detail: { tableId, action: 'pop' } })
-        );
+        popLinkedRecordNav?.(entryId);
       };
     }
-  }, [isForeignTable, tableId, recordId, onHighlightTable]);
+  }, [
+    isForeignTable,
+    tableId,
+    recordId,
+    entryId,
+    targetAnchorId,
+    onHighlightTable,
+    pushLinkedRecordNav,
+    popLinkedRecordNav,
+    sourceTableId,
+  ]);
   const editable = Boolean(permission['record|update']);
   const canRead = Boolean(permission['record|read']);
   const canDelete = Boolean(permission['record|delete']);
@@ -194,6 +219,7 @@ export const ExpandRecorder = (props: IExpandRecorderProps) => {
           recordHistoryVisible={editable && recordHistoryVisible}
           commentVisible={canRead && commentVisible}
           foreignTableName={foreignTableName}
+          targetAnchorId={targetAnchorId}
           onForeignTableClick={
             isForeignTable && tableId !== currentTableId
               ? () => navigateToTable?.(tableId)

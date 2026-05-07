@@ -1,7 +1,7 @@
 import type { IAttachmentCellValue } from '@teable/core';
 import { useTheme } from '@teable/next-themes';
 import { FilePreviewItem, FilePreviewProvider, cn } from '@teable/ui-lib';
-import { getFileCover, isSystemFileIcon } from '../../editor/attachment';
+import { isSystemFileIcon, resolveAttachmentCover } from '../../editor/attachment';
 import { useAttachmentPreviewI18Map } from '../../hooks';
 import type { ICellValue } from '../type';
 
@@ -38,10 +38,12 @@ export const CellAttachment = (props: ICellAttachment) => {
             >
               <img
                 className="size-full object-contain"
-                src={
-                  lgThumbnailUrl ??
-                  getFileCover(mimetype, presignedUrl, resolvedTheme as 'light' | 'dark')
-                }
+                src={resolveAttachmentCover({
+                  mimetype,
+                  presignedUrl,
+                  lgThumbnailUrl,
+                  theme: resolvedTheme as 'light' | 'dark',
+                })}
                 alt={name}
               />
             </FilePreviewItem>

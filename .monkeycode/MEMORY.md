@@ -164,3 +164,19 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 对已识别的问题持续执行修复、验证和收口，直到全部处理完成
   - 中间不必重复询问用户是否继续，除非遇到真实阻塞或冲突
+
+[用户要求按 SDD 模式继续全量执行]
+- Date: 2026-05-07
+- Context: 用户要求围绕 PDF 预览与关联字段导航继续执行全部工作
+- Instructions:
+  - 按 SDD 模式同时维护规格文档与代码实现，不只停留在分析
+  - 在没有真实阻塞前持续推进后续改造、测试与验证，不重复询问是否继续
+
+[backend 单文件 e2e 需要补齐 seed 与 SQL executor 环境开关]
+- Date: 2026-05-07
+- Context: Agent 在新增 PDF attachment e2e 并单独运行 `apps/nestjs-backend/test/attachment.e2e-spec.ts` 时发现
+- Category: 测试方法
+- Instructions:
+  - backend 单文件 e2e 不能直接裸跑；至少要先执行 `pnpm pre-test-e2e`，确保 `globalThis.testConfig` 对应的测试账号和 base 已 seed 完成
+  - 当前受限本地 Postgres 环境里，若缺少 `CREATE ROLE` 权限，需要为 e2e 临时加 `DISABLE_PRE_SQL_EXECUTOR_CHECK=true`，跳过 `BaseSqlExecutorService` 的只读角色预检查
+  - `apps/nestjs-backend/test/attachment.e2e-spec.ts` 的 PDF thumbnail 断言应以“至少一个 thumbnail URL 已生成，且不回退到原始 `presignedUrl`”为准，不应强制要求 `lgThumbnailUrl` 必然存在

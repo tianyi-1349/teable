@@ -1,6 +1,15 @@
 import { getFileIcon, isImage } from '@teable/ui-lib';
 import { renderToString } from 'react-dom/server';
 
+interface IAttachmentCoverOptions {
+  mimetype: string;
+  presignedUrl?: string;
+  smThumbnailUrl?: string;
+  lgThumbnailUrl?: string;
+  theme?: 'light' | 'dark';
+  size?: 'sm' | 'lg';
+}
+
 export const getFileCover = (mimetype: string, url?: string, theme?: 'light' | 'dark') => {
   if (!url) return '';
   if (!isSystemFileIcon(mimetype)) {
@@ -12,6 +21,23 @@ export const getFileCover = (mimetype: string, url?: string, theme?: 'light' | '
 export const getFieldIconString = (mimetype: string, theme?: 'light' | 'dark') => {
   const FileIcon = getFileIcon(mimetype, theme);
   return 'data:image/svg+xml,' + encodeURIComponent(renderToString(FileIcon({})));
+};
+
+export const resolveAttachmentCover = ({
+  mimetype,
+  presignedUrl,
+  smThumbnailUrl,
+  lgThumbnailUrl,
+  theme,
+  size = 'lg',
+}: IAttachmentCoverOptions) => {
+  const preferredThumbnailUrl = size === 'sm' ? smThumbnailUrl ?? lgThumbnailUrl : lgThumbnailUrl;
+
+  if (preferredThumbnailUrl) {
+    return preferredThumbnailUrl;
+  }
+
+  return getFileCover(mimetype, presignedUrl, theme);
 };
 
 export const isSystemFileIcon = (mimetype: string) => {

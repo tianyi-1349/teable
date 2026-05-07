@@ -121,6 +121,7 @@ export const GridLinkEditor: FC<IEditorProps & IWrapperEditorProps> = (props) =>
           recordId={expandRecordId}
           model={ExpandRecordModel.Modal}
           isLinkedRecord
+          sourceTableId={field.tableId}
           onClose={onExpandClose}
         />
       )}

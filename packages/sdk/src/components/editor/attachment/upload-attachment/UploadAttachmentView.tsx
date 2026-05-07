@@ -22,7 +22,7 @@ import { useIsMobile } from '../../../../hooks';
 import { useDownloadAttachmentsStore } from '../../../../store';
 import { useAttachmentPreviewI18Map } from '../../../hooks';
 import { FileZone } from '../../../upload/FileZone';
-import { getFileCover } from '../utils';
+import { resolveAttachmentCover } from '../utils';
 import AttachmentItem from './AttachmentItem';
 import type { UploadAttachmentViewProps, UploadAttachmentViewRef } from './types';
 import { UploadingFile } from './UploadingFile';
@@ -126,9 +126,12 @@ export const UploadAttachmentView = forwardRef<UploadAttachmentViewRef, UploadAt
         lgThumbnailUrl,
       }: Pick<IAttachmentItem, 'mimetype' | 'presignedUrl' | 'lgThumbnailUrl'>) => {
         if (!presignedUrl) return '';
-        return (
-          lgThumbnailUrl ?? getFileCover(mimetype, presignedUrl, resolvedTheme as 'light' | 'dark')
-        );
+        return resolveAttachmentCover({
+          mimetype,
+          presignedUrl,
+          lgThumbnailUrl,
+          theme: resolvedTheme as 'light' | 'dark',
+        });
       },
       [resolvedTheme]
     );

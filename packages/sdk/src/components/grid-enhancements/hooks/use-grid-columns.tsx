@@ -18,7 +18,7 @@ import { LRUCache } from 'lru-cache';
 import { useCallback, useMemo } from 'react';
 import colors from 'tailwindcss/colors';
 import type { ChartType, ICell, IGridColumn, INumberShowAs as IGridNumberShowAs } from '../..';
-import { CellType, hexToRGBA, getFileCover, onMixedTextClick } from '../..';
+import { CellType, hexToRGBA, onMixedTextClick, resolveAttachmentCover } from '../..';
 import { useTranslation } from '../../../context/app/i18n/useTranslation';
 import type { IButtonClickStatusHook } from '../../../hooks';
 import { useFields, useTablePermission, useView } from '../../../hooks';
@@ -449,14 +449,17 @@ export const useCreateCellValue2GridDisplay = (
             const cv = (cellValue ?? []) as IAttachmentCellValue;
             const data = cv.map(
               ({ id, mimetype, presignedUrl, smThumbnailUrl, lgThumbnailUrl, width, height }) => {
-                const url = getFileCover(mimetype, presignedUrl, resolvedTheme as 'light' | 'dark');
-                const thumbnailUrl =
-                  !rowHeight || rowHeight === RowHeightLevel.Short
-                    ? smThumbnailUrl
-                    : lgThumbnailUrl;
+                const thumbnailUrl = resolveAttachmentCover({
+                  mimetype,
+                  presignedUrl,
+                  smThumbnailUrl,
+                  lgThumbnailUrl,
+                  theme: resolvedTheme as 'light' | 'dark',
+                  size: !rowHeight || rowHeight === RowHeightLevel.Short ? 'sm' : 'lg',
+                });
                 return {
                   id,
-                  url: thumbnailUrl ?? url,
+                  url: thumbnailUrl,
                   width,
                   height,
                 };

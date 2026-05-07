@@ -1,11 +1,11 @@
 import type { DehydratedState } from '@tanstack/react-query';
 import type { IGetBaseVo, ITableVo } from '@teable/openapi';
-import type { IUser } from '@teable/sdk';
 import { ExpandRecordNavigationContext, NotificationProvider, SessionProvider } from '@teable/sdk';
+import type { ILinkedRecordNavEntry, IUser } from '@teable/sdk';
 import { AnchorContext, AppProvider, BaseProvider, TableProvider } from '@teable/sdk/context';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
-import React, { Fragment, useCallback, useMemo } from 'react';
+import React, { Fragment, useCallback, useMemo, useState } from 'react';
 import { AppLayout } from '@/features/app/layouts';
 import { WorkFlowPanelModal } from '../automation/workflow-panel/WorkFlowPanelModal';
 import { BaseNodeProvider } from '../blocks/base/base-node/BaseNodeProvider';
@@ -30,6 +30,7 @@ const BaseLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const router = useRouter();
   const { setHighlightedTableId } = useGridSearchStore();
   const { hrefMap: tableHrefMap, viewIdMap: tableViewIdsMap } = useTableHref();
+  const [linkedRecordNavEntries, setLinkedRecordNavEntries] = useState<ILinkedRecordNavEntry[]>([]);
 
   const navigateToTable = useCallback(
     (tableId: string) => {
@@ -42,9 +43,33 @@ const BaseLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) 
     [tableHrefMap, tableViewIdsMap, router]
   );
 
+  const pushLinkedRecordNav = useCallback(
+    (entry: ILinkedRecordNavEntry) => {
+      setLinkedRecordNavEntries((prev) => [...prev, entry]);
+      setHighlightedTableId(entry.tableId);
+    },
+    [setHighlightedTableId]
+  );
+
+  const popLinkedRecordNav = useCallback(
+    (entryId: string) => {
+      setLinkedRecordNavEntries((prev) => {
+        const next = prev.filter((entry) => entry.entryId !== entryId);
+        setHighlightedTableId(next[next.length - 1]?.tableId ?? null);
+        return next;
+      });
+    },
+    [setHighlightedTableId]
+  );
+
   const expandRecordNavValue = useMemo(
-    () => ({ onHighlightTable: setHighlightedTableId, navigateToTable }),
-    [setHighlightedTableId, navigateToTable]
+    () => ({
+      onHighlightTable: setHighlightedTableId,
+      navigateToTable,
+      pushLinkedRecordNav,
+      popLinkedRecordNav,
+    }),
+    [setHighlightedTableId, navigateToTable, pushLinkedRecordNav, popLinkedRecordNav]
   );
 
   return (
@@ -68,7 +93,7 @@ const BaseLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </div>
         <UploadProgressPanel />
       </div>
-      <LinkConnectorLine />
+      <LinkConnectorLine entries={linkedRecordNavEntries} />
       <UsageLimitModal />
       <WorkFlowPanelModal />
     </ExpandRecordNavigationContext.Provider>
