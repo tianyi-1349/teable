@@ -30,7 +30,7 @@ vi.mock('react-use', () => ({
 }));
 
 vi.mock('@teable/openapi', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     deleteRecord: vi.fn(),

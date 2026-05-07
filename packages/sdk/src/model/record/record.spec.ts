@@ -1,7 +1,9 @@
 import type { IFieldVo, IRecord } from '@teable/core';
-import { CellValueType, DbFieldType, FieldType } from '@teable/core';
+import { CellValueType, Colors, DbFieldType, FieldType } from '@teable/core';
 import { describe, expect, it } from 'vitest';
 import { createFieldInstance } from '../field/factory';
+import { MultipleSelectField } from '../field/multiple-select.field';
+import { SingleSelectField } from '../field/single-select.field';
 import { createRecordInstance, recordInstanceFieldMap } from './factory';
 
 const createSelectField = (type: FieldType.SingleSelect | FieldType.MultipleSelect): IFieldVo => ({
@@ -75,12 +77,18 @@ describe('sdk Record cell value normalization', () => {
   it('keeps displaying select values when realtime mutates field options', () => {
     const field = createFieldInstance(createSelectField(FieldType.SingleSelect));
 
+    expect(field).toBeInstanceOf(SingleSelectField);
+
+    if (!(field instanceof SingleSelectField)) {
+      throw new Error('expected SingleSelectField');
+    }
+
     expect(field.displayChoiceMap.Open).toBeDefined();
 
     field.options.choices.push({
       id: 'optClosed00000001',
       name: 'Closed',
-      color: 'greenBright',
+      color: Colors.GreenBright,
     });
 
     const record = recordInstanceFieldMap(createRecordInstance(createRecord('Closed')), {
@@ -117,6 +125,13 @@ describe('sdk Record cell value normalization', () => {
 
   it('keeps displaying the value when the same record instance is rebound from multipleSelect to text', () => {
     const multipleSelectField = createFieldInstance(createSelectField(FieldType.MultipleSelect));
+
+    expect(multipleSelectField).toBeInstanceOf(MultipleSelectField);
+
+    if (!(multipleSelectField instanceof MultipleSelectField)) {
+      throw new Error('expected MultipleSelectField');
+    }
+
     const textField = createFieldInstance(
       createTextField({
         id: multipleSelectField.id,
