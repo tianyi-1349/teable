@@ -1,5 +1,8 @@
-import { ActorId, CreateTableCommand, v2CoreTokens } from '@teable/v2-core';
-import type { CreateTableResult as CoreCreateTableResult, ICommandBus } from '@teable/v2-core';
+import { CreateTableCommand } from '@teable/v2-core/commands/CreateTableCommand';
+import type { CreateTableResult as CoreCreateTableResult } from '@teable/v2-core';
+import { ActorId } from '@teable/v2-core/domain/shared/ActorId';
+import type { ICommandBus } from '@teable/v2-core/ports/CommandBus';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import { Effect, Layer } from 'effect';
 import { CliError } from '../errors/CliError';
 import { Database } from '../services/Database';

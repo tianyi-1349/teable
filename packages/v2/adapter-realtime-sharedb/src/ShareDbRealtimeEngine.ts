@@ -1,13 +1,13 @@
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import { domainError } from '@teable/v2-core/domain/shared/DomainError';
+import type { IExecutionContext } from '@teable/v2-core/ports/ExecutionContext';
+import type { RealtimeChange } from '@teable/v2-core/ports/RealtimeChange';
+import { RealtimeDocId as RealtimeDocIdValue } from '@teable/v2-core/ports/RealtimeDocId';
 import type {
-  DomainError,
-  IExecutionContext,
-  IRealtimeEngine,
   RealtimeApplyChangeOptions,
-  RealtimeChange,
-  RealtimeDocId,
-} from '@teable/v2-core';
-import { domainError } from '@teable/v2-core';
-import { RealtimeDocId as RealtimeDocIdValue } from '@teable/v2-core';
+  IRealtimeEngine,
+} from '@teable/v2-core/ports/RealtimeEngine';
+import type { RealtimeDocId } from '@teable/v2-core/ports/RealtimeDocId';
 import { inject, injectable } from '@teable/v2-di';
 import { err } from 'neverthrow';
 import type { Result } from 'neverthrow';
@@ -115,6 +115,8 @@ export class ShareDbRealtimeEngine implements IRealtimeEngine {
         return ops;
       }
     }
+
+    return [];
   }
 
   async delete(

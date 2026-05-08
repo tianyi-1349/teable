@@ -1,5 +1,7 @@
-import type { DomainError, ILogger } from '@teable/v2-core';
-import { domainError, NoopLogger } from '@teable/v2-core';
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import { domainError } from '@teable/v2-core/domain/shared/DomainError';
+import type { ILogger } from '@teable/v2-core/ports/Logger';
+import { NoopLogger } from '@teable/v2-core/ports/defaults/NoopLogger';
 import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 import type ShareDbClass from 'sharedb';

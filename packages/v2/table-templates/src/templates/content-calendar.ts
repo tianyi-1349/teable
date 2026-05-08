@@ -1,4 +1,4 @@
-import type { ICreateTableRequestDto } from '@teable/v2-contract-http';
+import type { ICreateTableRequestDto } from '@teable/v2-contract-http/table/createTable';
 
 import type { SingleTableSeed } from '../types';
 import { createFieldId, createSelectOption, singleTable } from '../utils';

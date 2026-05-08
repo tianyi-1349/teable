@@ -47,6 +47,14 @@ const normalizeButtonCellValue = (value: unknown) => {
   }
 };
 
+const getFkHostTableName = (field: { options?: unknown } | undefined) => {
+  if (!field || typeof field.options !== 'object' || field.options === null) {
+    return undefined;
+  }
+
+  return 'fkHostTableName' in field.options ? field.options.fkHostTableName : undefined;
+};
+
 const normalizeStoredFilterShape = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map((entry) => normalizeStoredFilterShape(entry));
@@ -612,9 +620,9 @@ describe('duplicateTable (e2e)', () => {
       );
 
       expect(duplicatedSelfLinkFields).toHaveLength(2);
-      expect(duplicatedSelfLinkFields[0]?.options.fkHostTableName).toBe(
-        duplicatedSelfLinkFields[1]?.options.fkHostTableName
-      );
+      const firstFkHostTableName = getFkHostTableName(duplicatedSelfLinkFields[0]);
+      const secondFkHostTableName = getFkHostTableName(duplicatedSelfLinkFields[1]);
+      expect(firstFkHostTableName).toBe(secondFkHostTableName);
 
       const duplicatedRecords = await ctx.listRecords(duplicated.table.id, { limit: 100 });
       const duplicatedRecordByName = new Map(
@@ -1108,7 +1116,7 @@ describe('duplicateTable (e2e)', () => {
       if (!duplicatedButtonField || duplicatedButtonField.type !== 'button') {
         throw new Error('Missing duplicated button field');
       }
-      expect(duplicatedButtonField.options.workflow).toBeUndefined();
+      expect(duplicatedButtonField.options?.workflow).toBeUndefined();
 
       const duplicatedRecords = await ctx.listRecords(duplicated.table.id, { limit: 100 });
       const duplicatedByName = new Map(

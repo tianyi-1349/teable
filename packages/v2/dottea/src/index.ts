@@ -1,13 +1,13 @@
 import { Buffer } from 'node:buffer';
 
 import {
-  domainError,
-  type DomainError,
   type DotTeaStructure,
   type DotTeaSource,
   type IDotTeaParser,
   type NormalizedDotTeaStructure,
-} from '@teable/v2-core';
+} from '@teable/v2-core/ports/DotTeaParser';
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import { domainError as createDomainError } from '@teable/v2-core/domain/shared/DomainError';
 import { normalizeField } from './normalizer';
 import { injectable } from '@teable/v2-di';
 import { err, ok } from 'neverthrow';
@@ -85,7 +85,7 @@ export class DotTeaParser implements IDotTeaParser {
       const parsed = dotTeaStructureSchema.safeParse(raw);
       if (!parsed.success) {
         return err(
-          domainError.validation({
+          createDomainError.validation({
             message: 'Invalid dottea structure.json',
             details: z.formatError(parsed.error),
             code: 'dottea.structure_invalid',
@@ -95,7 +95,7 @@ export class DotTeaParser implements IDotTeaParser {
 
       return ok({ tables: parsed.data.tables });
     } catch (error) {
-      return err(domainError.fromUnknown(error, { code: 'dottea.parse_failed' }));
+      return err(createDomainError.fromUnknown(error, { code: 'dottea.parse_failed' }));
     }
   }
 

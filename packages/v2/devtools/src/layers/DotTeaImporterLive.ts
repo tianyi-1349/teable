@@ -1,5 +1,8 @@
-import { ActorId, ImportDotTeaStructureCommand, v2CoreTokens } from '@teable/v2-core';
-import type { ICommandBus, ImportDotTeaStructureResult } from '@teable/v2-core';
+import { ImportDotTeaStructureCommand } from '@teable/v2-core/commands/ImportDotTeaStructureCommand';
+import type { ImportDotTeaStructureResult } from '@teable/v2-core';
+import { ActorId } from '@teable/v2-core/domain/shared/ActorId';
+import type { ICommandBus } from '@teable/v2-core/ports/CommandBus';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import { Lifecycle } from '@teable/v2-di';
 import { DotTeaParser } from '@teable/v2-dottea';
 import { Effect, Layer } from 'effect';

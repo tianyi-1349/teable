@@ -1,5 +1,4 @@
 import {
-  v2CoreTokens,
   TableId,
   TableByIdSpec,
   ActorId,
@@ -9,6 +8,7 @@ import {
   type Table,
   type TableRecord,
 } from '@teable/v2-core';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import { MockRecordGenerator } from '@teable/v2-mock-records';
 import { Effect, Layer } from 'effect';
 import { CliError } from '../errors/CliError';

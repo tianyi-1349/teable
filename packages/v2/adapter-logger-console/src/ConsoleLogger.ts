@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { createContextualLogger, createLogScopeContext } from '@teable/v2-core';
-import type { ILogger, LogContext } from '@teable/v2-core';
+import { createContextualLogger, createLogScopeContext } from '@teable/v2-core/ports/Logger';
+import type { ILogger, LogContext } from '@teable/v2-core/ports/Logger';
 
 type ConsoleLogFn = (...args: unknown[]) => void;
 

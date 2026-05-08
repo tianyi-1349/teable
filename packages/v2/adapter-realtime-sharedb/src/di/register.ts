@@ -1,18 +1,16 @@
-import {
-  FieldCreatedRealtimeProjection,
-  FieldDeletedRealtimeProjection,
-  FieldUpdatedRealtimeProjection,
-  FieldOptionsAddedRealtimeProjection,
-  TableCreatedRealtimeProjection,
-  ViewColumnMetaUpdatedRealtimeProjection,
-  RecordCreatedRealtimeProjection,
-  RecordUpdatedRealtimeProjection,
-  RecordReorderedRealtimeProjection,
-  RecordsBatchUpdatedRealtimeProjection,
-  RecordsBatchCreatedRealtimeProjection,
-  RecordsDeletedRealtimeProjection,
-  v2CoreTokens,
-} from '@teable/v2-core';
+import { FieldCreatedRealtimeProjection } from '@teable/v2-core/application/projections/FieldCreatedRealtimeProjection';
+import { FieldDeletedRealtimeProjection } from '@teable/v2-core/application/projections/FieldDeletedRealtimeProjection';
+import { FieldOptionsAddedRealtimeProjection } from '@teable/v2-core/application/projections/FieldOptionsAddedRealtimeProjection';
+import { FieldUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/FieldUpdatedRealtimeProjection';
+import { RecordCreatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordCreatedRealtimeProjection';
+import { RecordReorderedRealtimeProjection } from '@teable/v2-core/application/projections/RecordReorderedRealtimeProjection';
+import { RecordsBatchCreatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordsBatchCreatedRealtimeProjection';
+import { RecordsBatchUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordsBatchUpdatedRealtimeProjection';
+import { RecordsDeletedRealtimeProjection } from '@teable/v2-core/application/projections/RecordsDeletedRealtimeProjection';
+import { RecordUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordUpdatedRealtimeProjection';
+import { TableCreatedRealtimeProjection } from '@teable/v2-core/application/projections/TableCreatedRealtimeProjection';
+import { ViewColumnMetaUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/ViewColumnMetaUpdatedRealtimeProjection';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import type { DependencyContainer } from '@teable/v2-di';
 import { Lifecycle, container } from '@teable/v2-di';
 

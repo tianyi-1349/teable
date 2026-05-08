@@ -197,17 +197,18 @@ describe('v2 isSymbol preservation (e2e)', () => {
       const outputFilterSet = outputDto.filter?.filterSet;
       if (outputFilterSet && outputFilterSet[0]) {
         const filterItem = outputFilterSet[0];
+        const isSymbol = 'isSymbol' in filterItem ? filterItem.isSymbol : undefined;
         console.log('Output filter item:', JSON.stringify(filterItem, null, 2));
         console.log('Has isSymbol:', 'isSymbol' in filterItem);
-        console.log('isSymbol value:', filterItem.isSymbol);
+        console.log('isSymbol value:', isSymbol);
 
-        if (filterItem.isSymbol === true) {
+        if (isSymbol === true) {
           console.log('PASSED: FieldCondition.toDto() preserves isSymbol');
         } else {
           console.error('FAILED: FieldCondition.toDto() does not preserve isSymbol');
         }
 
-        expect(filterItem.isSymbol).toBe(true);
+        expect(isSymbol).toBe(true);
       }
     }
   });

@@ -16,11 +16,13 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationDir": "dist",
-    "composite": true,
+    "composite": false,
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/core": ["../../core/src"],
       "@teable/v2-core": ["../core/src"],
+      "@teable/v2-core/*": ["../core/src/*"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-container-node": ["../container-node/src"],
       "@teable/v2-debug-data": ["../debug-data/src"],
@@ -36,17 +38,17 @@
     "./dist",
     "./coverage",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../debug-data/src/**/*.spec.ts",
+    "../debug-data/src/**/*.test.ts",
+    "../mock-records/src/**/*.spec.ts",
+    "../mock-records/src/**/*.test.ts",
+    "../command-explain/src/**/*.spec.ts",
+    "../command-explain/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts"
   ],
-  "include": [
-    "src",
-    "bin",
-    "../core/src",
-    "../di/src",
-    "../container-node/src",
-    "../debug-data/src",
-    "../dottea/src",
-    "../mock-records/src",
-    "../command-explain/src"
-  ]
+  "include": ["src", "bin", "../../core/src"]
 }

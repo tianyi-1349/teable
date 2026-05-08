@@ -16,11 +16,13 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationDir": "dist",
-    "composite": true,
+    "composite": false,
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/core": ["../../core/src"],
       "@teable/v2-core": ["../core/src"],
+      "@teable/v2-core/*": ["../core/src/*"],
       "@teable/v2-di": ["../di/src"],
       "@teable/formula": ["../../formula/src"]
     },
@@ -32,9 +34,18 @@
     "./dist",
     "./coverage",
     "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
     "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
     "src/testkit/**",
-    "../../formula/src/**/*.spec.ts"
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts",
+    "../../formula/src/**/__tests__/**"
   ],
-  "include": ["src", "../core/src", "../di/src", "../../formula/src"]
+  "include": ["src", "../core/src", "../../core/src", "../di/src", "../../formula/src"]
 }

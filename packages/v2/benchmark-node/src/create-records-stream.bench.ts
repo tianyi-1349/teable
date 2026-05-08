@@ -27,10 +27,24 @@ import {
   v2CoreTokens,
 } from '@teable/v2-core';
 import type { V1TeableDatabase } from '@teable/v2-postgres-schema';
-import type { Kysely } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 type DynamicDb = V1TeableDatabase & Record<string, Record<string, unknown>>;
+
+type CountQueryBuilder = {
+  select: (selection: unknown) => {
+    executeTakeFirst: () => Promise<{ count?: number | string | bigint } | undefined>;
+  };
+};
+
+type MinimalBenchDb = {
+  fn: {
+    count: (column: string) => {
+      as: (alias: string) => unknown;
+    };
+  };
+  selectFrom: (tableName: string) => CountQueryBuilder;
+};
 
 interface BenchmarkResult {
   recordCount: number;
@@ -155,7 +169,7 @@ describe('CreateRecordsStream benchmark', () => {
   it.skip('Non-streaming (CreateRecordsCommand) - builds all records first', async () => {
     const { container, baseId, db: rawDb } = testContainer;
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const db = rawDb as unknown as Kysely<DynamicDb>;
+    const db = rawDb as unknown as MinimalBenchDb;
 
     const { table } = await createBenchmarkTable(
       commandBus,
@@ -197,7 +211,7 @@ describe('CreateRecordsStream benchmark', () => {
 
     // Verify in DB
     const dbTableName = table.dbTableName()._unsafeUnwrap().value()._unsafeUnwrap();
-    const rowCount = await (db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    const rowCount = await db
       .selectFrom(dbTableName)
       .select(db.fn.count('__id').as('count'))
       .executeTakeFirst();
@@ -220,7 +234,7 @@ describe('CreateRecordsStream benchmark', () => {
   it.skip('Streaming (CreateRecordsStreamCommand) - builds records in batches', async () => {
     const { container, baseId, db: rawDb } = testContainer;
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const db = rawDb as unknown as Kysely<DynamicDb>;
+    const db = rawDb as unknown as MinimalBenchDb;
 
     const { table } = await createBenchmarkTable(
       commandBus,
@@ -266,7 +280,7 @@ describe('CreateRecordsStream benchmark', () => {
 
     // Verify in DB
     const dbTableName = table.dbTableName()._unsafeUnwrap().value()._unsafeUnwrap();
-    const rowCount = await (db as unknown as Kysely<Record<string, Record<string, unknown>>>)
+    const rowCount = await db
       .selectFrom(dbTableName)
       .select(db.fn.count('__id').as('count'))
       .executeTakeFirst();

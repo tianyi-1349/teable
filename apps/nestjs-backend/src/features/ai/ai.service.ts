@@ -395,12 +395,59 @@ export class AiService {
     const { prompt } = aiGenerateRo;
     const modelInstance = await this.getGenerationModelInstance(baseId, aiGenerateRo);
 
-    const result = streamText({
-      model: modelInstance,
-      prompt: prompt,
-    });
+    response.status(200);
+    response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-cache, no-transform');
+    response.setHeader('Connection', 'keep-alive');
+    response.setHeader('X-Accel-Buffering', 'no');
+    response.flushHeaders();
 
-    result.pipeTextStreamToResponse(response);
+    try {
+      const result = streamText({
+        model: modelInstance,
+        prompt: prompt,
+      });
+
+      for await (const chunk of result.textStream) {
+        if (response.writableEnded || response.destroyed) {
+          break;
+        }
+
+        response.write(chunk);
+        (response as Response & { flush?: () => void }).flush?.();
+      }
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : String(error);
+      const message = this.normalizeAiStreamErrorMessage(rawMessage);
+
+      this.logger.warn(`AI generate stream failed: ${rawMessage}`);
+
+      if (!(response.writableEnded || response.destroyed)) {
+        response.write(message);
+      }
+    } finally {
+      if (!(response.writableEnded || response.destroyed)) {
+        response.end();
+      }
+    }
+  }
+
+  private normalizeAiStreamErrorMessage(message: string): string {
+    const normalized = message.trim();
+
+    if (!normalized) {
+      return 'AI generation failed while reading the provider stream.';
+    }
+
+    if (
+      normalized.includes('stream_read_error') ||
+      normalized.includes('upstream_error') ||
+      normalized.includes('task execution failed')
+    ) {
+      return 'AI generation failed while reading the provider stream. Please retry or verify the configured model provider.';
+    }
+
+    return normalized;
   }
 
   async generateText(baseId: string, aiGenerateRo: IAiGenerateRo) {

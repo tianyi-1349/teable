@@ -99,8 +99,11 @@ describe('undo-redo/duplicateRecordsStream (e2e)', () => {
       })._unsafeUnwrap()
     );
     expect(streamResult.isOk()).toBe(true);
+    if (streamResult.isErr()) {
+      throw new Error(streamResult.error.message);
+    }
 
-    const events = await collectStreamEvents(streamResult._unsafeUnwrap());
+    const events = await collectStreamEvents(streamResult.value as DuplicateRecordsStreamResult);
     expect(events.at(-1)).toMatchObject({
       id: 'done',
       duplicatedCount: totalRecords,
@@ -165,8 +168,11 @@ describe('undo-redo/duplicateRecordsStream (e2e)', () => {
         })._unsafeUnwrap()
       );
       expect(streamResult.isOk()).toBe(true);
+      if (streamResult.isErr()) {
+        throw new Error(streamResult.error.message);
+      }
 
-      const events = await collectStreamEvents(streamResult._unsafeUnwrap());
+      const events = await collectStreamEvents(streamResult.value as DuplicateRecordsStreamResult);
       expect(events.find((event) => event.id === 'error')).toMatchObject({
         id: 'error',
         phase: 'duplicating',

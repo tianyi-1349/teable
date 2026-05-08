@@ -33,7 +33,7 @@ describe.skip('v2 http cross-base lookup (e2e)', () => {
     if (!parsed.success || !parsed.data.ok) {
       throw new Error(`Failed to create base: ${JSON.stringify(rawBody)}`);
     }
-    return parsed.data.data.baseId;
+    return parsed.data.data.base.id;
   };
 
   const createTableWithBaseId = async (targetBaseId: string, payload: Record<string, unknown>) => {
@@ -68,7 +68,9 @@ describe.skip('v2 http cross-base lookup (e2e)', () => {
     if (!parsed.success || !parsed.data.ok) {
       throw new Error(`Failed to create field: ${JSON.stringify(rawBody)}`);
     }
-    return parsed.data.data.field;
+    return parsed.data.data.table.fields.find(
+      (entry) => entry.name === field.name || entry.id === field.id
+    );
   };
 
   const updateRecordWithBaseId = async (

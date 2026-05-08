@@ -1,4 +1,6 @@
-import { ActorId, type IInternalCommandBus, v2CoreTokens } from '@teable/v2-core';
+import { ActorId } from '@teable/v2-core/domain/shared/ActorId';
+import type { IInternalCommandBus } from '@teable/v2-core/ports/CommandBus';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import {
   RunComputedTaskByIdCommand,
   type RunComputedTaskByIdResult,

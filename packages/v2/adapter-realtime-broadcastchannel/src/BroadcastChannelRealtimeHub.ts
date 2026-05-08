@@ -1,5 +1,10 @@
-import type { DomainError, ILogger, RealtimeChange, RealtimeDocId } from '@teable/v2-core';
-import { domainError, NoopLogger, RealtimeDocId as RealtimeDocIdValue } from '@teable/v2-core';
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import { domainError } from '@teable/v2-core/domain/shared/DomainError';
+import type { ILogger } from '@teable/v2-core/ports/Logger';
+import { NoopLogger } from '@teable/v2-core/ports/defaults/NoopLogger';
+import type { RealtimeChange } from '@teable/v2-core/ports/RealtimeChange';
+import type { RealtimeDocId } from '@teable/v2-core/ports/RealtimeDocId';
+import { RealtimeDocId as RealtimeDocIdValue } from '@teable/v2-core/ports/RealtimeDocId';
 import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 

@@ -1,16 +1,14 @@
-import {
-  FieldCreatedRealtimeProjection,
-  FieldDeletedRealtimeProjection,
-  TableCreatedRealtimeProjection,
-  ViewColumnMetaUpdatedRealtimeProjection,
-  RecordCreatedRealtimeProjection,
-  RecordUpdatedRealtimeProjection,
-  RecordReorderedRealtimeProjection,
-  RecordsBatchUpdatedRealtimeProjection,
-  RecordsDeletedRealtimeProjection,
-  v2CoreTokens,
-} from '@teable/v2-core';
-import type { ILogger } from '@teable/v2-core';
+import { FieldCreatedRealtimeProjection } from '@teable/v2-core/application/projections/FieldCreatedRealtimeProjection';
+import { FieldDeletedRealtimeProjection } from '@teable/v2-core/application/projections/FieldDeletedRealtimeProjection';
+import { RecordCreatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordCreatedRealtimeProjection';
+import { RecordReorderedRealtimeProjection } from '@teable/v2-core/application/projections/RecordReorderedRealtimeProjection';
+import { RecordsBatchUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordsBatchUpdatedRealtimeProjection';
+import { RecordsDeletedRealtimeProjection } from '@teable/v2-core/application/projections/RecordsDeletedRealtimeProjection';
+import { RecordUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/RecordUpdatedRealtimeProjection';
+import { TableCreatedRealtimeProjection } from '@teable/v2-core/application/projections/TableCreatedRealtimeProjection';
+import { ViewColumnMetaUpdatedRealtimeProjection } from '@teable/v2-core/application/projections/ViewColumnMetaUpdatedRealtimeProjection';
+import type { ILogger } from '@teable/v2-core/ports/Logger';
+import { v2CoreTokens } from '@teable/v2-core/ports/tokens';
 import type { DependencyContainer } from '@teable/v2-di';
 import { Lifecycle, container } from '@teable/v2-di';
 

@@ -15,26 +15,25 @@ import type { SharedTestContext } from '../shared/globalTestContext';
 export const updateField = async (
   ctx: SharedTestContext,
   payload: {
+    baseId?: string;
     tableId: string;
     fieldId: string;
     field: Record<string, unknown>;
   }
-): Promise<ReturnType<typeof ctx.getTableById>> => {
+): Promise<Awaited<ReturnType<typeof ctx.getTableById>>> => {
+  const { baseId: _baseId, ...requestPayload } = payload;
   const response = await fetch(`${ctx.baseUrl}/tables/updateField`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      baseId: ctx.baseId,
-      ...payload,
-    }),
+    body: JSON.stringify(requestPayload),
   });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to update field: ${errorText}`);
   }
-  const rawBody = await response.json();
+  const rawBody = (await response.json()) as { data?: { table?: unknown } };
   // TODO: Add proper response parsing once contract is defined
-  return rawBody.data?.table ?? rawBody;
+  return (rawBody.data?.table ?? rawBody) as Awaited<ReturnType<typeof ctx.getTableById>>;
 };
 
 /**

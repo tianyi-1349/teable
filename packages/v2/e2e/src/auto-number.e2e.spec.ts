@@ -98,6 +98,9 @@ describe('v2 auto-number continuity (e2e)', () => {
         name: 'Required',
         notNull: true,
       });
+      if (!requiredField) {
+        throw new Error('Failed to create required field');
+      }
 
       // Get initial state
       const before = await listRecords(tableId);
@@ -142,6 +145,9 @@ describe('v2 auto-number continuity (e2e)', () => {
         name: 'Required',
         notNull: true,
       });
+      if (!requiredField) {
+        throw new Error('Failed to create required field');
+      }
 
       // Create a valid record
       const createRaw = await createRecordRaw(tableId, {

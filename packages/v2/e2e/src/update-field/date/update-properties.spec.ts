@@ -19,8 +19,8 @@ describe('update-field: date property updates', () => {
 
   const createDateField = async (
     name: string,
-    formatting?: { date: string; time: 'None' | 'HH:mm' | 'hh:mm A'; timeZone: string },
-    defaultValue?: string
+    formatting?: { date: string; time: 'None' | 'HH:mm' | 'hh:mm A'; timeZone: 'utc' },
+    defaultValue?: 'now'
   ) => {
     const fieldId = createGlobalFieldId();
     await ctx.createField({

@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import type { ICreateTableRequestDto } from '@teable/v2-contract-http';
+import type { ICreateTableRequestDto } from '@teable/v2-contract-http/table/createTable';
 
 import type { TemplateTableSeed, TemplateSeed } from '../types';
 import {

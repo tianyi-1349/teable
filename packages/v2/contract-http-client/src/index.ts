@@ -3,9 +3,10 @@
 import { createORPCErrorFromJson, createORPCClient, isORPCErrorJson } from '@orpc/client';
 import type { ContractRouterClient } from '@orpc/contract';
 import { OpenAPILink } from '@orpc/openapi-client/fetch';
-import { apiErrorResponseDtoSchema, v2Contract } from '@teable/v2-contract-http';
+import { v2Contract } from '@teable/v2-contract-http/contract';
+import { apiErrorResponseDtoSchema } from '@teable/v2-contract-http/shared/http';
 
-export { v2Contract } from '@teable/v2-contract-http';
+export { v2Contract } from '@teable/v2-contract-http/contract';
 
 export interface IV2HttpClientOptions {
   baseUrl: string;

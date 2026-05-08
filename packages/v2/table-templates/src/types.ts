@@ -1,4 +1,5 @@
-import type { ICreateTableRequestDto, ICreateTablesRequestDto } from '@teable/v2-contract-http';
+import type { ICreateTableRequestDto } from '@teable/v2-contract-http/table/createTable';
+import type { ICreateTablesRequestDto } from '@teable/v2-contract-http/table/createTables';
 
 export type TableTemplateDefinition = {
   key: string;

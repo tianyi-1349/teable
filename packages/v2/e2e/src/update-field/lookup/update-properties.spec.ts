@@ -11,6 +11,14 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { getSharedTestContext, type SharedTestContext } from '../../shared/globalTestContext';
 
 describe('update-field: lookup property updates', () => {
+  const getLookupShowAs = (field: { options?: unknown } | undefined) => {
+    if (!field || typeof field.options !== 'object' || field.options === null) {
+      return undefined;
+    }
+
+    return 'showAs' in field.options ? field.options.showAs : undefined;
+  };
+
   let ctx: SharedTestContext;
   let sourceTableId: string;
   let foreignTableId: string;
@@ -865,7 +873,7 @@ describe('update-field: lookup property updates', () => {
     });
     const lookupField = sourceWithLookup.fields.find((f) => f.name === 'Lookup Long Text');
     if (!lookupField) throw new Error('Lookup field not found');
-    expect(lookupField.options?.showAs).toBeFalsy();
+    expect(getLookupShowAs(lookupField)).toBeFalsy();
 
     await ctx.updateField({
       tableId: sourceTableId,
@@ -878,7 +886,7 @@ describe('update-field: lookup property updates', () => {
     const clearedField = await ctx
       .getTableById(sourceTableId)
       .then((table) => table.fields.find((f) => f.id === lookupField.id));
-    expect(clearedField?.options?.showAs).toBeFalsy();
+    expect(getLookupShowAs(clearedField)).toBeFalsy();
 
     await ctx.updateField({
       tableId: sourceTableId,
@@ -891,7 +899,7 @@ describe('update-field: lookup property updates', () => {
     const persistedField = await ctx
       .getTableById(sourceTableId)
       .then((table) => table.fields.find((f) => f.id === lookupField.id));
-    expect(persistedField?.options?.showAs).toBeFalsy();
+    expect(getLookupShowAs(persistedField)).toBeFalsy();
 
     await ctx.deleteField({ tableId: sourceTableId, fieldId: lookupField.id });
     await ctx.deleteField({ tableId: sourceTableId, fieldId: linkField.id });

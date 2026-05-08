@@ -1,7 +1,7 @@
-import type { IHandlerResolver } from '@teable/v2-contract-http';
-import { createV2OrpcRouter } from '@teable/v2-contract-http-implementation';
-import { createV2OpenApiNodeHandler } from '@teable/v2-contract-http-openapi';
-import type { IExecutionContext } from '@teable/v2-core';
+import type { IHandlerResolver } from '@teable/v2-contract-http/shared/container';
+import { createV2OrpcRouter } from '@teable/v2-contract-http-implementation/router';
+import { createV2OpenApiNodeHandler } from '@teable/v2-contract-http-openapi/openapi';
+import type { IExecutionContext } from '@teable/v2-core/ports/ExecutionContext';
 import * as express from 'express';
 
 export interface IV2ExpressRouterOptions {

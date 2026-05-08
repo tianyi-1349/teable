@@ -1,5 +1,5 @@
 import { OpenAPIGenerator } from '@orpc/openapi';
-import { v2Contract } from '@teable/v2-contract-http';
+import { v2Contract } from '@teable/v2-contract-http/contract';
 
 export interface IV2OpenApiGenerateOptions {
   title?: string;

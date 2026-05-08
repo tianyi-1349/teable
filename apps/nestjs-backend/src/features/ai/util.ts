@@ -51,7 +51,16 @@ const createFixingFetch = (): typeof fetch => {
 
     const transformedStream = new ReadableStream({
       async pull(controller) {
-        const { done, value } = await reader.read();
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+
+        try {
+          chunk = await reader.read();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(`AI provider stream read failed: ${message}`);
+        }
+
+        const { done, value } = chunk;
 
         if (done) {
           controller.close();

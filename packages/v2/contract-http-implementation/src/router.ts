@@ -105,7 +105,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
    * Domain error code and tags are passed in the data property for extraction by the OpenAPI handler.
    */
   const throwDomainError = (
-    orpcCode: 'BAD_REQUEST' | 'FORBIDDEN' | 'NOT_FOUND' | 'INTERNAL_SERVER_ERROR',
+    orpcCode: 'BAD_REQUEST' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'INTERNAL_SERVER_ERROR',
     errorBody: {
       message: string;
       code: string;
@@ -121,6 +121,53 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
         details: errorBody.details,
       },
     });
+  };
+
+  const throwHttpResultError = (
+    status: number,
+    errorBody: {
+      message: string;
+      code: string;
+      tags: readonly string[];
+      details?: Record<string, unknown>;
+    }
+  ): never => {
+    switch (status) {
+      case 400:
+        return throwDomainError('BAD_REQUEST', errorBody);
+      case 401:
+        return throwDomainError('UNAUTHORIZED', errorBody);
+      case 403:
+        return throwDomainError('FORBIDDEN', errorBody);
+      case 404:
+        return throwDomainError('NOT_FOUND', errorBody);
+      default:
+        return throwDomainError('INTERNAL_SERVER_ERROR', errorBody);
+    }
+  };
+
+  const unwrapOkResponse = <TData>(result: {
+    status: number;
+    body:
+      | {
+          ok: true;
+          data: TData;
+        }
+      | {
+          ok: false;
+          error: {
+            message: string;
+            code: string;
+            tags: readonly string[];
+            details?: Record<string, unknown>;
+          };
+        };
+  }) => {
+    if (result.body.ok) {
+      return result.body;
+    }
+
+    return throwHttpResultError(result.status, result.body.error);
   };
 
   const os = implement(v2Contract);
@@ -140,13 +187,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateBaseEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const basesList = os.bases.list.handler(async ({ input }) => {
@@ -164,13 +205,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const queryBus = container.resolve<IQueryBus>(v2CoreTokens.queryBus);
     const result = await executeListBasesEndpoint(executionContext, input, queryBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesCreate = os.tables.create.handler(async ({ input }) => {
@@ -188,13 +223,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateTableEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesCreateTables = os.tables.createTables.handler(async ({ input }) => {
@@ -212,13 +241,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateTablesEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesCreateField = os.tables.createField.handler(async ({ input }) => {
@@ -236,17 +259,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateFieldEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDuplicateTable = os.tables.duplicateTable.handler(async ({ input }) => {
@@ -264,17 +277,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDuplicateTableEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesUpdateField = os.tables.updateField.handler(async ({ input }) => {
@@ -292,17 +295,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeUpdateFieldEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesCreateRecord = os.tables.createRecord.handler(async ({ input }) => {
@@ -320,17 +313,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateRecordEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesSubmitRecord = os.tables.submitRecord.handler(async ({ input }) => {
@@ -348,17 +331,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeSubmitRecordEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesCreateRecords = os.tables.createRecords.handler(async ({ input }) => {
@@ -376,17 +349,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeCreateRecordsEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesUpdateRecord = os.tables.updateRecord.handler(async ({ input }) => {
@@ -404,17 +367,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeUpdateRecordEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesUpdateRecords = os.tables.updateRecords.handler(async ({ input }) => {
@@ -432,17 +385,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeUpdateRecordsEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesReorderRecords = os.tables.reorderRecords.handler(async ({ input }) => {
@@ -460,17 +403,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeReorderRecordsEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDuplicateRecord = os.tables.duplicateRecord.handler(async ({ input }) => {
@@ -488,17 +421,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDuplicateRecordEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDuplicateField = os.tables.duplicateField.handler(async ({ input }) => {
@@ -516,17 +439,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDuplicateFieldEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesPaste = os.tables.paste.handler(async ({ input }) => {
@@ -544,17 +457,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executePasteEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesClear = os.tables.clear.handler(async ({ input }) => {
@@ -572,17 +475,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeClearEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDeleteByRange = os.tables.deleteByRange.handler(async ({ input }) => {
@@ -600,17 +493,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDeleteByRangeEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDeleteRecords = os.tables.deleteRecords.handler(async ({ input }) => {
@@ -628,17 +511,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDeleteRecordsEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDeleteField = os.tables.deleteField.handler(async ({ input }) => {
@@ -656,21 +529,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDeleteFieldEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    if (result.status === 403) {
-      throwDomainError('FORBIDDEN', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesGetById = os.tables.getById.handler(async ({ input }) => {
@@ -688,17 +547,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const queryBus = container.resolve<IQueryBus>(v2CoreTokens.queryBus);
     const result = await executeGetTableByIdEndpoint(executionContext, input, queryBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesGetRecord = os.tables.getRecord.handler(async ({ input }) => {
@@ -716,17 +565,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const queryBus = container.resolve<IQueryBus>(v2CoreTokens.queryBus);
     const result = await executeGetRecordByIdEndpoint(executionContext, input, queryBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesDelete = os.tables.delete.handler(async ({ input }) => {
@@ -744,17 +583,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeDeleteTableEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesRestore = os.tables.restore.handler(async ({ input }) => {
@@ -772,17 +601,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeRestoreTableEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesList = os.tables.list.handler(async ({ input }) => {
@@ -800,13 +619,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const queryBus = container.resolve<IQueryBus>(v2CoreTokens.queryBus);
     const result = await executeListTablesEndpoint(executionContext, input, queryBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesListRecords = os.tables.listRecords.handler(async ({ input }) => {
@@ -824,17 +637,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const queryBus = container.resolve<IQueryBus>(v2CoreTokens.queryBus);
     const result = await executeListTableRecordsEndpoint(executionContext, input, queryBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesRename = os.tables.rename.handler(async ({ input }) => {
@@ -852,17 +655,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeRenameTableEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesImportCsv = os.tables.importCsv.handler(async ({ input }) => {
@@ -880,17 +673,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeImportCsvEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesImportRecords = os.tables.importRecords.handler(async ({ input }) => {
@@ -908,17 +691,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executeImportRecordsEndpoint(executionContext, input, commandBus);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainCreateRecord = os.tables.explainCreateRecord.handler(async ({ input }) => {
@@ -942,17 +715,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       explainService
     );
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainCreateField = os.tables.explainCreateField.handler(async ({ input }) => {
@@ -972,17 +735,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     );
     const result = await executeExplainCreateFieldEndpoint(executionContext, input, explainService);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainUpdateField = os.tables.explainUpdateField.handler(async ({ input }) => {
@@ -1002,17 +755,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     );
     const result = await executeExplainUpdateFieldEndpoint(executionContext, input, explainService);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainDeleteField = os.tables.explainDeleteField.handler(async ({ input }) => {
@@ -1032,17 +775,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     );
     const result = await executeExplainDeleteFieldEndpoint(executionContext, input, explainService);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainDeleteTable = os.tables.explainDeleteTable.handler(async ({ input }) => {
@@ -1062,17 +795,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     );
     const result = await executeExplainDeleteTableEndpoint(executionContext, input, explainService);
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainUpdateRecord = os.tables.explainUpdateRecord.handler(async ({ input }) => {
@@ -1096,17 +819,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       explainService
     );
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   const tablesExplainDeleteRecords = os.tables.explainDeleteRecords.handler(async ({ input }) => {
@@ -1130,17 +843,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       explainService
     );
 
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    return unwrapOkResponse(result);
   });
 
   return os.router({

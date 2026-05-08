@@ -82,8 +82,12 @@ describe('link field ordering (e2e)', () => {
       // After creating table2 with link, table1 should have a symmetric link field
       const table1WithLink = await ctx.getTableById(table1.id);
       const symmetricField = table1WithLink.fields.find(
-        (f: { id: string; type: string; options?: { symmetricFieldId?: string } }) =>
-          f.type === 'link' && f.options?.symmetricFieldId === table2LinkFieldId
+        (f) =>
+          f.type === 'link' &&
+          typeof f.options === 'object' &&
+          f.options !== null &&
+          'symmetricFieldId' in f.options &&
+          f.options.symmetricFieldId === table2LinkFieldId
       );
       expect(symmetricField).toBeDefined();
       if (!symmetricField) {
@@ -163,8 +167,12 @@ describe('link field ordering (e2e)', () => {
       // Get symmetric field ID
       const table1WithLink = await ctx.getTableById(table1.id);
       const symmetricField = table1WithLink.fields.find(
-        (f: { type: string; options?: { symmetricFieldId?: string } }) =>
-          f.type === 'link' && f.options?.symmetricFieldId === table2LinkFieldId
+        (f) =>
+          f.type === 'link' &&
+          typeof f.options === 'object' &&
+          f.options !== null &&
+          'symmetricFieldId' in f.options &&
+          f.options.symmetricFieldId === table2LinkFieldId
       );
       expect(symmetricField).toBeDefined();
       if (!symmetricField) {

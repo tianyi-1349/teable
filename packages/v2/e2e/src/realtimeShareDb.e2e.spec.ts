@@ -291,7 +291,7 @@ const deleteShareDbBackendDoc = async (params: {
 describe('v2 realtime sharedb (e2e)', () => {
   let server: Server | undefined;
   let shareDbRuntime: ShareDbRuntime | undefined;
-  let testContainer: Awaited<ReturnType<typeof createV2NodeTestContainer>> | undefined;
+  let testContainer: Awaited<ReturnType<typeof createE2eTestContainer>> | undefined;
   let baseUrl: string;
   let shareDbUrl: string;
   let dispose: (() => Promise<void>) | undefined;
@@ -322,9 +322,10 @@ describe('v2 realtime sharedb (e2e)', () => {
     baseId = testContainer.baseId.toString();
 
     const app = express();
+    const container = testContainer.container;
     app.use(
       createV2ExpressRouter({
-        createContainer: () => testContainer.container,
+        createContainer: () => container,
       })
     );
 

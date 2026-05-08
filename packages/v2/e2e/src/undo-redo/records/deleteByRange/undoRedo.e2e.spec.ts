@@ -268,8 +268,11 @@ describe('undo-redo/deleteByRange (e2e)', () => {
         })._unsafeUnwrap()
       );
       expect(streamResult.isOk()).toBe(true);
+      if (streamResult.isErr()) {
+        throw new Error(streamResult.error.message);
+      }
 
-      const events = await collectStreamEvents(streamResult._unsafeUnwrap());
+      const events = await collectStreamEvents(streamResult.value as DeleteByRangeStreamResult);
       expect(events.find((event) => event.id === 'error')).toMatchObject({
         id: 'error',
         phase: 'deleting',

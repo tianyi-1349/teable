@@ -1,5 +1,5 @@
-import type { ILogger } from '@teable/v2-core';
-import { NoopLogger } from '@teable/v2-core';
+import type { ILogger } from '@teable/v2-core/ports/Logger';
+import { NoopLogger } from '@teable/v2-core/ports/defaults/NoopLogger';
 import WebSocketJSONStream from '@teamwork/websocket-json-stream';
 import type ShareDbClass from 'sharedb';
 

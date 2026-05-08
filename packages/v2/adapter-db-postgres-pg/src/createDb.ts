@@ -51,12 +51,16 @@ export const createV2PostgresDb = async <DB = unknown>(
 
 type PgDefaultExport = { Pool: typeof import('pg').Pool };
 
+const isRecordObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 const hasPgDefault = (
   value: typeof import('pg')
 ): value is typeof import('pg') & {
   default: PgDefaultExport;
 } => {
-  return 'default' in value && !!value.default && 'Pool' in value.default;
+  const defaultExport = (value as typeof import('pg') & { default?: unknown }).default;
+  return isRecordObject(defaultExport) && 'Pool' in defaultExport;
 };
 
 type PgPoolOptions = {

@@ -20,7 +20,8 @@
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
-      "@teable/v2-core": ["../core/src"],
+      "@teable/core": ["../../core/src"],
+      "@teable/v2-core/*": ["../core/src/*"],
       "@teable/v2-di": ["../di/src"]
     },
     "types": ["node"]
@@ -31,7 +32,17 @@
     "./dist",
     "./coverage",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**"
   ],
-  "include": ["src", "scripts", "../core/src", "../di/src"]
+  "include": [
+    "src",
+    "scripts",
+    "../core/src/ports/DotTeaParser.ts",
+    "../core/src/domain/shared/DomainError.ts",
+    "../di/src"
+  ]
 }

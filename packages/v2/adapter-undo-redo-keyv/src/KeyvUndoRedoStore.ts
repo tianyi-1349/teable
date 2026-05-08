@@ -3,14 +3,17 @@ import type Keyv from 'keyv';
 import { ok } from 'neverthrow';
 
 import type {
-  DomainError,
   IUndoRedoStore,
   UndoEntry,
   UndoRedoListOptions,
   UndoRedoCommandData,
   UndoScope,
-} from '@teable/v2-core';
-import { composeUndoRedoCommands, flattenUndoRedoCommands } from '@teable/v2-core';
+} from '@teable/v2-core/ports/UndoRedoStore';
+import {
+  composeUndoRedoCommands,
+  flattenUndoRedoCommands,
+} from '@teable/v2-core/ports/UndoRedoStore';
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
 
 type StoredUndoEntry = Omit<UndoEntry, 'scope'>;
 

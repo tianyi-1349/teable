@@ -17,9 +17,10 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/core": ["../../core/src"],
       "@teable/v2-adapter-logger-console": ["../adapter-logger-console/src"],
       "@teable/v2-adapter-table-repository-postgres": ["../adapter-table-repository-postgres/src"],
       "@teable/v2-adapter-repository-postgres": ["../adapter-repository-postgres/src"],
@@ -27,13 +28,30 @@
         "../adapter-record-repository-postgres/src"
       ],
       "@teable/v2-core": ["../core/src"],
+      "@teable/v2-core/*": ["../core/src/*"],
       "@teable/v2-adapter-db-postgres-pg": ["../adapter-db-postgres-pg/src"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-postgres-schema": ["../postgres-schema/src"]
     },
     "types": ["vitest/globals"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../adapter-db-postgres-pg/src/**/*.spec.ts",
+    "../adapter-db-postgres-pg/src/**/*.test.ts",
+    "../adapter-repository-postgres/src/**/*.spec.ts",
+    "../adapter-repository-postgres/src/**/*.test.ts",
+    "../adapter-repository-postgres/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts",
+    "../adapter-table-repository-postgres/src/**/*.test.ts",
+    "../adapter-table-repository-postgres/src/**/__tests__/**"
+  ],
   "include": [
     "src",
     "../adapter-logger-console/src",
@@ -41,6 +59,7 @@
     "../adapter-repository-postgres/src",
     "../adapter-record-repository-postgres/src",
     "../core/src",
+    "../../core/src",
     "../adapter-db-postgres-pg/src",
     "../di/src",
     "../postgres-schema/src"

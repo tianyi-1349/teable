@@ -5,6 +5,7 @@
  * cuts repeated file-level setup while preserving the same coverage.
  */
 /* eslint-disable @typescript-eslint/naming-convention */
+import type { ICreateFieldCommandInput } from '@teable/v2-core';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { getSharedTestContext, type SharedTestContext } from '../../shared/globalTestContext';
 import {
@@ -16,7 +17,11 @@ import {
 
 type SourceCase = {
   label: string;
-  buildField: (fieldId: string, name: string, attachmentSeed: SeededAttachment) => unknown;
+  buildField: (
+    fieldId: string,
+    name: string,
+    attachmentSeed: SeededAttachment
+  ) => ICreateFieldCommandInput['field'];
   sampleValue: (attachmentSeed: SeededAttachment) => unknown;
 };
 

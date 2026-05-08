@@ -19,6 +19,12 @@
       "@teable/openapi": ["../../packages/openapi/src"],
       "@teable/db-main-prisma": ["../../packages/db-main-prisma/src"],
       "@teable/v2-*": ["../../packages/v2/*/src/index"],
+      "@teable/v2-core/*": ["../../packages/v2/core/src/*"],
+      "@teable/v2-contract-http/*": ["../../packages/v2/contract-http/src/*"],
+      "@teable/v2-contract-http-openapi/*": ["../../packages/v2/contract-http-openapi/src/*"],
+      "@teable/v2-contract-http-implementation/*": [
+        "../../packages/v2/contract-http-implementation/src/*"
+      ],
       "@teable/v2-contract-http-implementation/handlers": [
         "../../packages/v2/contract-http-implementation/src/handlers/index.ts"
       ],
@@ -27,5 +33,13 @@
     },
     "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "dist"]
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "dist",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "test/**/*"
+  ],
+  "include": ["src"]
 }

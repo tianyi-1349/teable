@@ -16,6 +16,7 @@ import {
   printComputedSteps,
   type ComputedPlanLogEntry,
 } from '@teable/v2-container-node-test';
+import type { ICreateTableCommandInput } from '@teable/v2-core';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import {
   createTestContext,
@@ -32,6 +33,26 @@ import type {
   LinkDirection,
   LookupTestCase,
 } from './shared';
+
+type TableFieldInput = NonNullable<ICreateTableCommandInput['fields']>[number];
+
+const asSourceField = (type: SourceFieldType, id: string, name: string): TableFieldInput => {
+  if (type === 'singleSelect') {
+    return {
+      type,
+      id,
+      name,
+      options: {
+        choices: [
+          { id: 'opt1', name: 'option1', color: 'blue' },
+          { id: 'opt2', name: 'option2', color: 'green' },
+        ],
+      },
+    } as TableFieldInput;
+  }
+
+  return { type, id, name } as TableFieldInput;
+};
 
 // =============================================================================
 // Test Configuration
@@ -116,7 +137,7 @@ describe('lookup field matrix (e2e)', () => {
           name: `LookupA_${source}_${rel}_${dir}`,
           fields: [
             { type: 'singleLineText', id: aNameFieldId, name: 'Name', isPrimary: true },
-            { type: source, id: aSourceFieldId, name: 'Source' },
+            asSourceField(source, aSourceFieldId, 'Source'),
           ],
           views: [{ type: 'grid' }],
         });

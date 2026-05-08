@@ -16,11 +16,13 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationDir": "dist",
-    "composite": true,
+    "composite": false,
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/core": ["../../core/src"],
       "@teable/v2-core": ["../core/src"],
+      "@teable/v2-core/*": ["../core/src/*"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-adapter-table-repository-postgres": ["../adapter-table-repository-postgres/src"],
       "@teable/v2-adapter-record-repository-postgres": [
@@ -28,6 +30,8 @@
       ],
       "@teable/v2-postgres-schema": ["../postgres-schema/src"],
       "@teable/v2-formula-sql-pg": ["../formula-sql-pg/src"],
+      "@teable/v2-contract-http": ["../contract-http/src"],
+      "@teable/v2-contract-http/*": ["../contract-http/src/*"],
       "@teable/formula": ["../../formula/src"]
     },
     "types": ["vitest/globals", "node"]
@@ -37,17 +41,42 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../adapter-record-repository-postgres/src/**/*.spec.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/**/__tests__/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../core/src/**/__tests__/**",
+    "../adapter-table-repository-postgres/src/**/*.spec.ts",
+    "../adapter-table-repository-postgres/src/**/*.test.ts",
+    "../adapter-table-repository-postgres/src/**/__tests__/**",
+    "../adapter-record-repository-postgres/src/**/*.spec.ts",
+    "../adapter-record-repository-postgres/src/**/*.test.ts",
+    "../adapter-record-repository-postgres/src/**/__tests__/**",
+    "../formula-sql-pg/src/**/*.spec.ts",
+    "../formula-sql-pg/src/**/*.test.ts",
+    "../formula-sql-pg/src/**/__tests__/**",
+    "../formula-sql-pg/src/testkit/**",
+    "../contract-http/src/**/*.spec.ts",
+    "../contract-http/src/**/*.test.ts",
+    "../contract-http/src/**/__tests__/**",
+    "../../formula/src/**/*.spec.ts",
+    "../../formula/src/**/*.test.ts",
+    "../../formula/src/**/__tests__/**"
   ],
   "include": [
     "src",
     "../core/src",
+    "../../core/src",
     "../di/src",
     "../adapter-table-repository-postgres/src",
     "../adapter-record-repository-postgres/src",
     "../postgres-schema/src",
     "../formula-sql-pg/src",
+    "../contract-http/src",
     "../../formula/src"
   ]
 }

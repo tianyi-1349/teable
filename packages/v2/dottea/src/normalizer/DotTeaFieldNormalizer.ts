@@ -1,4 +1,4 @@
-import type { DotTeaFieldInput, NormalizedDotTeaField } from '@teable/v2-core';
+import type { DotTeaFieldInput, NormalizedDotTeaField } from '@teable/v2-core/ports/DotTeaParser';
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;

@@ -94,7 +94,7 @@ export interface SharedTestContext {
     payload: ICreateFieldCommandInput
   ) => Promise<ReturnType<typeof parseCreateFieldResponse>>;
   updateField: (
-    payload: IUpdateFieldCommandInput
+    payload: IUpdateFieldCommandInput & { baseId?: string }
   ) => Promise<ReturnType<typeof parseUpdateFieldResponse>>;
   deleteField: (payload: { tableId: string; fieldId: string }) => Promise<void>;
   deleteTable: (tableId: string, options?: { mode?: 'soft' | 'permanent' }) => Promise<void>;
@@ -465,11 +465,12 @@ const initSharedContext = async (
     return parseCreateFieldResponse(await response.json());
   };
 
-  const updateField = async (payload: IUpdateFieldCommandInput) => {
+  const updateField = async (payload: IUpdateFieldCommandInput & { baseId?: string }) => {
+    const { baseId: _baseId, ...requestPayload } = payload;
     const response = await fetch(`${baseUrl}/tables/updateField`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(requestPayload),
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -765,7 +766,7 @@ const initSharedContext = async (
     type?: 'columns' | 'rows';
     filter?: RecordFilter;
     sort?: Array<{ fieldId: string; order: 'asc' | 'desc' }>;
-    search?: [string, string, boolean?];
+    search?: RecordSearchInput;
     groupBy?: Array<{ fieldId: string; order: 'asc' | 'desc' }>;
     projection?: string[];
     ignoreViewQuery?: boolean;
@@ -789,7 +790,7 @@ const initSharedContext = async (
     type?: 'columns' | 'rows';
     filter?: RecordFilter;
     sort?: Array<{ fieldId: string; order: 'asc' | 'desc' }>;
-    search?: [string, string, boolean?];
+    search?: RecordSearchInput;
     groupBy?: Array<{ fieldId: string; order: 'asc' | 'desc' }>;
     ignoreViewQuery?: boolean;
   }) => {

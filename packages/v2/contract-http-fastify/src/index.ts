@@ -1,9 +1,12 @@
-import { mapDomainErrorToHttpError, mapDomainErrorToHttpStatus } from '@teable/v2-contract-http';
-import type { IHandlerResolver } from '@teable/v2-contract-http';
-import { createV2OrpcRouter } from '@teable/v2-contract-http-implementation';
-import { createV2OpenApiFastifyHandler } from '@teable/v2-contract-http-openapi';
-import type { IExecutionContext } from '@teable/v2-core';
-import { domainError } from '@teable/v2-core';
+import {
+  mapDomainErrorToHttpError,
+  mapDomainErrorToHttpStatus,
+} from '@teable/v2-contract-http/shared/http';
+import type { IHandlerResolver } from '@teable/v2-contract-http/shared/container';
+import { createV2OrpcRouter } from '@teable/v2-contract-http-implementation/router';
+import { createV2OpenApiFastifyHandler } from '@teable/v2-contract-http-openapi/openapi';
+import type { IExecutionContext } from '@teable/v2-core/ports/ExecutionContext';
+import { domainError } from '@teable/v2-core/domain/shared/DomainError';
 import type { FastifyPluginCallback } from 'fastify';
 
 export interface IV2FastifyRouterOptions {

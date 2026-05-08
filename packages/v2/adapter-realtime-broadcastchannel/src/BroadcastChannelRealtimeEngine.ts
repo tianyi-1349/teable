@@ -1,11 +1,11 @@
+import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import type { IExecutionContext } from '@teable/v2-core/ports/ExecutionContext';
+import type { RealtimeChange } from '@teable/v2-core/ports/RealtimeChange';
+import type { RealtimeDocId } from '@teable/v2-core/ports/RealtimeDocId';
 import type {
-  IExecutionContext,
   IRealtimeEngine,
   RealtimeApplyChangeOptions,
-  RealtimeChange,
-  RealtimeDocId,
-  DomainError,
-} from '@teable/v2-core';
+} from '@teable/v2-core/ports/RealtimeEngine';
 import { inject, injectable } from '@teable/v2-di';
 import type { Result } from 'neverthrow';
 

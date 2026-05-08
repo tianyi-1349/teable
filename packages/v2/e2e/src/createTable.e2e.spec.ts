@@ -6,6 +6,8 @@ import { createAllFieldTypesFields, tableTemplates } from '@teable/v2-table-temp
 import { beforeAll, describe, expect, it } from 'vitest';
 import { getSharedTestContext, type SharedTestContext } from './shared/globalTestContext';
 
+type TableFieldInput = NonNullable<ICreateTableCommandInput['fields']>[number];
+
 describe('v2 http createTable (e2e)', () => {
   let ctx: SharedTestContext;
   let fieldIdCounter = 0;
@@ -172,7 +174,7 @@ describe('v2 http createTable (e2e)', () => {
       baseId: ctx.baseId,
       name: 'Create Table All Types',
       fields: [
-        ...createAllFieldTypesFields(),
+        ...(createAllFieldTypesFields() as TableFieldInput[]),
         { type: 'autoNumber', id: autoNumberFieldId, name: 'Auto Number' },
         { type: 'createdTime', id: createdTimeFieldId, name: 'Created Time' },
         { type: 'lastModifiedTime', id: lastModifiedTimeFieldId, name: 'Last Modified Time' },

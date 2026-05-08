@@ -1,5 +1,5 @@
-import { createContextualLogger, createLogScopeContext } from '@teable/v2-core';
-import type { ILogger, LogContext } from '@teable/v2-core';
+import { createContextualLogger, createLogScopeContext } from '@teable/v2-core/ports/Logger';
+import type { ILogger, LogContext } from '@teable/v2-core/ports/Logger';
 import type { Logger as PinoLogger } from 'pino';
 
 export class PinoLoggerAdapter implements ILogger {

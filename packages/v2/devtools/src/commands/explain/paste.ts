@@ -69,6 +69,25 @@ const parseContent = (value: string): Effect.Effect<unknown, ValidationError> =>
     catch: () => new ValidationError({ message: 'Invalid --content', field: 'content' }),
   });
 
+const normalizePasteContent = (
+  value: unknown
+): Effect.Effect<string | unknown[][], ValidationError> => {
+  if (typeof value === 'string') {
+    return Effect.succeed(value);
+  }
+
+  if (Array.isArray(value) && value.every((row) => Array.isArray(row))) {
+    return Effect.succeed(value as unknown[][]);
+  }
+
+  return Effect.fail(
+    new ValidationError({
+      message: 'Invalid --content, expected clipboard text or a 2D JSON array',
+      field: 'content',
+    })
+  );
+};
+
 const handler = (args: {
   readonly connection: Option.Option<string>;
   readonly tableId: string;
@@ -92,7 +111,7 @@ const handler = (args: {
       args.ranges,
       'ranges'
     );
-    const content = yield* parseContent(args.content);
+    const content = yield* parseContent(args.content).pipe(Effect.flatMap(normalizePasteContent));
     const filter = yield* parseOptionalJson<RecordFilter>(args.filter, 'filter');
     const updateFilter = yield* parseOptionalJson<RecordFilter>(args.updateFilter, 'update-filter');
     const sourceFields = yield* parseOptionalJson<ReadonlyArray<SourceFieldMeta>>(
@@ -105,45 +124,34 @@ const handler = (args: {
     );
     const sort = yield* parseOptionalJson<ReadonlyArray<PasteSort>>(args.sort, 'sort');
     const type = Option.getOrUndefined(args.type);
+    const mutableRanges = ranges.map(([start, end]) => [start, end] as [number, number]);
+    const mutableSourceFields = sourceFields?.map((field) => ({ ...field }));
+    const mutableProjection = projection?.map((fieldId) => fieldId);
+    const mutableSort = sort?.map((item) => ({ ...item }));
 
     const input = {
       tableId: args.tableId,
       viewId: args.viewId,
-      ranges,
+      ranges: mutableRanges,
       content,
       type,
       filter,
       updateFilter,
-      sourceFields,
-      projection,
-      sort,
+      sourceFields: mutableSourceFields,
+      projection: mutableProjection,
+      sort: mutableSort,
       typecast: args.typecast,
       analyze: args.analyze,
     };
 
-    const result = yield* commandExplain
-      .explainPaste({
-        tableId: args.tableId,
-        viewId: args.viewId,
-        ranges,
-        content,
-        type,
-        filter,
-        updateFilter,
-        sourceFields,
-        projection,
-        sort,
-        typecast: args.typecast,
-        analyze: args.analyze,
-      })
-      .pipe(
-        Effect.catchAll((error) =>
-          Effect.gen(function* () {
-            yield* output.error('explain.paste', input, error);
-            return yield* Effect.fail(error);
-          })
-        )
-      );
+    const result = yield* commandExplain.explainPaste(input).pipe(
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* output.error('explain.paste', input, error);
+          return yield* Effect.fail(error);
+        })
+      )
+    );
 
     yield* output.success('explain.paste', input, result);
   });

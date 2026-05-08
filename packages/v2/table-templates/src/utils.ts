@@ -1,5 +1,4 @@
-import type { ICreateTableRequestDto } from '@teable/v2-contract-http';
-import { FieldId, RecordId, SelectOptionId, TableId, type FieldColorValue } from '@teable/v2-core';
+import type { ICreateTableRequestDto } from '@teable/v2-contract-http/table/createTable';
 
 import type {
   CreateTableTemplateInputOptions,
@@ -13,30 +12,42 @@ import type {
 export const MIN_TEMPLATE_RECORDS = 5;
 export const MAX_TEMPLATE_RECORDS = 100;
 
-export const createFieldId = (): string => FieldId.mustGenerate().toString();
+type TemplateFieldColorValue =
+  | 'gray'
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'teal'
+  | 'blue'
+  | 'purple'
+  | 'pink'
+  | 'cyan'
+  | 'grayBright'
+  | 'redBright'
+  | 'orangeBright'
+  | 'yellowBright'
+  | 'greenBright'
+  | 'tealBright'
+  | 'blueBright'
+  | 'purpleBright'
+  | 'pinkBright'
+  | 'cyanBright';
 
-export const createRecordId = (): string => {
-  const idResult = RecordId.generate();
-  if (idResult.isOk()) return idResult.value.toString();
-  const fallback = Math.random().toString(36).slice(2).padEnd(16, '0').slice(0, 16);
-  return `rec${fallback}`;
+const createPrefixedId = (prefix: string, bodyLength: number): string => {
+  const random = Math.random().toString(36).slice(2).padEnd(bodyLength, '0').slice(0, bodyLength);
+  return `${prefix}${random}`;
 };
 
-export const createTableId = (): string => {
-  const idResult = TableId.generate();
-  if (idResult.isOk()) return idResult.value.toString();
-  const fallback = Math.random().toString(36).slice(2).padEnd(16, '0').slice(0, 16);
-  return `tbl${fallback}`;
-};
+export const createFieldId = (): string => createPrefixedId('fld', 16);
 
-export const createSelectOptionId = (): string => {
-  const idResult = SelectOptionId.generate();
-  if (idResult.isOk()) return idResult.value.toString();
-  const fallback = Math.random().toString(36).slice(2, 10).padEnd(8, '0').slice(0, 8);
-  return `cho${fallback}`;
-};
+export const createRecordId = (): string => createPrefixedId('rec', 16);
 
-export const createSelectOption = (name: string, color: FieldColorValue) => ({
+export const createTableId = (): string => createPrefixedId('tbl', 16);
+
+export const createSelectOptionId = (): string => createPrefixedId('cho', 8);
+
+export const createSelectOption = (name: string, color: TemplateFieldColorValue) => ({
   id: createSelectOptionId(),
   name,
   color,
