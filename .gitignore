@@ -28,6 +28,7 @@ node_modules
 /out/
 /build
 /dist/
+packages/**/dist/
 
 # v2 packages build output
 packages/v2/**/dist/
