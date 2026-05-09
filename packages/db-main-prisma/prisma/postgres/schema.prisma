@@ -861,3 +861,44 @@ model BaseShare {
   @@index([baseId])
   @@map("base_share")
 }
+
+model ChatSession {
+  id               String    @id @default(cuid())
+  baseId           String    @map("base_id")
+  title            String?
+  modelKey         String?   @map("model_key")
+  contextNodes     String?   @map("context_nodes")
+  viewId           String?   @map("view_id")
+  tableId          String?   @map("table_id")
+  selectedRecordIds String?  @map("selected_record_ids")
+  creditUsed       Float     @default(0) @map("credit_used")
+  tokenUsed        Int       @default(0) @map("token_used")
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  deletedTime      DateTime? @map("deleted_time")
+
+  messages ChatMessage[]
+
+  @@index([baseId, createdBy, createdTime])
+  @@index([createdBy, lastModifiedTime])
+  @@map("chat_session")
+}
+
+model ChatMessage {
+  id               String    @id @default(cuid())
+  sessionId        String    @map("session_id")
+  role             String
+  content          String
+  attachments      String?
+  toolCalls        String?   @map("tool_calls")
+  toolCallResults  String?   @map("tool_call_results")
+  creditUsed       Float     @default(0) @map("credit_used")
+  tokenUsed        Int       @default(0) @map("token_used")
+  createdTime      DateTime  @default(now()) @map("created_time")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdTime])
+  @@map("chat_message")
+}
