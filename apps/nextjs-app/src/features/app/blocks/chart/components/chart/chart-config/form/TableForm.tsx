@@ -127,7 +127,7 @@ export const TableForm = (props: {
                     {...attributes}
                     {...listeners}
                     style={style}
-                    className="flex items-center gap-2 rounded border bg-background p-1"
+                    className="bg-background flex items-center gap-2 rounded border p-1"
                   >
                     <DraggableHandle />
                     <div className="flex-1 text-[13px]">{column.name}</div>

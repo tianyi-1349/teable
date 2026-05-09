@@ -1,12 +1,13 @@
 import * as echarts from 'echarts';
+import type { EChartsOption } from 'echarts';
 import { useEffect, useRef } from 'react';
-import type { Bar } from './bar';
-import type { Line } from './line';
-import type { Pie } from './pie';
 
 type ChartUpdateMode = 'replace' | 'merge';
 
-export const Chart = (props: { chartInstance: Pie | Bar | Line; updateMode?: ChartUpdateMode }) => {
+export const Chart = (props: {
+  chartInstance: { getOptions: () => EChartsOption };
+  updateMode?: ChartUpdateMode;
+}) => {
   const { chartInstance, updateMode = 'replace' } = props;
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.EChartsType | null>(null);

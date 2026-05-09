@@ -26,7 +26,7 @@ export const ComboYAxisDisplayEditor = (props: {
       </ConfigItem>
       <ConfigItem label={t('form.combo.range.label')}>
         <div className="flex items-center gap-1">
-          <span className="whitespace-nowrap text-muted-foreground">
+          <span className="text-muted-foreground whitespace-nowrap">
             {t('form.combo.range.min')}
           </span>
           <Input
@@ -45,7 +45,7 @@ export const ComboYAxisDisplayEditor = (props: {
               });
             }}
           />
-          <span className="ml-2 whitespace-nowrap text-muted-foreground">
+          <span className="text-muted-foreground ml-2 whitespace-nowrap">
             {t('form.combo.range.max')}
           </span>
           <Input

@@ -1,7 +1,4 @@
 import { brotliDecompressSync, gzipSync, gunzipSync } from 'node:zlib';
-import type Keyv from 'keyv';
-import { ok } from 'neverthrow';
-
 import type {
   IUndoRedoStore,
   UndoEntry,
@@ -13,23 +10,24 @@ import {
   composeUndoRedoCommands,
   flattenUndoRedoCommands,
 } from '@teable/v2-core/ports/UndoRedoStore';
-import type { DomainError } from '@teable/v2-core/domain/shared/DomainError';
+import type Keyv from 'keyv';
+import { ok } from 'neverthrow';
 
-type StoredUndoEntry = Omit<UndoEntry, 'scope'>;
+type IStoredUndoEntry = Omit<UndoEntry, 'scope'>;
 
-type LegacyUndoRedoState = {
-  entries: StoredUndoEntry[];
+type ILegacyUndoRedoState = {
+  entries: IStoredUndoEntry[];
   cursor: number;
 };
 
-type SplitUndoRedoState = {
+type ISplitUndoRedoState = {
   format: 'split-v1';
   entryIds: string[];
   cursor: number;
   nextSequence: number;
 };
 
-type CompressedValue =
+type ICompressedValue =
   | {
       format: 'br64-json';
       data: string;
@@ -39,32 +37,32 @@ type CompressedValue =
       data: string;
     };
 
-type LoadedState = {
+type ILoadedState = {
   format: 'empty' | 'inline' | 'split';
   entryIds: string[];
-  entries: StoredUndoEntry[];
+  entries: IStoredUndoEntry[];
   cursor: number;
   nextSequence: number;
 };
 
-const DEFAULT_COMPRESSION_THRESHOLD_BYTES = 16 * 1024;
+const defaultCompressionThresholdBytes = 16 * 1024;
 
-export interface KeyvUndoRedoStoreOptions {
+export interface IKeyvUndoRedoStoreOptions {
   keyPrefix?: string;
   ttlMs?: number;
   maxEntries?: number;
   compressionThresholdBytes?: number;
 }
 
-const isLegacyUndoRedoState = (value: unknown): value is LegacyUndoRedoState => {
+const isLegacyUndoRedoState = (value: unknown): value is ILegacyUndoRedoState => {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<LegacyUndoRedoState>;
+  const candidate = value as Partial<ILegacyUndoRedoState>;
   return Array.isArray(candidate.entries) && typeof candidate.cursor === 'number';
 };
 
-const isSplitUndoRedoState = (value: unknown): value is SplitUndoRedoState => {
+const isSplitUndoRedoState = (value: unknown): value is ISplitUndoRedoState => {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<SplitUndoRedoState>;
+  const candidate = value as Partial<ISplitUndoRedoState>;
   return (
     candidate.format === 'split-v1' &&
     Array.isArray(candidate.entryIds) &&
@@ -73,9 +71,9 @@ const isSplitUndoRedoState = (value: unknown): value is SplitUndoRedoState => {
   );
 };
 
-const isCompressedValue = (value: unknown): value is CompressedValue => {
+const isCompressedValue = (value: unknown): value is ICompressedValue => {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<CompressedValue>;
+  const candidate = value as Partial<ICompressedValue>;
   return (
     (candidate.format === 'br64-json' || candidate.format === 'gz64-json') &&
     typeof candidate.data === 'string'
@@ -88,9 +86,9 @@ const isUndoRedoCommandData = (value: unknown): value is UndoRedoCommandData => 
   return typeof candidate.type === 'string' && typeof candidate.version === 'number';
 };
 
-const isStoredUndoEntry = (value: unknown): value is StoredUndoEntry => {
+const isStoredUndoEntry = (value: unknown): value is IStoredUndoEntry => {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<StoredUndoEntry>;
+  const candidate = value as Partial<IStoredUndoEntry>;
   return (
     typeof candidate.createdAt === 'string' &&
     isUndoRedoCommandData(candidate.undoCommand) &&
@@ -106,13 +104,13 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
 
   constructor(
     private readonly keyv: Pick<Keyv, 'get' | 'set' | 'delete'>,
-    options?: KeyvUndoRedoStoreOptions
+    options?: IKeyvUndoRedoStoreOptions
   ) {
     this.keyPrefix = options?.keyPrefix ?? 'v2:undo-redo';
     this.ttlMs = options?.ttlMs;
     this.maxEntries = options?.maxEntries;
     this.compressionThresholdBytes =
-      options?.compressionThresholdBytes ?? DEFAULT_COMPRESSION_THRESHOLD_BYTES;
+      options?.compressionThresholdBytes ?? defaultCompressionThresholdBytes;
   }
 
   async append(scope: UndoScope, entry: UndoEntry) {
@@ -198,8 +196,8 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
 
   private async appendSplitEntry(
     scope: UndoScope,
-    entry: StoredUndoEntry,
-    state: SplitUndoRedoState
+    entry: IStoredUndoEntry,
+    state: ISplitUndoRedoState
   ) {
     let entryIds =
       state.cursor < state.entryIds.length
@@ -232,11 +230,11 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     return ok(undefined);
   }
 
-  private async loadState(scope: UndoScope): Promise<LoadedState> {
+  private async loadState(scope: UndoScope): Promise<ILoadedState> {
     const raw = await this.readPersistedValue(this.scopeKey(scope));
 
     if (isSplitUndoRedoState(raw)) {
-      const entries: StoredUndoEntry[] = [];
+      const entries: IStoredUndoEntry[] = [];
       const entryIds: string[] = [];
 
       for (const entryId of raw.entryIds) {
@@ -294,7 +292,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     });
   }
 
-  private resolveUndoGroup(entries: StoredUndoEntry[], currentIndex: number) {
+  private resolveUndoGroup(entries: IStoredUndoEntry[], currentIndex: number) {
     const current = entries[currentIndex]!;
     const groupId = current.groupId;
     if (!groupId) {
@@ -315,7 +313,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     };
   }
 
-  private resolveRedoGroup(entries: StoredUndoEntry[], cursor: number) {
+  private resolveRedoGroup(entries: IStoredUndoEntry[], cursor: number) {
     const current = entries[cursor]!;
     const groupId = current.groupId;
     if (!groupId) {
@@ -336,7 +334,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     };
   }
 
-  private composeGroupedEntry(entries: ReadonlyArray<StoredUndoEntry>): StoredUndoEntry {
+  private composeGroupedEntry(entries: ReadonlyArray<IStoredUndoEntry>): IStoredUndoEntry {
     const undoCommands = entries
       .slice()
       .reverse()
@@ -355,14 +353,14 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     };
   }
 
-  private async persistMeta(scope: UndoScope, state: SplitUndoRedoState): Promise<void> {
+  private async persistMeta(scope: UndoScope, state: ISplitUndoRedoState): Promise<void> {
     await this.persistValue(this.scopeKey(scope), state);
   }
 
   private async persistAllEntries(
     scope: UndoScope,
     entryIds: ReadonlyArray<string>,
-    entries: ReadonlyArray<StoredUndoEntry>
+    entries: ReadonlyArray<IStoredUndoEntry>
   ): Promise<void> {
     for (let index = 0; index < entryIds.length; index += 1) {
       const entryId = entryIds[index];
@@ -377,7 +375,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
   private async persistEntryValue(
     scope: UndoScope,
     entryId: string,
-    entry: StoredUndoEntry
+    entry: IStoredUndoEntry
   ): Promise<void> {
     await this.persistValue(this.entryKey(scope, entryId), entry);
   }
@@ -415,7 +413,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     return {
       format: 'gz64-json',
       data: compressed.toString('base64'),
-    } satisfies CompressedValue;
+    } satisfies ICompressedValue;
   }
 
   private maybeDecompress(value: unknown): unknown {
@@ -441,12 +439,12 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
     }
   }
 
-  private stripScope(entry: UndoEntry): StoredUndoEntry {
+  private stripScope(entry: UndoEntry): IStoredUndoEntry {
     const { scope: _scope, ...stored } = entry;
     return stored;
   }
 
-  private attachScope(scope: UndoScope, entry: StoredUndoEntry): UndoEntry {
+  private attachScope(scope: UndoScope, entry: IStoredUndoEntry): UndoEntry {
     return {
       ...entry,
       scope,

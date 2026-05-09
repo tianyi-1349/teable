@@ -16,15 +16,15 @@ const ChartInner = (props: { parentBridgeMethods: IParentBridgeMethods; uiConfig
   const { pluginInstall, isLoading } = usePluginInstall();
 
   if (!baseId) {
-    return <div className="text-center text-muted-foreground">{t('notBaseId')}</div>;
+    return <div className="text-muted-foreground text-center">{t('notBaseId')}</div>;
   }
 
   if (!positionId) {
-    return <div className="text-center text-muted-foreground">{t('notPositionId')}</div>;
+    return <div className="text-muted-foreground text-center">{t('notPositionId')}</div>;
   }
 
   if (!pluginInstallId) {
-    return <div className="text-center text-muted-foreground">{t('notPluginInstallId')}</div>;
+    return <div className="text-muted-foreground text-center">{t('notPluginInstallId')}</div>;
   }
 
   if (isLoading || !pluginInstall) {

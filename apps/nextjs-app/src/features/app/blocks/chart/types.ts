@@ -144,18 +144,239 @@ export const tableConfigSchema = z.object({
 
 export type ITableConfig = z.infer<typeof tableConfigSchema>;
 
+export const scatterConfigSchema = z.object({
+  type: z.literal('scatter'),
+  x: z.string().optional(),
+  y: z.string().optional(),
+  series: z.string().optional(),
+  pointSize: z.number().min(2).max(30).optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IScatterConfig = z.infer<typeof scatterConfigSchema>;
+
+export const funnelConfigSchema = z.object({
+  type: z.literal('funnel'),
+  dimension: z.string().optional(),
+  value: z.string().optional(),
+  showLabel: z.boolean().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IFunnelConfig = z.infer<typeof funnelConfigSchema>;
+
+export const progressConfigSchema = z.object({
+  type: z.literal('progress'),
+  value: z.string().optional(),
+  target: z.number().optional(),
+  mode: z.union([z.literal('circle'), z.literal('bar')]).optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IProgressConfig = z.infer<typeof progressConfigSchema>;
+
+export const roseConfigSchema = z.object({
+  type: z.literal('rose'),
+  dimension: z.string().optional(),
+  value: z.string().optional(),
+  showLegend: z.boolean().optional(),
+  showLabel: z.boolean().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IRoseConfig = z.infer<typeof roseConfigSchema>;
+
+export const radarConfigSchema = z.object({
+  type: z.literal('radar'),
+  dimensions: z.array(z.string()).optional(),
+  value: z.string().optional(),
+  showLegend: z.boolean().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IRadarConfig = z.infer<typeof radarConfigSchema>;
+
+export const gaugeConfigSchema = z.object({
+  type: z.literal('gauge'),
+  value: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IGaugeConfig = z.infer<typeof gaugeConfigSchema>;
+
+export const heatmapConfigSchema = z.object({
+  type: z.literal('heatmap'),
+  x: z.string().optional(),
+  y: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IHeatmapConfig = z.infer<typeof heatmapConfigSchema>;
+
+export const sunburstConfigSchema = z.object({
+  type: z.literal('sunburst'),
+  path: z.array(z.string()).optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type ISunburstConfig = z.infer<typeof sunburstConfigSchema>;
+
+export const candlestickConfigSchema = z.object({
+  type: z.literal('candlestick'),
+  time: z.string().optional(),
+  open: z.string().optional(),
+  high: z.string().optional(),
+  low: z.string().optional(),
+  close: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type ICandlestickConfig = z.infer<typeof candlestickConfigSchema>;
+
+export const boxplotConfigSchema = z.object({
+  type: z.literal('boxplot'),
+  group: z.string().optional(),
+  min: z.string().optional(),
+  q1: z.string().optional(),
+  median: z.string().optional(),
+  q3: z.string().optional(),
+  max: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IBoxplotConfig = z.infer<typeof boxplotConfigSchema>;
+
+export const parallelConfigSchema = z.object({
+  type: z.literal('parallel'),
+  dimensions: z.array(z.string()).optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IParallelConfig = z.infer<typeof parallelConfigSchema>;
+
+export const pictorialBarConfigSchema = z.object({
+  type: z.literal('pictorialBar'),
+  dimension: z.string().optional(),
+  value: z.string().optional(),
+  symbol: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IPictorialBarConfig = z.infer<typeof pictorialBarConfigSchema>;
+
+export const treemapConfigSchema = z.object({
+  type: z.literal('treemap'),
+  path: z.array(z.string()).optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type ITreemapConfig = z.infer<typeof treemapConfigSchema>;
+
+export const sankeyConfigSchema = z.object({
+  type: z.literal('sankey'),
+  source: z.string().optional(),
+  target: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type ISankeyConfig = z.infer<typeof sankeyConfigSchema>;
+
+export const graphConfigSchema = z.object({
+  type: z.literal('graph'),
+  nodeId: z.string().optional(),
+  source: z.string().optional(),
+  target: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IGraphConfig = z.infer<typeof graphConfigSchema>;
+
+export const mapConfigSchema = z.object({
+  type: z.literal('map'),
+  region: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IMapConfig = z.infer<typeof mapConfigSchema>;
+
+export const themeRiverConfigSchema = z.object({
+  type: z.literal('themeRiver'),
+  time: z.string().optional(),
+  category: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IThemeRiverConfig = z.infer<typeof themeRiverConfigSchema>;
+
+export const wordCloudConfigSchema = z.object({
+  type: z.literal('wordCloud'),
+  word: z.string().optional(),
+  value: z.string().optional(),
+  padding: chartPaddingSchema.optional(),
+});
+
+export type IWordCloudConfig = z.infer<typeof wordCloudConfigSchema>;
+
 export const chartConfigSchema = z.union([
   barConfigSchema,
   lineConfigSchema,
   areaConfigSchema,
   pieConfigSchema,
   tableConfigSchema,
+  scatterConfigSchema,
+  funnelConfigSchema,
+  progressConfigSchema,
+  roseConfigSchema,
+  radarConfigSchema,
+  gaugeConfigSchema,
+  heatmapConfigSchema,
+  sunburstConfigSchema,
+  candlestickConfigSchema,
+  boxplotConfigSchema,
+  parallelConfigSchema,
+  pictorialBarConfigSchema,
+  treemapConfigSchema,
+  sankeyConfigSchema,
+  graphConfigSchema,
+  mapConfigSchema,
+  themeRiverConfigSchema,
+  wordCloudConfigSchema,
 ]);
 
 export type IChartConfig = z.infer<typeof chartConfigSchema>;
 
 export interface IChartInteractionFilter {
-  source: 'combo' | 'pie' | 'table';
+  source:
+    | 'combo'
+    | 'pie'
+    | 'table'
+    | 'scatter'
+    | 'funnel'
+    | 'progress'
+    | 'rose'
+    | 'radar'
+    | 'gauge'
+    | 'heatmap'
+    | 'sunburst'
+    | 'candlestick'
+    | 'boxplot'
+    | 'parallel'
+    | 'pictorialBar'
+    | 'treemap'
+    | 'sankey'
+    | 'graph'
+    | 'map'
+    | 'themeRiver'
+    | 'wordCloud';
   dimensionColumn: string;
   dimensionValues: (string | number)[];
 }

@@ -2,9 +2,26 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 import { ChevronsUpDown, Table2 } from '@teable/icons';
 import { Button, cn, Popover, PopoverContent, PopoverTrigger } from '@teable/ui-lib';
-import { BarChart, LineChart, PieChart, AreaChart } from 'lucide-react';
+import {
+  AreaChart,
+  BarChart,
+  CircleDashed,
+  Diamond,
+  Gauge,
+  GitBranch,
+  Grid3X3,
+  LineChart,
+  Network,
+  PieChart,
+  Radar,
+  Rows,
+  Square,
+  Sun,
+  TrendingUp,
+} from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import { useMemo, useState } from 'react';
+import type { ElementType } from 'react';
 import type { IChartConfig } from '../../../types';
 
 export const TypeSelector = (props: {
@@ -43,7 +60,92 @@ export const TypeSelector = (props: {
         value: 'table',
         Icon: Table2,
       },
-    ] as const;
+      {
+        label: t('chart.scatter', 'Scatter'),
+        value: 'scatter',
+        Icon: CircleDashed,
+      },
+      {
+        label: t('chart.funnel', 'Funnel'),
+        value: 'funnel',
+        Icon: Rows,
+      },
+      {
+        label: t('chart.progress', 'Progress'),
+        value: 'progress',
+        Icon: TrendingUp,
+      },
+      {
+        label: t('chart.rose', 'Rose'),
+        value: 'rose',
+        Icon: PieChart,
+      },
+      {
+        label: t('chart.radar', 'Radar'),
+        value: 'radar',
+        Icon: Radar,
+      },
+      {
+        label: t('chart.gauge', 'Gauge'),
+        value: 'gauge',
+        Icon: Gauge,
+      },
+      {
+        label: t('chart.heatmap', 'Heatmap'),
+        value: 'heatmap',
+        Icon: Grid3X3,
+      },
+      {
+        label: t('chart.sunburst', 'Sunburst'),
+        value: 'sunburst',
+        Icon: Sun,
+      },
+      {
+        label: t('chart.candlestick', 'Candlestick'),
+        value: 'candlestick',
+        Icon: BarChart,
+      },
+      {
+        label: t('chart.boxplot', 'Boxplot'),
+        value: 'boxplot',
+        Icon: Square,
+      },
+      {
+        label: t('chart.parallel', 'Parallel'),
+        value: 'parallel',
+        Icon: LineChart,
+      },
+      {
+        label: t('chart.pictorialBar', 'Pictorial Bar'),
+        value: 'pictorialBar',
+        Icon: Diamond,
+      },
+      {
+        label: t('chart.treemap', 'Treemap'),
+        value: 'treemap',
+        Icon: Grid3X3,
+      },
+      {
+        label: t('chart.sankey', 'Sankey'),
+        value: 'sankey',
+        Icon: GitBranch,
+      },
+      {
+        label: t('chart.graph', 'Graph'),
+        value: 'graph',
+        Icon: Network,
+      },
+      {
+        label: t('chart.themeRiver', 'ThemeRiver'),
+        value: 'themeRiver',
+        Icon: AreaChart,
+      },
+      {
+        label: t('chart.wordCloud', 'WordCloud'),
+        value: 'wordCloud',
+        Icon: CircleDashed,
+      },
+    ] as Array<{ label: string; value: IChartConfig['type']; Icon: ElementType }>;
   }, [t]);
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -79,7 +79,7 @@ export const tableI18nKeys = {
   },
 } as const;
 
-export type TableI18nKey =
+export type ITableI18nKey =
   | 'validation.link.batch_duplicate'
   | 'validation.link.one_many_duplicate'
   | 'validation.link.one_one_duplicate'

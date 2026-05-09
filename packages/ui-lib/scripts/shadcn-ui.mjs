@@ -1,9 +1,16 @@
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, readdirSync, lstatSync } from 'fs';
 import { join } from 'path';
 import data from '../components.json' assert { type: 'json' };
 
 const { aliases } = data;
+
+const run = (cmd, args, options = {}) => {
+  const result = spawnSync(cmd, args, { stdio: 'inherit', ...options });
+  if (result.status !== 0) {
+    throw new Error(`Command failed: ${cmd} ${args.join(' ')}`);
+  }
+};
 
 function fixAliases(componentName) {
   const fixFile = (filePath) => {
@@ -18,7 +25,7 @@ function fixAliases(componentName) {
 
     writeFileSync(filePath, content, 'utf-8');
 
-    execSync(`pnpm eslint ${filePath} --fix`, { stdio: 'inherit' });
+    run('pnpm', ['eslint', filePath, '--fix']);
 
     console.log('Fixed.');
   };
@@ -41,9 +48,9 @@ function fixAliases(componentName) {
   });
 }
 
-const args = process.argv.slice(2).join(' ');
+const args = process.argv.slice(2);
 
-execSync(`pnpm dlx shadcn@latest add ${args}`, { stdio: 'inherit', cwd: process.cwd() });
+run('pnpm', ['dlx', 'shadcn@latest', 'add', ...args], { cwd: process.cwd() });
 
 if (process.argv[2] === 'add') {
   fixAliases(process.argv[3]);
