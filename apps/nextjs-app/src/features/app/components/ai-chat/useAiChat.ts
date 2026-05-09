@@ -1,3 +1,10 @@
+import {
+  aiChatStream,
+  createAiChatSession,
+  deleteAiChatSession,
+  getAiChatMessages,
+  getAiChatSessions,
+} from '@teable/openapi';
 import { useCallback, useRef, useState } from 'react';
 import type { IChatContext, IChatMessage, IChatSession, IChatStreamEvent } from './types';
 
@@ -6,8 +13,62 @@ interface IUseAiChatOptions {
   initialSessionId?: string;
 }
 
+interface IStreamStateSetters {
+  setStreamingContent: (value: string) => void;
+  setToolCalls: (value: Array<{ name: string; args: unknown }>) => void;
+  setCreditUsage: (updater: (prev: number) => number) => void;
+}
+
+const parseStreamChunk = (chunk: string) => {
+  const lines = chunk.split('\n');
+  const buffer = lines.pop() || '';
+  const events: IChatStreamEvent[] = [];
+
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+
+    try {
+      events.push(JSON.parse(line.slice(6)) as IChatStreamEvent);
+    } catch {
+      // Ignore partial or malformed SSE payloads.
+    }
+  }
+
+  return { buffer, events };
+};
+
+const applyStreamEvents = (
+  events: IChatStreamEvent[],
+  currentContent: string,
+  currentToolCalls: Array<{ name: string; args: unknown }>,
+  setters: IStreamStateSetters
+) => {
+  let assistantContent = currentContent;
+
+  for (const event of events) {
+    switch (event.type) {
+      case 'text':
+        assistantContent += event.content || '';
+        setters.setStreamingContent(assistantContent);
+        break;
+      case 'tool-call':
+        currentToolCalls.push({ name: event.name || '', args: event.args });
+        setters.setToolCalls([...currentToolCalls]);
+        break;
+      case 'usage':
+        setters.setCreditUsage((prev) => prev + (event.credit || 0));
+        break;
+      case 'error':
+        console.error('Chat error:', event.message);
+        break;
+    }
+  }
+
+  return { assistantContent };
+};
+
 export const useAiChat = (options: IUseAiChatOptions) => {
-  const { baseId, initialSessionId } = options;
+  const { baseId } = options;
   const [sessions, setSessions] = useState<IChatSession[]>([]);
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,11 +81,8 @@ export const useAiChat = (options: IUseAiChatOptions) => {
 
   const loadSessions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/chat/${baseId}/sessions`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setSessions(json.data || []);
+      const { data } = await getAiChatSessions(baseId);
+      setSessions(data.data || []);
     } catch (error) {
       console.error('Failed to load sessions:', error);
     }
@@ -32,14 +90,8 @@ export const useAiChat = (options: IUseAiChatOptions) => {
 
   const createSession = useCallback(
     async (context?: Partial<IChatContext>) => {
-      const res = await fetch(`/api/chat/${baseId}/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ context }),
-      });
-      const json = await res.json();
-      const newSession = json.data as IChatSession;
+      const { data } = await createAiChatSession(baseId, { context });
+      const newSession = data.data as IChatSession;
       setSessions((prev) => [newSession, ...prev]);
       return newSession;
     },
@@ -49,10 +101,7 @@ export const useAiChat = (options: IUseAiChatOptions) => {
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
-        await fetch(`/api/chat/${baseId}/sessions/${sessionId}`, {
-          method: 'DELETE',
-          credentials: 'include',
-        });
+        await deleteAiChatSession(baseId, sessionId);
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       } catch (error) {
         console.error('Failed to delete session:', error);
@@ -63,19 +112,19 @@ export const useAiChat = (options: IUseAiChatOptions) => {
 
   // ===== Message Management =====
 
-  const loadMessages = useCallback(async (sessionId: string) => {
-    try {
-      const res = await fetch(`/api/chat/${baseId}/sessions/${sessionId}/messages`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setMessages(json.data || []);
-      setStreamingContent('');
-      setToolCalls([]);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-    }
-  }, [baseId]);
+  const loadMessages = useCallback(
+    async (sessionId: string) => {
+      try {
+        const { data } = await getAiChatMessages(baseId, sessionId);
+        setMessages(data.data || []);
+        setStreamingContent('');
+        setToolCalls([]);
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      }
+    },
+    [baseId]
+  );
 
   const selectSession = useCallback(
     (sessionId: string) => {
@@ -87,11 +136,7 @@ export const useAiChat = (options: IUseAiChatOptions) => {
   // ===== Streaming Chat =====
 
   const sendMessage = useCallback(
-    async (
-      sessionId: string,
-      content: string,
-      context?: IChatContext
-    ) => {
+    async (sessionId: string, content: string, context?: IChatContext) => {
       // Abort previous stream
       abortControllerRef.current?.abort();
       abortControllerRef.current = new AbortController();
@@ -113,17 +158,15 @@ export const useAiChat = (options: IUseAiChatOptions) => {
       setMessages((prev) => [...prev, userMessage]);
 
       try {
-        const res = await fetch(`/api/chat/${baseId}/chat/stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
+        const res = await aiChatStream(
+          baseId,
+          {
             message: content,
             sessionId,
             context,
-          }),
-          signal: abortControllerRef.current.signal,
-        });
+          },
+          abortControllerRef.current.signal
+        );
 
         const reader = res.body?.getReader();
         if (!reader) throw new Error('No response body');
@@ -133,43 +176,23 @@ export const useAiChat = (options: IUseAiChatOptions) => {
         let assistantContent = '';
         const currentToolCalls: Array<{ name: string; args: unknown }> = [];
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        let done = false;
+        while (!done) {
+          const result = await reader.read();
+          done = result.done;
+          if (!result.value) continue;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const parsed = parseStreamChunk(
+            `${buffer}${decoder.decode(result.value, { stream: true })}`
+          );
+          buffer = parsed.buffer;
 
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-
-            try {
-              const event: IChatStreamEvent = JSON.parse(line.slice(6));
-
-              switch (event.type) {
-                case 'text':
-                  assistantContent += event.content || '';
-                  setStreamingContent(assistantContent);
-                  break;
-
-                case 'tool-call':
-                  currentToolCalls.push({ name: event.name || '', args: event.args });
-                  setToolCalls([...currentToolCalls]);
-                  break;
-
-                case 'usage':
-                  setCreditUsage((prev) => prev + (event.credit || 0));
-                  break;
-
-                case 'error':
-                  console.error('Chat error:', event.message);
-                  break;
-              }
-            } catch {
-              // Ignore parse errors
-            }
-          }
+          const next = applyStreamEvents(parsed.events, assistantContent, currentToolCalls, {
+            setStreamingContent,
+            setToolCalls,
+            setCreditUsage,
+          });
+          assistantContent = next.assistantContent;
         }
 
         // Add assistant message

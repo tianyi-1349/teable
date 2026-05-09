@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PrismaService } from '@teable/db-main-prisma';
+import { PrismaService } from '@teable/db-main-prisma';
 import type { IChatContext, IChatMessage, IChatSession } from './chat.types';
 
 @Injectable()
@@ -106,7 +106,7 @@ export class AiChatService {
   async addMessage(
     sessionId: string,
     userId: string,
-    message: Omit<IChatMessage, 'id' | 'createdTime'>
+    message: Omit<IChatMessage, 'id' | 'sessionId' | 'createdTime'>
   ): Promise<IChatMessage> {
     const session = await this.getSession(sessionId, userId);
     if (!session) {
@@ -120,9 +120,7 @@ export class AiChatService {
         content: message.content,
         attachments: message.attachments ? JSON.stringify(message.attachments) : null,
         toolCalls: message.toolCalls ? JSON.stringify(message.toolCalls) : null,
-        toolCallResults: message.toolCallResults
-          ? JSON.stringify(message.toolCallResults)
-          : null,
+        toolCallResults: message.toolCallResults ? JSON.stringify(message.toolCallResults) : null,
         creditUsed: message.creditUsed || 0,
         tokenUsed: message.tokenUsed || 0,
       },
@@ -167,9 +165,7 @@ export class AiChatService {
 
   // ===== Context Helpers =====
 
-  buildContextFromRequest(
-    context: IChatContext
-  ): string {
+  buildContextFromRequest(context: IChatContext): string {
     const parts: string[] = [];
 
     // View context
@@ -195,7 +191,9 @@ export class AiChatService {
 
     // Referenced nodes
     if (context.referencedNodes && context.referencedNodes.length > 0) {
-      parts.push(`Referenced Nodes: ${context.referencedNodes.map((n) => `${n.type}:${n.id}`).join(', ')}`);
+      parts.push(
+        `Referenced Nodes: ${context.referencedNodes.map((n) => `${n.type}:${n.id}`).join(', ')}`
+      );
     }
 
     return parts.join('\n');
@@ -209,9 +207,7 @@ export class AiChatService {
       baseId: session.baseId as string,
       title: session.title as string | undefined,
       modelKey: session.modelKey as string | undefined,
-      contextNodes: session.contextNodes
-        ? JSON.parse(session.contextNodes as string)
-        : undefined,
+      contextNodes: session.contextNodes ? JSON.parse(session.contextNodes as string) : undefined,
       viewId: session.viewId as string | undefined,
       tableId: session.tableId as string | undefined,
       selectedRecordIds: session.selectedRecordIds
@@ -229,7 +225,7 @@ export class AiChatService {
     return {
       id: msg.id as string,
       sessionId: msg.sessionId as string,
-      role: msg.role as string,
+      role: msg.role as IChatMessage['role'],
       content: msg.content as string,
       attachments: msg.attachments ? JSON.parse(msg.attachments as string) : undefined,
       toolCalls: msg.toolCalls ? JSON.parse(msg.toolCalls as string) : undefined,

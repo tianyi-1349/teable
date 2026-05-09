@@ -180,3 +180,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - backend 单文件 e2e 不能直接裸跑；至少要先执行 `pnpm pre-test-e2e`，确保 `globalThis.testConfig` 对应的测试账号和 base 已 seed 完成
   - 当前受限本地 Postgres 环境里，若缺少 `CREATE ROLE` 权限，需要为 e2e 临时加 `DISABLE_PRE_SQL_EXECUTOR_CHECK=true`，跳过 `BaseSqlExecutorService` 的只读角色预检查
   - `apps/nestjs-backend/test/attachment.e2e-spec.ts` 的 PDF thumbnail 断言应以“至少一个 thumbnail URL 已生成，且不回退到原始 `presignedUrl`”为准，不应强制要求 `lgThumbnailUrl` 必然存在
+
+[AI Chat 后端复用现有模型配置和 AI SDK 工具类型]
+- Date: 2026-05-09
+- Context: Agent 在修复 AI Chat 后端 typecheck 与 Tool Calling 时发现
+- Category: 代码模式
+- Instructions:
+  - `apps/nestjs-backend` 的 AI Chat 流式模型应复用 `AiService.getAIConfig(baseId)` 和 `AiService.getModelInstance(modelKey, llmProviders)`，不要绕过现有 provider 配置重新组装模型
+  - AI SDK v6 工具应在服务里直接返回 `tool({ inputSchema, execute })` 对象，避免把 schema/execute 拆成自定义定义后再包装导致 `Tool<never>` 推断错误
+  - AI SDK v6 `streamText` 文本分片当前使用 `chunk.type === 'text-delta'` 且读取 `chunk.text`，多步工具调用使用 `stopWhen: stepCountIs(5)`
+  - AI Chat 记录读写应走 `RecordService` / `RecordOpenApiService`，不要直接 SQL 操作不存在的通用 `table_records` 表

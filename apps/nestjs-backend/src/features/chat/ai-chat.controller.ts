@@ -1,42 +1,16 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Delete,
-  Body,
-  Param,
-  Headers,
-  Req,
-  Res,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Req, Res, Logger } from '@nestjs/common';
+import { aiChatStreamRoSchema, createAiChatSessionRoSchema } from '@teable/openapi';
+import type { IAiChatStreamRo, ICreateAiChatSessionRo } from '@teable/openapi';
 import type { Request, Response } from 'express';
-import { streamText, tool as createTool } from 'ai';
+import { streamText, stepCountIs } from 'ai';
+import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { AiService } from '../ai/ai.service';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { AiChatService } from './ai-chat.service';
 import { AiChatToolsService } from './ai-chat-tools.service';
 import { ChatService } from './chat.service';
 
-interface IChatRequest {
-  message: string;
-  sessionId?: string;
-  modelKey?: string;
-  context?: {
-    view?: {
-      name: string;
-      filter?: unknown;
-      sort?: unknown;
-      group?: unknown;
-    };
-    selectedRecords?: Array<Record<string, unknown>>;
-    referencedNodes?: Array<{ type: string; id: string; name?: string }>;
-    attachments?: Array<{ name: string; url: string; type: string }>;
-    tableId?: string;
-    viewId?: string;
-  };
-}
-
-@Controller('api/chat')
+@Controller('api/:baseId/ai/chat')
 export class AiChatController {
   private readonly logger = new Logger(AiChatController.name);
 
@@ -49,11 +23,12 @@ export class AiChatController {
 
   // ===== Session Management =====
 
-  @Post(':baseId/sessions')
+  @Post('sessions')
+  @Permissions('base|read')
   async createSession(
     @Param('baseId') baseId: string,
     @Req() req: Request,
-    @Body() body: { title?: string; modelKey?: string; context?: Record<string, unknown> }
+    @Body(new ZodValidationPipe(createAiChatSessionRoSchema)) body: ICreateAiChatSessionRo
   ) {
     const userId = this.getUserId(req);
     const session = await this.aiChatService.createSession(baseId, userId, {
@@ -64,14 +39,16 @@ export class AiChatController {
     return { data: session };
   }
 
-  @Get(':baseId/sessions')
+  @Get('sessions')
+  @Permissions('base|read')
   async getSessions(@Param('baseId') baseId: string, @Req() req: Request) {
     const userId = this.getUserId(req);
     const sessions = await this.aiChatService.getSessions(userId, baseId);
     return { data: sessions };
   }
 
-  @Get(':baseId/sessions/:sessionId/messages')
+  @Get('sessions/:sessionId/messages')
+  @Permissions('base|read')
   async getMessages(
     @Param('baseId') _baseId: string,
     @Param('sessionId') sessionId: string,
@@ -82,7 +59,8 @@ export class AiChatController {
     return { data: messages };
   }
 
-  @Delete(':baseId/sessions/:sessionId')
+  @Delete('sessions/:sessionId')
+  @Permissions('base|read')
   async deleteSession(
     @Param('baseId') _baseId: string,
     @Param('sessionId') sessionId: string,
@@ -95,12 +73,13 @@ export class AiChatController {
 
   // ===== Chat Streaming =====
 
-  @Post(':baseId/chat/stream')
+  @Post('stream')
+  @Permissions('base|read')
   async chatStream(
     @Param('baseId') baseId: string,
     @Req() req: Request,
     @Res() res: Response,
-    @Body() body: IChatRequest
+    @Body(new ZodValidationPipe(aiChatStreamRoSchema)) body: IAiChatStreamRo
   ) {
     const userId = this.getUserId(req);
 
@@ -144,23 +123,15 @@ Rules:
 - For complex tasks, explain your plan before executing
 - Be concise but helpful`;
 
-    // Get model
-    const modelKey = body.modelKey || 'default';
-    const { model } = await this.aiService.getModelConfig(modelKey);
+    const aiConfig = await this.aiService.getAIConfig(baseId);
+    const modelKey = body.modelKey || aiConfig.chatModel?.lg;
+    if (!modelKey) {
+      throw new Error('AI chat model is not configured');
+    }
+    const model = await this.aiService.getModelInstance(modelKey, aiConfig.llmProviders);
 
     // Get available tools
-    const tools = this.aiChatToolsService.getTools(baseId, body.context?.tableId);
-    const toolDefinitions = tools.reduce((acc, t) => {
-      acc[t.name] = createTool({
-        description: t.description,
-        parameters: t.parameters,
-        execute: async (args) => {
-          const result = await this.aiChatToolsService.executeTool(tools, t.name, args);
-          return result.error ? { error: result.error } : { result: result.result };
-        },
-      });
-      return acc;
-    }, {} as Record<string, ReturnType<typeof createTool>>);
+    const toolDefinitions = this.aiChatToolsService.getTools(baseId, body.context?.tableId);
 
     // Stream response
     res.setHeader('Content-Type', 'text/event-stream');
@@ -178,9 +149,9 @@ Rules:
         system: systemPrompt,
         prompt: body.message,
         tools: toolDefinitions,
-        maxSteps: 5,
+        stopWhen: stepCountIs(5),
         onFinish: async ({ usage }) => {
-          totalTokens = (usage?.totalTokens || 0);
+          totalTokens = usage?.totalTokens || 0;
           totalCredit = this.calculateCredit(totalTokens, modelKey);
 
           // Save assistant message
@@ -199,22 +170,26 @@ Rules:
           });
 
           // Send usage info
-          res.write(`data: ${JSON.stringify({ type: 'usage', credit: totalCredit, tokens: totalTokens })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ type: 'usage', credit: totalCredit, tokens: totalTokens })}\n\n`
+          );
           res.write('data: [DONE]\n\n');
           res.end();
         },
         onChunk: ({ chunk }) => {
           if (chunk.type === 'text-delta') {
-            assistantContent += chunk.textDelta;
-            res.write(`data: ${JSON.stringify({ type: 'text', content: chunk.textDelta })}\n\n`);
+            assistantContent += chunk.text;
+            res.write(`data: ${JSON.stringify({ type: 'text', content: chunk.text })}\n\n`);
           }
           if (chunk.type === 'tool-call') {
             toolCalls.push({
               id: chunk.toolCallId,
               name: chunk.toolName,
-              args: JSON.stringify(chunk.args),
+              args: JSON.stringify(chunk.input),
             });
-            res.write(`data: ${JSON.stringify({ type: 'tool-call', name: chunk.toolName, args: chunk.args })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({ type: 'tool-call', name: chunk.toolName, args: chunk.input })}\n\n`
+            );
           }
         },
       });
@@ -232,7 +207,8 @@ Rules:
 
   // ===== Proxy for legacy chart endpoint =====
 
-  @Post(':baseId/chart')
+  @Post('chart')
+  @Permissions('base|read')
   async chartCompletions(@Req() req: Request, @Res() res: Response) {
     return this.chatService.completions(req, res);
   }

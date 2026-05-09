@@ -22,6 +22,7 @@ import Head from 'next/head';
 import { useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { AiChatDock } from '../../components/ai-chat';
 import {
   CellDownloadHandler,
   DownloadAllAttachmentsDialog,
@@ -103,7 +104,7 @@ export const Table: React.FC<ITableProps> = ({
           <PersonalViewProxy serverData={viewServerData}>
             <FieldProvider serverSideData={fieldServerData}>
               <PersonalViewProvider>
-                <div className="flex h-full grow basis-[500px]">
+                <div className="relative flex h-full grow basis-[500px]">
                   <div
                     className="flex flex-1 flex-col overflow-hidden"
                     data-screenshot-target="base-view"
@@ -127,7 +128,9 @@ export const Table: React.FC<ITableProps> = ({
                   <PluginContextMenu tableId={tableId} baseId={baseId} />
                   <DownloadAllAttachmentsDialog />
                   <CellDownloadHandler />
-                  {/* <ChatPanel /> */}
+                  {!isReadOnlyPreview && (
+                    <AiChatDock baseId={baseId} tableId={tableId} viewId={viewId} />
+                  )}
                 </div>
               </PersonalViewProvider>
             </FieldProvider>

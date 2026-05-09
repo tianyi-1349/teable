@@ -1,4 +1,5 @@
 export { AiChatPanel } from './AiChatPanel';
+export { AiChatDock } from './AiChatDock';
 export { AiChatContainer } from './AiChatContainer';
 export { AiChatMessageList } from './AiChatMessageList';
 export { AiChatInput } from './AiChatInput';

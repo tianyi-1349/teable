@@ -159,6 +159,41 @@ function getRowRangesFromSelection(selection: CombinedSelection): [number, numbe
   return null;
 }
 
+const AI_CHAT_SELECTED_RECORDS_LIMIT = 50;
+
+function getSelectedRecordsForChat(
+  rowRanges: [number, number][],
+  recordMap: { [key: number]: Record },
+  fields: IFieldVo[]
+): Array<{ [key: string]: unknown }> {
+  const records: Array<{ [key: string]: unknown }> = [];
+
+  for (const [start, end] of rowRanges) {
+    const rowStart = Math.min(start, end);
+    const rowEnd = Math.max(start, end);
+
+    for (let rowIndex = rowStart; rowIndex <= rowEnd; rowIndex++) {
+      const record = recordMap[rowIndex];
+      if (!record) continue;
+
+      records.push({
+        id: record.id,
+        name: record.title ?? record.name,
+        fields: fields.reduce<{ [fieldName: string]: unknown }>((acc, field) => {
+          acc[field.name] = record.getCellValueAsString(field.id);
+          return acc;
+        }, {}),
+      });
+
+      if (records.length >= AI_CHAT_SELECTED_RECORDS_LIMIT) {
+        return records;
+      }
+    }
+  }
+
+  return records;
+}
+
 interface IGridViewBaseInnerProps {
   groupPointsServerData?: IGroupPointsVo | null;
   onRowExpand?: (recordId: string) => void;
@@ -631,6 +666,7 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
             if (rowRanges && baseId) {
               queryClient.setQueryData(ReactQueryKeys.gridSelection(baseId), {
                 rows: rowRanges,
+                selectedRecords: getSelectedRecordsForChat(rowRanges, recordMap, fields),
                 timestamp: Date.now(),
                 addToChat: true,
               });
@@ -676,6 +712,7 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
             if (rowRanges && baseId) {
               queryClient.setQueryData(ReactQueryKeys.gridSelection(baseId), {
                 rows: rowRanges,
+                selectedRecords: getSelectedRecordsForChat(rowRanges, recordMap, fields),
                 timestamp: Date.now(),
                 addToChat: true,
               });

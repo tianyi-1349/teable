@@ -38,23 +38,9 @@ export interface IChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   attachments?: Array<{ name: string; url: string; type: string }>;
-  toolCalls?: Array<{ id: string; name: string; arguments: string }>;
+  toolCalls?: Array<{ id: string; name: string; args: string }>;
   toolCallResults?: Array<{ id: string; name: string; result: string }>;
   creditUsed: number;
   tokenUsed: number;
   createdTime: Date;
-}
-
-export interface IToolDefinition {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  execute: (args: Record<string, unknown>) => Promise<unknown>;
-}
-
-export interface IToolCallResult {
-  toolCallId: string;
-  toolName: string;
-  result: unknown;
-  error?: string;
 }

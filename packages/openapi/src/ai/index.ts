@@ -1,4 +1,5 @@
 export * from './chat-error';
+export * from './chat';
 export * from './generate-stream';
 export * from './get-config';
 export * from './get-ai-disable-actions';

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, MessageSquare, Clock4 } from '@teable/icons';
+import { MessageSquare } from '@teable/icons';
 import { Button, cn } from '@teable/ui-lib';
 import { useTranslation } from 'next-i18next';
-import { AiChatMessageList } from './AiChatMessageList';
+import { useCallback, useEffect, useState } from 'react';
 import { AiChatInput } from './AiChatInput';
+import { AiChatMessageList } from './AiChatMessageList';
 import { AiChatSidebar } from './AiChatSidebar';
 import { useAiChat } from './useAiChat';
 
@@ -23,20 +23,10 @@ export interface IAiChatPanelProps {
 }
 
 export const AiChatPanel = (props: IAiChatPanelProps) => {
-  const {
-    baseId,
-    tableId,
-    viewId,
-    selectedRecords,
-    viewContext,
-    defaultSessionId,
-    onClose,
-  } = props;
+  const { baseId, tableId, viewId, selectedRecords, viewContext, defaultSessionId } = props;
   const { t } = useTranslation('common');
   const [showSidebar, setShowSidebar] = useState(true);
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(defaultSessionId);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
   const {
     sessions,
     messages,
@@ -102,7 +92,7 @@ export const AiChatPanel = (props: IAiChatPanelProps) => {
   );
 
   return (
-    <div className="flex h-full w-full flex-col bg-background">
+    <div className="flex size-full flex-col bg-background">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">
@@ -110,7 +100,7 @@ export const AiChatPanel = (props: IAiChatPanelProps) => {
             variant="ghost"
             size="sm"
             onClick={() => setShowSidebar(!showSidebar)}
-            className="h-8 w-8 p-0"
+            className="size-8 p-0"
           >
             <MessageSquare className="size-4" />
           </Button>
@@ -119,12 +109,11 @@ export const AiChatPanel = (props: IAiChatPanelProps) => {
         <div className="flex items-center gap-2">
           {creditUsage > 0 && (
             <span className="text-xs text-muted-foreground">
-              {t('aiChat.creditUsed', 'Credit: {{count}}', { count: creditUsage.toFixed(4) as unknown as number })}
+              {t('aiChat.creditUsed', 'Credit: {{count}}', {
+                count: creditUsage.toFixed(4) as unknown as number,
+              })}
             </span>
           )}
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-            <X className="size-4" />
-          </Button>
         </div>
       </div>
 

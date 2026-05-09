@@ -277,7 +277,7 @@ export class KeyvUndoRedoStore implements IUndoRedoStore {
 
   private async persistAfterCursorChange(
     scope: UndoScope,
-    state: LoadedState,
+    state: ILoadedState,
     cursor: number
   ): Promise<void> {
     if (state.format !== 'split') {
