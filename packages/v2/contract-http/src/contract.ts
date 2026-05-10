@@ -109,7 +109,7 @@ const TABLES_DUPLICATE_FIELD_PATH = '/tables/duplicateField';
 const TABLES_DUPLICATE_RECORD_PATH = '/tables/duplicateRecord';
 const TABLES_DUPLICATE_TABLE_PATH = '/tables/duplicateTable';
 
-export const v2Contract = {
+export const v2Contract: AnyContractRouter = {
   bases: {
     create: oc
       .route({
