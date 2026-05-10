@@ -21,6 +21,10 @@ import { TemplateAppTokenNotAllowedException } from '../custom.exception';
 import type { IClsStore } from '../types/cls';
 import { exceptionParse } from '../utils/exception-parse';
 
+const apiKeyPattern = /(?:sk-|key-|api[_-]?key)[\w-]{8,}/gi;
+
+const stripApiKeys = (message: string): string => message.replace(apiKeyPattern, '[REDACTED]');
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private logger = new Logger(GlobalExceptionFilter.name);
@@ -60,8 +64,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
     const customHttpException = exceptionParse(exception);
     const status = customHttpException.getStatus();
+    const sanitizedMessage = stripApiKeys(customHttpException.message);
     return response.status(status).json({
-      message: customHttpException.message,
+      message: sanitizedMessage,
       status: status,
       code: customHttpException.code,
       data: customHttpException.data,

@@ -55,5 +55,10 @@ export const envValidationSchema = Joi.object({
     }),
   }),
 
+  // security – mandatory secrets
+  SECRET_KEY: Joi.string().required().messages({
+    'any.required': 'SECRET_KEY is required. Never use the old default in production.',
+  }),
+
   PASSWORD_LOGIN_DISABLED: Joi.string().equal('true').optional(),
 });

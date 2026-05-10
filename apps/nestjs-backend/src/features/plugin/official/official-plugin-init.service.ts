@@ -50,17 +50,23 @@ export class OfficialPluginInitService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    const fallbackSecret = this.baseConfig.secretKey;
+    if (!fallbackSecret) {
+      this.logger.warn(
+        'SECRET_KEY is not set; official plugin secrets must be provided via PLUGIN_CHART_SECRET / PLUGIN_SHEETFORMVIEW_SECRET env vars'
+      );
+    }
+
     const officialPlugins = [
       {
         ...chartConfig,
-        secret: this.configService.get<string>('PLUGIN_CHART_SECRET') || this.baseConfig.secretKey,
+        secret: this.configService.get<string>('PLUGIN_CHART_SECRET') || fallbackSecret || '',
         url: `/plugin/chart`,
       },
       {
         ...sheetFormConfig,
         secret:
-          this.configService.get<string>('PLUGIN_SHEETFORMVIEW_SECRET') ||
-          this.baseConfig.secretKey,
+          this.configService.get<string>('PLUGIN_SHEETFORMVIEW_SECRET') || fallbackSecret || '',
         url: `/plugin/sheet-form-view`,
       },
     ];

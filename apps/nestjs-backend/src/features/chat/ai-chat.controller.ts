@@ -1,15 +1,29 @@
-import { Controller, Post, Get, Delete, Body, Param, Req, Res, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Req,
+  Res,
+  Logger,
+  UnauthorizedException,
+  UseInterceptors,
+} from '@nestjs/common';
 import { aiChatStreamRoSchema, createAiChatSessionRoSchema } from '@teable/openapi';
 import type { IAiChatStreamRo, ICreateAiChatSessionRo } from '@teable/openapi';
-import type { Request, Response } from 'express';
 import { streamText, stepCountIs } from 'ai';
+import type { Request, Response } from 'express';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { AiService } from '../ai/ai.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { AiChatService } from './ai-chat.service';
+import { V2IndicatorInterceptor } from '../canary/interceptors/v2-indicator.interceptor';
 import { AiChatToolsService } from './ai-chat-tools.service';
+import { AiChatService } from './ai-chat.service';
 import { ChatService } from './chat.service';
 
+@UseInterceptors(V2IndicatorInterceptor)
 @Controller('api/:baseId/ai/chat')
 export class AiChatController {
   private readonly logger = new Logger(AiChatController.name);
@@ -20,8 +34,6 @@ export class AiChatController {
     private readonly aiChatToolsService: AiChatToolsService,
     private readonly chatService: ChatService
   ) {}
-
-  // ===== Session Management =====
 
   @Post('sessions')
   @Permissions('base|read')
@@ -71,8 +83,6 @@ export class AiChatController {
     return { data: { success } };
   }
 
-  // ===== Chat Streaming =====
-
   @Post('stream')
   @Permissions('base|read')
   async chatStream(
@@ -83,7 +93,6 @@ export class AiChatController {
   ) {
     const userId = this.getUserId(req);
 
-    // Create or get session
     let sessionId = body.sessionId;
     if (!sessionId) {
       const session = await this.aiChatService.createSession(baseId, userId, {
@@ -96,7 +105,6 @@ export class AiChatController {
       sessionId = session.id;
     }
 
-    // Save user message
     await this.aiChatService.addMessage(sessionId, userId, {
       role: 'user',
       content: body.message,
@@ -105,7 +113,6 @@ export class AiChatController {
       tokenUsed: 0,
     });
 
-    // Build context-aware prompt
     const contextInfo = this.aiChatService.buildContextFromRequest({
       view: body.context?.view,
       selectedRecords: body.context?.selectedRecords,
@@ -130,16 +137,15 @@ Rules:
     }
     const model = await this.aiService.getModelInstance(modelKey, aiConfig.llmProviders);
 
-    // Get available tools
     const toolDefinitions = this.aiChatToolsService.getTools(baseId, body.context?.tableId);
 
-    // Stream response
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     let assistantContent = '';
-    let toolCalls: Array<{ id: string; name: string; args: string }> = [];
+    const toolCalls: Array<{ id: string; name: string; args: string }> = [];
     let totalTokens = 0;
     let totalCredit = 0;
 
@@ -154,7 +160,6 @@ Rules:
           totalTokens = usage?.totalTokens || 0;
           totalCredit = this.calculateCredit(totalTokens, modelKey);
 
-          // Save assistant message
           await this.aiChatService.addMessage(sessionId, userId, {
             role: 'assistant',
             content: assistantContent,
@@ -163,13 +168,11 @@ Rules:
             tokenUsed: totalTokens,
           });
 
-          // Update session totals
           await this.aiChatService.updateSession(sessionId, userId, {
             creditUsed: totalCredit,
             tokenUsed: totalTokens,
           });
 
-          // Send usage info
           res.write(
             `data: ${JSON.stringify({ type: 'usage', credit: totalCredit, tokens: totalTokens })}\n\n`
           );
@@ -194,7 +197,7 @@ Rules:
         },
       });
 
-      // Consume the stream to trigger callbacks
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for await (const _ of result.textStream) {
         // Stream is consumed by onChunk callbacks
       }
@@ -205,23 +208,22 @@ Rules:
     }
   }
 
-  // ===== Proxy for legacy chart endpoint =====
-
   @Post('chart')
   @Permissions('base|read')
   async chartCompletions(@Req() req: Request, @Res() res: Response) {
     return this.chatService.completions(req, res);
   }
 
-  // ===== Private Helpers =====
-
   private getUserId(req: Request): string {
-    return (req.user as { id: string })?.id || 'anonymous';
+    const userId = (req.user as { id: string })?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return userId;
   }
 
-  private calculateCredit(tokens: number, modelKey: string): number {
-    // Simplified credit calculation
-    const ratePer1kTokens = 0.002; // $0.002 per 1k tokens
+  private calculateCredit(tokens: number, _modelKey: string): number {
+    const ratePer1kTokens = 0.002;
     return (tokens / 1000) * ratePer1kTokens;
   }
 }

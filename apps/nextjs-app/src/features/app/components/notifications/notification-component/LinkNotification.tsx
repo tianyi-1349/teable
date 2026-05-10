@@ -5,26 +5,46 @@ import { getLocalizationMessage } from '@teable/sdk/context';
 import type { ILocaleFunction } from '@teable/sdk/context/app/i18n';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
+import sanitizeHtml from 'sanitize-html';
 
 interface LinkNotificationProps {
   data: INotificationVo['notifications'][number];
   notifyStatus: NotificationStatesEnum;
 }
 
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: ['a', 'b', 'i', 'em', 'strong', 'br', 'span'],
+  allowedAttributes: {
+    a: ['href', 'target', 'rel'],
+    span: ['class'],
+  },
+  allowedSchemes: ['https', 'http', 'mailto'],
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', {
+      rel: 'noopener noreferrer',
+      target: '_blank',
+    }),
+  },
+};
+
+const sanitizeMessage = (html: string): string => sanitizeHtml(html, SANITIZE_OPTIONS);
+
 const getShowMessage = (data: INotificationVo['notifications'][number], t: ILocaleFunction) => {
   const { message, messageI18n } = data;
   try {
     if (!messageI18n) {
-      return message;
+      return sanitizeMessage(message);
     }
     const parsedMessage = JSON.parse(messageI18n);
     const { i18nKey = '', context = {} } = parsedMessage as ILocalization;
     if (!i18nKey) {
-      return message;
+      return sanitizeMessage(message);
     }
-    return getLocalizationMessage({ i18nKey, context: { spaceName: '', ...context } }, t, 'common');
+    return sanitizeMessage(
+      getLocalizationMessage({ i18nKey, context: { spaceName: '', ...context } }, t, 'common')
+    );
   } catch (error) {
-    return message;
+    return sanitizeMessage(message);
   }
 };
 
@@ -37,9 +57,6 @@ export const LinkNotification = (props: LinkNotificationProps) => {
   const { t } = useTranslation(['common']);
   const message = getShowMessage(data, t as ILocaleFunction);
 
-  // When the message contains inner <a> links (e.g. error report download),
-  // we need to stop the click from bubbling up to the parent <Link> which
-  // would navigate to the table URL instead.
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'A' || target.closest('a')) {

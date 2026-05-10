@@ -1,18 +1,79 @@
 import { Injectable } from '@nestjs/common';
-import { FieldKeyType } from '@teable/core';
+import { FieldKeyType, type Action } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import type { ICreateRecordsRo, IGetRecordsRo, IUpdateRecordRo } from '@teable/openapi';
 import { tool } from 'ai';
+import { ClsService } from 'nestjs-cls';
 import { z } from 'zod';
+import type { IClsStore } from '../../types/cls';
+import { PermissionService } from '../auth/permission.service';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
 import { RecordService } from '../record/record.service';
+
+const filterOperatorSchema = z.enum([
+  'is',
+  'isNot',
+  'contains',
+  'doesNotContain',
+  'isEmpty',
+  'isNotEmpty',
+  'isGreater',
+  'isGreaterEqual',
+  'isLess',
+  'isLessEqual',
+  'isAnyOf',
+  'isNoneOf',
+  'hasAnyOf',
+  'hasAllOf',
+  'isNotExactly',
+  'hasNoneOf',
+  'isExactly',
+  'isWithIn',
+  'isBefore',
+  'isAfter',
+  'isOnOrBefore',
+  'isOnOrAfter',
+]);
+
+const combinedFilterSchema = z
+  .union([
+    z.object({
+      conjunction: z.enum(['and', 'or']).optional(),
+      filterSet: z.array(
+        z.object({
+          fieldId: z.string().optional(),
+          operator: filterOperatorSchema.optional(),
+          value: z.unknown().optional(),
+        })
+      ),
+    }),
+    z.object({
+      fieldId: z.string(),
+      operator: filterOperatorSchema,
+      value: z.unknown().optional(),
+    }),
+  ])
+  .optional()
+  .describe('Optional Teable filter object (conjunction + filterSet or single filter)');
+
+const orderBySchema = z
+  .array(
+    z.object({
+      fieldId: z.string(),
+      order: z.enum(['asc', 'desc']).optional(),
+    })
+  )
+  .optional()
+  .describe('Optional orderBy array with fieldId and order direction');
 
 @Injectable()
 export class AiChatToolsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordService: RecordService,
-    private readonly recordOpenApiService: RecordOpenApiService
+    private readonly recordOpenApiService: RecordOpenApiService,
+    private readonly permissionService: PermissionService,
+    private readonly cls: ClsService<IClsStore>
   ) {}
 
   getTools(baseId: string, tableId?: string) {
@@ -26,6 +87,11 @@ export class AiChatToolsService {
     };
   }
 
+  private async checkPermission(resourceId: string, action: Action): Promise<void> {
+    const accessTokenId = this.cls.get('accessTokenId');
+    await this.permissionService.validPermissions(resourceId, [action], accessTokenId);
+  }
+
   private async resolveTable(baseId: string, tableId?: string) {
     if (!tableId) {
       throw new Error('tableId is required');
@@ -33,7 +99,7 @@ export class AiChatToolsService {
 
     const table = await this.prismaService.tableMeta.findFirst({
       where: { id: tableId, baseId, deletedTime: null },
-      select: { id: true, name: true, dbTableName: true },
+      select: { id: true, name: true },
     });
 
     if (!table) {
@@ -52,14 +118,16 @@ export class AiChatToolsService {
           ? z.string().optional()
           : z.string().describe('The ID of the table to query'),
         viewId: z.string().optional().describe('Optional view ID used for view-aware querying'),
-        filter: z.unknown().optional().describe('Optional Teable filter object'),
-        orderBy: z.unknown().optional().describe('Optional Teable orderBy object'),
+        filter: combinedFilterSchema,
+        orderBy: orderBySchema,
         search: z.string().optional().describe('Optional search text'),
         take: z.number().min(1).max(100).optional().describe('Number of records to return'),
         skip: z.number().min(0).optional().describe('Number of records to skip'),
       }),
       execute: async ({ tableId: inputTableId, viewId, filter, orderBy, search, take, skip }) => {
         const targetTable = await this.resolveTable(baseId, inputTableId ?? tableId);
+        await this.checkPermission(targetTable.id, 'record|read');
+
         const query: IGetRecordsRo = {
           viewId,
           filter: filter as IGetRecordsRo['filter'],
@@ -90,11 +158,13 @@ export class AiChatToolsService {
       }),
       execute: async ({ tableId: inputTableId, records }) => {
         const targetTable = await this.resolveTable(baseId, inputTableId ?? tableId);
+        await this.checkPermission(targetTable.id, 'record|create');
+
         const createRo: ICreateRecordsRo = {
           records: records.map((fields) => ({ fields })),
           fieldKeyType: FieldKeyType.Name,
         };
-        return await this.recordOpenApiService.createRecords(targetTable.id, createRo, true);
+        return await this.recordOpenApiService.createRecords(targetTable.id, createRo);
       },
     });
   }
@@ -113,21 +183,16 @@ export class AiChatToolsService {
       }),
       execute: async ({ tableId: inputTableId, recordIds, fields }) => {
         const targetTable = await this.resolveTable(baseId, inputTableId ?? tableId);
-        const results = [];
+        await this.checkPermission(targetTable.id, 'record|update');
 
+        const results = [];
         for (const recordId of recordIds) {
           const updateRo: IUpdateRecordRo = {
             record: { fields },
             fieldKeyType: FieldKeyType.Name,
           };
           results.push(
-            await this.recordOpenApiService.updateRecord(
-              targetTable.id,
-              recordId,
-              updateRo,
-              undefined,
-              'true'
-            )
+            await this.recordOpenApiService.updateRecord(targetTable.id, recordId, updateRo)
           );
         }
 
@@ -147,6 +212,8 @@ export class AiChatToolsService {
       }),
       execute: async ({ tableId: inputTableId, recordIds }) => {
         const targetTable = await this.resolveTable(baseId, inputTableId ?? tableId);
+        await this.checkPermission(targetTable.id, 'record|delete');
+
         await this.recordOpenApiService.deleteRecords(targetTable.id, recordIds);
         return { deleted: recordIds.length, recordIds };
       },
@@ -158,9 +225,11 @@ export class AiChatToolsService {
       description: 'Get all non-deleted tables in the current base.',
       inputSchema: z.object({}),
       execute: async () => {
+        await this.checkPermission(baseId, 'base|read');
+
         const tables = await this.prismaService.tableMeta.findMany({
           where: { baseId, deletedTime: null },
-          select: { id: true, name: true, description: true, icon: true, dbTableName: true },
+          select: { id: true, name: true, description: true, icon: true },
           orderBy: { order: 'asc' },
         });
         return { tables };
@@ -178,6 +247,8 @@ export class AiChatToolsService {
       }),
       execute: async ({ tableId: inputTableId }) => {
         const targetTable = await this.resolveTable(baseId, inputTableId ?? tableId);
+        await this.checkPermission(targetTable.id, 'record|read');
+
         const fields = await this.prismaService.field.findMany({
           where: { tableId: targetTable.id, deletedTime: null },
           select: {
@@ -185,8 +256,6 @@ export class AiChatToolsService {
             name: true,
             type: true,
             description: true,
-            dbFieldName: true,
-            options: true,
           },
           orderBy: { order: 'asc' },
         });
