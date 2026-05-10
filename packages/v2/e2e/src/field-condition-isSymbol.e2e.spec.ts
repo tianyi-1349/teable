@@ -2,6 +2,17 @@
 import { describe, beforeAll, expect, it } from 'vitest';
 import { getSharedTestContext, type SharedTestContext } from './shared/globalTestContext';
 
+type FieldWithConditionalLookup = {
+  id: string;
+  conditionalLookupOptions?: {
+    condition?: {
+      filter?: {
+        filterSet?: Array<Record<string, unknown>>;
+      };
+    };
+  };
+};
+
 /**
  * This test specifically tracks isSymbol preservation through the entire lifecycle:
  * 1. Field creation request (HTTP)
@@ -135,7 +146,9 @@ describe('v2 isSymbol preservation (e2e)', () => {
     expect(getResponse.body.ok).toBe(true);
 
     const refetchedTable = getResponse.body.data.table;
-    const refetchedField = refetchedTable.fields.find((f: any) => f.id === lookupFieldId);
+    const refetchedField = (refetchedTable.fields as FieldWithConditionalLookup[]).find(
+      (field) => field.id === lookupFieldId
+    );
     const refetchedCondition = refetchedField?.conditionalLookupOptions?.condition;
     const refetchedFilterSet = refetchedCondition?.filter?.filterSet;
 

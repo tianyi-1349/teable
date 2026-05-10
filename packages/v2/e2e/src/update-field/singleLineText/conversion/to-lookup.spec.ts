@@ -77,10 +77,14 @@ describe('update-field: singleLineText → lookup conversion', () => {
   afterAll(async () => {
     try {
       if (hostTableId) await ctx.deleteTable(hostTableId);
-    } catch {}
+    } catch {
+      // Ignore cleanup failures.
+    }
     try {
       if (foreignTableId) await ctx.deleteTable(foreignTableId);
-    } catch {}
+    } catch {
+      // Ignore cleanup failures.
+    }
   });
 
   test('should convert to lookup and clear data', async () => {

@@ -5,4 +5,4 @@
 export * from './types';
 export * from './generators';
 export * from './validators';
-export * from './setup';
+export { createTestContext } from './setup';
