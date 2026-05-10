@@ -629,6 +629,109 @@ model Dashboard {
   @@map("dashboard")
 }
 
+model Workflow {
+  id               String    @id
+  name             String
+  description      String?
+  baseId           String    @map("base_id")
+  order            Float     @default(0)
+  isActive         Boolean   @default(false) @map("is_active")
+  activeSnapshotId String?   @map("active_snapshot_id")
+  deletedTime      DateTime? @map("deleted_time")
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  lastModifiedBy   String?   @map("last_modified_by")
+
+  nodes     WorkflowNode[]
+  snapshots WorkflowSnapshot[]
+  runs      WorkflowRun[]
+
+  @@index([baseId, deletedTime])
+  @@index([baseId, order])
+  @@map("workflow")
+}
+
+model WorkflowNode {
+  id               String    @id
+  workflowId       String    @map("workflow_id")
+  nodeType         String    @map("node_type")
+  kind             String
+  parentNodeId     String?   @map("parent_node_id")
+  nextNodeId       String?   @map("next_node_id")
+  branchKey        String?   @map("branch_key")
+  config           Json?
+  testStatus       String?   @map("test_status")
+  testOutput       Json?     @map("test_output")
+  createdBy        String    @map("created_by")
+  createdTime      DateTime  @default(now()) @map("created_time")
+  lastModifiedTime DateTime? @updatedAt @map("last_modified_time")
+  lastModifiedBy   String?   @map("last_modified_by")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@map("workflow_node")
+}
+
+model WorkflowSnapshot {
+  id          String   @id @default(cuid())
+  workflowId  String   @map("workflow_id")
+  version     Int
+  snapshot    Json
+  createdBy   String   @map("created_by")
+  createdTime DateTime @default(now()) @map("created_time")
+
+  workflow Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  runs     WorkflowRun[]
+
+  @@unique([workflowId, version])
+  @@index([workflowId])
+  @@map("workflow_snapshot")
+}
+
+model WorkflowRun {
+  id           String    @id @default(cuid())
+  workflowId   String    @map("workflow_id")
+  snapshotId   String?   @map("snapshot_id")
+  triggerType  String    @map("trigger_type")
+  status       String
+  input        Json?
+  output       Json?
+  error        Json?
+  startedTime  DateTime  @default(now()) @map("started_time")
+  finishedTime DateTime? @map("finished_time")
+  durationMs   Int?      @map("duration_ms")
+  createdBy    String    @map("created_by")
+
+  workflow Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  snapshot WorkflowSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  steps    WorkflowRunStep[]
+
+  @@index([workflowId, startedTime])
+  @@index([status])
+  @@map("workflow_run")
+}
+
+model WorkflowRunStep {
+  id           String    @id @default(cuid())
+  runId        String    @map("run_id")
+  nodeId       String    @map("node_id")
+  status       String
+  input        Json?
+  output       Json?
+  error        Json?
+  startedTime  DateTime  @default(now()) @map("started_time")
+  finishedTime DateTime? @map("finished_time")
+  durationMs   Int?      @map("duration_ms")
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([nodeId])
+  @@map("workflow_run_step")
+}
+
 model Comment {
   id       String  @id @default(cuid())
   tableId  String  @map("table_id")

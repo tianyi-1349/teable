@@ -16,6 +16,7 @@ import type {
   IBaseNodeResourceMeta,
   IBaseNodeResourceMetaWithId,
   ICreateTableRo,
+  ICreateWorkflowNodeRo,
   IBaseNodePresenceCreatePayload,
   IBaseNodePresenceDeletePayload,
   IBaseNodePresenceUpdatePayload,
@@ -46,6 +47,7 @@ import { TableOpenApiV2Service } from '../table/open-api/table-open-api-v2.servi
 import { TableOpenApiService } from '../table/open-api/table-open-api.service';
 import { prepareCreateTableRo } from '../table/open-api/table.pipe.helper';
 import { TableDuplicateService } from '../table/table-duplicate.service';
+import { WorkflowService } from '../workflow/workflow.service';
 import { BaseNodeFolderService } from './folder/base-node-folder.service';
 import { buildBatchUpdateSql, presenceHandler } from './helper';
 
@@ -75,7 +77,8 @@ export class BaseNodeService {
     private readonly tableOpenApiService: TableOpenApiService,
     private readonly tableOpenApiV2Service: TableOpenApiV2Service,
     private readonly tableDuplicateService: TableDuplicateService,
-    private readonly dashboardService: DashboardService
+    private readonly dashboardService: DashboardService,
+    private readonly workflowService: WorkflowService
   ) {}
 
   private get userId() {
@@ -245,6 +248,17 @@ export class BaseNodeService {
     });
   }
 
+  protected getWorkflowResources(baseId: string, ids?: string[]) {
+    return this.prismaService.workflow.findMany({
+      where: { baseId, id: { in: ids ? ids : undefined }, deletedTime: null },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+      },
+    });
+  }
+
   protected getFolderResources(baseId: string, ids?: string[]) {
     return this.prismaService.baseNodeFolder.findMany({
       where: { baseId, id: { in: ids ? ids : undefined } },
@@ -267,6 +281,8 @@ export class BaseNodeService {
         return this.getTableResources(baseId, ids);
       case BaseNodeResourceType.Dashboard:
         return this.getDashboardResources(baseId, ids);
+      case BaseNodeResourceType.Workflow:
+        return this.getWorkflowResources(baseId, ids);
       default:
         throw new CustomHttpException(
           `Invalid resource type ${type}`,
@@ -285,6 +301,7 @@ export class BaseNodeService {
       BaseNodeResourceType.Folder,
       BaseNodeResourceType.Table,
       BaseNodeResourceType.Dashboard,
+      BaseNodeResourceType.Workflow,
     ];
   }
 
@@ -520,6 +537,12 @@ export class BaseNodeService {
         );
         return { id: dashboard.id, name: dashboard.name };
       }
+      case BaseNodeResourceType.Workflow: {
+        const workflow = await this.workflowService.createWorkflow(baseId, {
+          name: (ro as ICreateWorkflowNodeRo).name,
+        });
+        return { id: workflow.id, name: workflow.name, isActive: workflow.isActive };
+      }
       default:
         throw new CustomHttpException(
           `Invalid resource type ${resourceType}`,
@@ -657,6 +680,14 @@ export class BaseNodeService {
         );
         return { id: dashboard.id, name: dashboard.name };
       }
+      case BaseNodeResourceType.Workflow: {
+        const workflow = await this.workflowService.duplicateWorkflow(
+          baseId,
+          id,
+          duplicateRo as { name?: string }
+        );
+        return { id: workflow.id, name: workflow.name, isActive: workflow.isActive };
+      }
       default:
         throw new CustomHttpException(
           `Invalid resource type ${type}`,
@@ -727,6 +758,11 @@ export class BaseNodeService {
       case BaseNodeResourceType.Dashboard:
         if (name) {
           await this.dashboardService.renameDashboard(baseId, id, name);
+        }
+        break;
+      case BaseNodeResourceType.Workflow:
+        if (name) {
+          await this.workflowService.updateWorkflow(baseId, id, { name });
         }
         break;
       default:
@@ -823,6 +859,9 @@ export class BaseNodeService {
         break;
       case BaseNodeResourceType.Dashboard:
         await this.dashboardService.deleteDashboard(baseId, id);
+        break;
+      case BaseNodeResourceType.Workflow:
+        await this.workflowService.deleteWorkflow(baseId, id, permanent);
         break;
       default:
         throw new CustomHttpException(

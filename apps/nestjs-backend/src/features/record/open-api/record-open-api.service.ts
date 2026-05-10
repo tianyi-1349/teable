@@ -38,6 +38,7 @@ import { getPublicFullStorageUrl } from '../../attachments/plugins/utils';
 import { FieldService } from '../../field/field.service';
 import { createFieldInstanceByRaw } from '../../field/model/factory';
 import { TableDomainQueryService } from '../../table-domain';
+import { WorkflowService } from '../../workflow/workflow.service';
 import { RecordModifyService } from '../record-modify/record-modify.service';
 import { RecordModifySharedService } from '../record-modify/record-modify.shared.service';
 import type { IRecordInnerRo } from '../record.service';
@@ -58,7 +59,8 @@ export class RecordOpenApiService {
     private readonly tableDomainQueryService: TableDomainQueryService,
     private readonly fieldService: FieldService,
     private readonly cls: ClsService<IClsStore>,
-    private readonly eventEmitterService: EventEmitterService
+    private readonly eventEmitterService: EventEmitterService,
+    private readonly workflowService: WorkflowService
   ) {}
 
   @retryOnDeadlock()
@@ -517,11 +519,19 @@ export class RecordOpenApiService {
     });
     updatedRecord.fields = pick(updatedRecord.fields, [fieldId]);
 
+    const { runId } = await this.workflowService.createButtonRun(options.workflow!.id as string, {
+      tableId,
+      fieldId,
+      recordId,
+      record: updatedRecord,
+    });
+
     try {
       await this.eventEmitterService.emitAsync(Events.TABLE_BUTTON_CLICK, {
         tableId,
         fieldId,
         workflowId: options.workflow!.id as string,
+        runId,
         record: updatedRecord,
       });
     } catch (error) {
@@ -534,6 +544,7 @@ export class RecordOpenApiService {
     return {
       tableId,
       fieldId,
+      runId,
       record: updatedRecord,
     };
   }

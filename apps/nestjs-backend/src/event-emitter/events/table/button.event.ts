@@ -6,6 +6,8 @@ import { Events } from '../event.enum';
 type IButtonClickEventPayload = {
   tableId: string;
   fieldId: string;
+  workflowId?: string;
+  runId?: string;
   record: IRecord;
 };
 

@@ -22,6 +22,9 @@ describe('RecordOpenApiService.buttonClick', () => {
   const eventEmitterService = {
     emitAsync: vi.fn(),
   };
+  const workflowService = {
+    createButtonRun: vi.fn(),
+  };
 
   let service: RecordOpenApiService;
 
@@ -37,7 +40,8 @@ describe('RecordOpenApiService.buttonClick', () => {
       {} as never,
       {} as never,
       {} as never,
-      eventEmitterService as never
+      eventEmitterService as never,
+      workflowService as never
     );
   });
 
@@ -78,6 +82,7 @@ describe('RecordOpenApiService.buttonClick', () => {
         fldButton0000000001: { count: 2 },
       },
     } as never);
+    workflowService.createButtonRun.mockResolvedValue({ runId: 'wrun123' });
 
     const result = await service.buttonClick('tbl123', 'rec123', 'fldButton0000000001');
 
@@ -90,6 +95,7 @@ describe('RecordOpenApiService.buttonClick', () => {
         tableId: 'tbl123',
         fieldId: 'fldButton0000000001',
         workflowId: 'wfl123',
+        runId: 'wrun123',
         record: expect.objectContaining({
           id: 'rec123',
         }),
@@ -98,6 +104,7 @@ describe('RecordOpenApiService.buttonClick', () => {
     expect(result.record.fields).toEqual({
       fldButton0000000001: { count: 2 },
     });
+    expect(result.runId).toBe('wrun123');
   });
 
   it('should reject inactive workflow before record update', async () => {
@@ -133,6 +140,7 @@ describe('RecordOpenApiService.buttonClick', () => {
     } satisfies Partial<CustomHttpException>);
 
     expect(eventEmitterService.emitAsync).not.toHaveBeenCalled();
+    expect(workflowService.createButtonRun).not.toHaveBeenCalled();
   });
 
   it('should still return updated record when emitting workflow event fails', async () => {
@@ -172,6 +180,7 @@ describe('RecordOpenApiService.buttonClick', () => {
         fldButton0000000001: { count: 2 },
       },
     } as never);
+    workflowService.createButtonRun.mockResolvedValue({ runId: 'wrun123' });
     eventEmitterService.emitAsync.mockRejectedValue(new Error('queue unavailable'));
 
     const result = await service.buttonClick('tbl123', 'rec123', 'fldButton0000000001');
@@ -179,6 +188,7 @@ describe('RecordOpenApiService.buttonClick', () => {
     expect(result.record.fields).toEqual({
       fldButton0000000001: { count: 2 },
     });
+    expect(result.runId).toBe('wrun123');
     expect(eventEmitterService.emitAsync).toHaveBeenCalledTimes(1);
   });
 });

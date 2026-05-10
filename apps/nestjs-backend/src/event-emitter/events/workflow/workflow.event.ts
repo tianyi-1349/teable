@@ -11,6 +11,8 @@ interface IWorkflowVo {
 type IWorkflowCreatePayload = { baseId: string; workflow: IWorkflowVo };
 type IWorkflowDeletePayload = { baseId: string; workflowId: string; permanent?: boolean };
 type IWorkflowUpdatePayload = IWorkflowCreatePayload;
+type IWorkflowActivatePayload = IWorkflowCreatePayload;
+type IWorkflowDeactivatePayload = IWorkflowCreatePayload;
 
 export class WorkflowCreateEvent extends CoreEvent<IWorkflowCreatePayload> {
   public readonly name = Events.WORKFLOW_CREATE;
@@ -35,10 +37,31 @@ export class WorkflowUpdateEvent extends CoreEvent<IWorkflowUpdatePayload> {
   }
 }
 
+export class WorkflowActivateEvent extends CoreEvent<IWorkflowActivatePayload> {
+  public readonly name = Events.WORKFLOW_ACTIVATE;
+
+  constructor(payload: IWorkflowActivatePayload, context: IEventContext) {
+    super(payload, context);
+  }
+}
+
+export class WorkflowDeactivateEvent extends CoreEvent<IWorkflowDeactivatePayload> {
+  public readonly name = Events.WORKFLOW_DEACTIVATE;
+
+  constructor(payload: IWorkflowDeactivatePayload, context: IEventContext) {
+    super(payload, context);
+  }
+}
+
 export class WorkflowEventFactory {
   static create(
     name: string,
-    payload: IWorkflowCreatePayload | IWorkflowDeletePayload | IWorkflowUpdatePayload,
+    payload:
+      | IWorkflowCreatePayload
+      | IWorkflowDeletePayload
+      | IWorkflowUpdatePayload
+      | IWorkflowActivatePayload
+      | IWorkflowDeactivatePayload,
     context: IEventContext
   ) {
     return match(name)
@@ -50,6 +73,12 @@ export class WorkflowEventFactory {
       })
       .with(Events.WORKFLOW_UPDATE, () => {
         return new WorkflowUpdateEvent(payload as IWorkflowUpdatePayload, context);
+      })
+      .with(Events.WORKFLOW_ACTIVATE, () => {
+        return new WorkflowActivateEvent(payload as IWorkflowActivatePayload, context);
+      })
+      .with(Events.WORKFLOW_DEACTIVATE, () => {
+        return new WorkflowDeactivateEvent(payload as IWorkflowDeactivatePayload, context);
       })
       .otherwise(() => null);
   }

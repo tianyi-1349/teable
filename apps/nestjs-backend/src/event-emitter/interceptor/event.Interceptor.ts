@@ -80,12 +80,19 @@ export class EventMiddleware implements NestInterceptor {
       .with(Events.WORKFLOW_DELETE, () =>
         WorkflowEventFactory.create(eventName, { ...resolveData, ...reqParams }, eventContext)
       )
-      .with(P.union(Events.WORKFLOW_CREATE, Events.WORKFLOW_UPDATE), () =>
-        WorkflowEventFactory.create(
-          eventName,
-          { baseId: reqParams.baseId, workflow: resolveData, ...reqParams },
-          eventContext
-        )
+      .with(
+        P.union(
+          Events.WORKFLOW_CREATE,
+          Events.WORKFLOW_UPDATE,
+          Events.WORKFLOW_ACTIVATE,
+          Events.WORKFLOW_DEACTIVATE
+        ),
+        () =>
+          WorkflowEventFactory.create(
+            eventName,
+            { baseId: reqParams.baseId, workflow: resolveData, ...reqParams },
+            eventContext
+          )
       )
       .with(Events.APP_DELETE, () =>
         AppEventFactory.create(eventName, { ...resolveData, ...reqParams }, eventContext)
