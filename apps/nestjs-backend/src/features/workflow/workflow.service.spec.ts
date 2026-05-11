@@ -80,10 +80,14 @@ describe('WorkflowService', () => {
         snapshotId: 'wsn123',
         triggerType: 'buttonClick',
         status: 'pending',
-        input: {
+        input: expect.objectContaining({
           tableId: 'tbl123',
           recordId: 'rec123',
-        },
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+          }),
+        }),
         createdBy: userId,
       },
       select: { id: true },
@@ -477,7 +481,14 @@ describe('WorkflowService', () => {
           snapshotId: 'wsn-test',
           triggerType: 'manualTest',
           status: 'pending',
-          input: { manual: true },
+          input: expect.objectContaining({
+            manual: true,
+            __automationContext: expect.objectContaining({
+              source: 'automation',
+              workflowId,
+              baseId,
+            }),
+          }),
         }),
       })
     );
@@ -513,7 +524,14 @@ describe('WorkflowService', () => {
         snapshotId: 'wsn123',
         triggerType: 'recordCreated',
         status: 'pending',
-        input,
+        input: expect.objectContaining({
+          ...input,
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+            baseId,
+          }),
+        }),
         createdBy: userId,
       },
       select: { id: true, workflowId: true },

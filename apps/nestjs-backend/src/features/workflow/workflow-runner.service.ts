@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
+import type { IClsStore } from '../../types/cls';
 import { ScriptRuntimeService } from './script/script-runtime.service';
 import { WorkflowAiService } from './workflow-ai.service';
 
@@ -71,8 +73,9 @@ function sortActionsByChain(actions: IWorkflowSnapshotNode[]) {
 export class WorkflowRunnerService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly scriptRuntimeService: ScriptRuntimeService,
-    private readonly workflowAiService: WorkflowAiService
+    private readonly scriptRuntime: ScriptRuntimeService,
+    private readonly workflowAiService: WorkflowAiService,
+    private readonly cls: ClsService<IClsStore>
   ) {}
 
   async executeWorkflowRun(runId: string): Promise<void> {
@@ -91,6 +94,17 @@ export class WorkflowRunnerService {
     const actions = sortActionsByChain(
       (snapshot.nodes ?? []).filter((node) => node.nodeType === 'action')
     );
+
+    // Set automation context to prevent recursive triggers
+    const automationContext = {
+      source: 'automation',
+      workflowId: run.workflow.id,
+      runId: run.id,
+      baseId,
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.cls.set('automationContext', automationContext);
 
     await this.prismaService.workflowRun.update({
       where: { id: runId },

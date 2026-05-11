@@ -63,6 +63,14 @@ export class RecordUpdateService {
     updateRecordsRo: IUpdateRecordsInternalRo,
     windowId?: string
   ) {
+    // Check if this is an automation context to prevent recursion
+    const automationContext = this.cls.get('automationContext');
+    if (automationContext) {
+      // If we're already in an automation context, skip emitting events
+      // to prevent recursive workflow triggers
+      return this.simpleUpdateRecords(tableId, updateRecordsRo);
+    }
+
     const effectiveWindowId = windowId ?? this.cls.get('windowId');
     const {
       records,
