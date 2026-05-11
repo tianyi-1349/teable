@@ -8,5 +8,6 @@ export * from './workflow/get';
 export * from './workflow/get-list';
 export * from './workflow/get-run';
 export * from './workflow/get-run-list';
+export * from './workflow/test-run';
 export * from './workflow/types';
 export * from './workflow/update';

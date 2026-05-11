@@ -457,11 +457,7 @@ export class WorkflowService {
 
   async activateWorkflow(baseId: string, workflowId: string): Promise<IWorkflowVo> {
     const workflow = await this.getWorkflow(baseId, workflowId);
-    const latest = await this.prismaService.workflowSnapshot.aggregate({
-      where: { workflowId },
-      _max: { version: true },
-    });
-    const version = (latest._max.version ?? 0) + 1;
+    const version = await this.getNextSnapshotVersion(workflowId);
 
     return this.prismaService.$tx(async (prisma) => {
       const snapshot = await prisma.workflowSnapshot.create({
@@ -523,6 +519,56 @@ export class WorkflowService {
     });
 
     return { runId: run.id };
+  }
+
+  async createTestRun(baseId: string, workflowId: string, input: unknown): Promise<IWorkflowRunVo> {
+    const workflow = await this.getWorkflow(baseId, workflowId);
+    const snapshotId =
+      workflow.activeSnapshotId ?? (await this.createWorkflowSnapshot(workflowId, workflow));
+    const runInput =
+      input ??
+      ({
+        manual: true,
+        source: 'workflowTestRun',
+        workflowId,
+      } as const);
+
+    return this.prismaService.workflowRun.create({
+      data: {
+        workflowId,
+        snapshotId,
+        triggerType: 'manualTest',
+        status: 'pending',
+        input: runInput as Prisma.InputJsonValue,
+        createdBy: this.userId,
+      },
+      select: this.selectWorkflowRun(),
+    });
+  }
+
+  private async createWorkflowSnapshot(
+    workflowId: string,
+    workflow: IWorkflowDetailVo
+  ): Promise<string> {
+    const version = await this.getNextSnapshotVersion(workflowId);
+    const snapshot = await this.prismaService.workflowSnapshot.create({
+      data: {
+        workflowId,
+        version,
+        snapshot: workflow as Prisma.InputJsonValue,
+        createdBy: this.userId,
+      },
+      select: { id: true },
+    });
+    return snapshot.id;
+  }
+
+  private async getNextSnapshotVersion(workflowId: string) {
+    const latest = await this.prismaService.workflowSnapshot.aggregate({
+      where: { workflowId },
+      _max: { version: true },
+    });
+    return (latest._max.version ?? 0) + 1;
   }
 
   async completeEmptyRun(runId: string): Promise<void> {

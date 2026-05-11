@@ -223,4 +223,50 @@ describe('WorkflowService', () => {
     );
     expect(result).toMatchObject({ id: workflowId, isActive: false });
   });
+
+  it('creates a manual test run with a temporary snapshot for inactive draft', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Draft',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [],
+    });
+    prismaService.workflowSnapshot.aggregate.mockResolvedValue({ _max: { version: 1 } });
+    prismaService.workflowSnapshot.create.mockResolvedValue({ id: 'wsn-test' });
+    prismaService.workflowRun.create.mockResolvedValue({
+      id: runId,
+      workflowId,
+      snapshotId: 'wsn-test',
+      triggerType: 'manualTest',
+      status: 'pending',
+    });
+
+    const result = await service.createTestRun(baseId, workflowId, { manual: true });
+
+    expect(prismaService.workflowSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ workflowId, version: 2 }),
+      })
+    );
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workflowId,
+          snapshotId: 'wsn-test',
+          triggerType: 'manualTest',
+          status: 'pending',
+          input: { manual: true },
+        }),
+      })
+    );
+    expect(result).toMatchObject({ id: runId, status: 'pending' });
+  });
 });

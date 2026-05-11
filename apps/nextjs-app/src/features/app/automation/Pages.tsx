@@ -8,6 +8,7 @@ import {
   getWorkflow,
   getWorkflowList,
   getWorkflowRunList,
+  testRunWorkflow,
 } from '@teable/openapi';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import { useBaseId, useIsReadOnlyPreview } from '@teable/sdk/hooks';
@@ -135,8 +136,10 @@ interface IWorkflowDetailProps {
   isActivating: boolean;
   isDeactivating: boolean;
   isDeleting: boolean;
+  isTesting: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
+  onTestRun: (workflowId: string) => void;
 }
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
@@ -146,8 +149,10 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     isActivating,
     isDeactivating,
     isDeleting,
+    isTesting,
     onToggleActive,
     onDelete,
+    onTestRun,
   } = props;
 
   return (
@@ -162,6 +167,14 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
         </div>
         {workflow && (
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isTesting}
+              onClick={() => onTestRun(workflow.id)}
+            >
+              Test run
+            </Button>
             <Button
               size="sm"
               variant={workflow.isActive ? 'outline' : 'default'}
@@ -358,6 +371,21 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const testRunMutation = useMutation({
+    mutationFn: (workflowId: string) =>
+      testRunWorkflow(baseId, workflowId, {
+        input: {
+          manual: true,
+          source: 'workflowWorkspace',
+          workflowId,
+        },
+      }),
+    onSuccess: async ({ data }) => {
+      toast.success(`Workflow test run ${data.status}`);
+      await refreshWorkflow(data.workflowId);
+    },
+  });
+
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
   };
@@ -422,8 +450,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             isActivating={activateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
+            isTesting={testRunMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
+            onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
           />
           <RunHistory runs={runs} />
         </div>

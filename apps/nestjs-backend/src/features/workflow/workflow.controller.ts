@@ -12,6 +12,7 @@ import type {
 import {
   aiCreateWorkflowDraftRoSchema,
   duplicateWorkflowRoSchema,
+  testRunWorkflowRoSchema,
   updateWorkflowRoSchema,
   workflowRoSchema,
 } from '@teable/openapi';
@@ -19,11 +20,15 @@ import { EmitControllerEvent } from '../../event-emitter/decorators/emit-control
 import { Events } from '../../event-emitter/events';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { WorkflowRunnerService } from './workflow-runner.service';
 import { WorkflowService } from './workflow.service';
 
 @Controller('api/base/:baseId/workflow')
 export class WorkflowController {
-  constructor(private readonly workflowService: WorkflowService) {}
+  constructor(
+    private readonly workflowService: WorkflowService,
+    private readonly workflowRunnerService: WorkflowRunnerService
+  ) {}
 
   @Get()
   @Permissions('automation|read')
@@ -57,6 +62,19 @@ export class WorkflowController {
     @Param('runId') runId: string
   ): Promise<IWorkflowRunDetailVo> {
     return this.workflowService.getWorkflowRun(baseId, workflowId, runId);
+  }
+
+  @Post(':workflowId/test-run')
+  @Permissions('automation|update')
+  async testRunWorkflow(
+    @Param('baseId') baseId: string,
+    @Param('workflowId') workflowId: string,
+    @Body(new ZodValidationPipe(testRunWorkflowRoSchema)) ro: { input?: unknown }
+  ): Promise<IWorkflowRunVo> {
+    const run = await this.workflowService.createTestRun(baseId, workflowId, ro.input);
+    await this.workflowRunnerService.executeWorkflowRun(run.id);
+    const detail = await this.workflowService.getWorkflowRun(baseId, workflowId, run.id);
+    return detail;
   }
 
   @Post()
