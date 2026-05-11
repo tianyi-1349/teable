@@ -1,13 +1,22 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { context as otelContext, trace as otelTrace } from '@opentelemetry/api';
-import { FieldOpBuilder, IdPrefix, ViewOpBuilder } from '@teable/core';
+import {
+  ANONYMOUS_USER_ID,
+  FieldOpBuilder,
+  HttpErrorCode,
+  IdPrefix,
+  ViewOpBuilder,
+} from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
+import cookie from 'cookie';
 import { noop } from 'lodash';
 import { ClsService } from 'nestjs-cls';
 import type { CreateOp, DeleteOp, EditOp } from 'sharedb';
 import ShareDBClass from 'sharedb';
 import { CacheConfig, ICacheConfig } from '../configs/cache.config';
+import { CustomHttpException } from '../custom.exception';
 import { EventEmitterService } from '../event-emitter/event-emitter.service';
+import { PermissionService } from '../features/auth/permission.service';
 import { SessionHandleService } from '../features/auth/session/session-handle.service';
 import { PerformanceCacheService } from '../performance-cache';
 import type { IClsStore } from '../types/cls';
@@ -49,6 +58,7 @@ export class ShareDbService extends ShareDBClass {
     private readonly eventEmitterService: EventEmitterService,
     private readonly prismaService: PrismaService,
     private readonly cls: ClsService<IClsStore>,
+    private readonly permissionService: PermissionService,
     private readonly repairAttachmentOpService: RepairAttachmentOpService,
     @CacheConfig() private readonly cacheConfig: ICacheConfig,
     private readonly performanceCacheService: PerformanceCacheService,
@@ -188,6 +198,91 @@ export class ShareDbService extends ShareDBClass {
     this.pubsub.publish([`${IdPrefix.Field}_${tableId}`], rawOp, noop);
   }
 
+  private getSubmitAgentCustom(context: ShareDBClass.middleware.SubmitContext) {
+    const custom = (context.agent as { custom?: unknown })?.custom;
+    if (!custom || typeof custom !== 'object') {
+      return {} as {
+        userId?: string;
+        cookie?: string;
+        shareId?: string | null;
+        baseShareId?: string | null;
+        templateHeader?: string | null;
+      };
+    }
+    return custom as {
+      userId?: string;
+      cookie?: string;
+      shareId?: string | null;
+      baseShareId?: string | null;
+      templateHeader?: string | null;
+    };
+  }
+
+  private async ensureBaseShareAuthenticated(baseShareId: string, cookieHeader?: string) {
+    const requirePassword = await this.permissionService.baseShareRequiresPassword(baseShareId);
+    if (!requirePassword) {
+      return;
+    }
+
+    const token = cookie.parse(cookieHeader ?? '')?.[baseShareId];
+    if (!token) {
+      throw new CustomHttpException('Unauthorized', HttpErrorCode.UNAUTHORIZED_SHARE);
+    }
+
+    const valid = await this.permissionService.validateBaseSharePasswordToken(baseShareId, token);
+    if (!valid) {
+      throw new CustomHttpException('Unauthorized', HttpErrorCode.UNAUTHORIZED_SHARE);
+    }
+  }
+
+  private async validateSubmitPermission(
+    tableId: string,
+    context: ShareDBClass.middleware.SubmitContext
+  ) {
+    const custom = this.getSubmitAgentCustom(context);
+    const userId = custom.userId;
+    const user = userId
+      ? { id: userId, name: userId, email: '' }
+      : { id: ANONYMOUS_USER_ID, name: ANONYMOUS_USER_ID, email: '' };
+
+    await this.cls.runWith({ ...this.cls.get(), user }, async () => {
+      if (custom.shareId) {
+        throw new CustomHttpException('not allowed to submit', HttpErrorCode.RESTRICTED_RESOURCE, {
+          localization: {
+            i18nKey: 'httpErrors.share.notAllowedToSubmit',
+          },
+        });
+      }
+
+      if (custom.baseShareId) {
+        await this.ensureBaseShareAuthenticated(custom.baseShareId, custom.cookie);
+        await this.permissionService.validBaseSharePermissions(custom.baseShareId, tableId, [
+          'record|update',
+        ]);
+        return;
+      }
+
+      if (custom.templateHeader) {
+        const templateId = this.permissionService.getTemplateIdByHeader(custom.templateHeader);
+        if (!templateId) {
+          throw new CustomHttpException('Template header is invalid', HttpErrorCode.UNAUTHORIZED, {
+            localization: {
+              i18nKey: 'httpErrors.permission.templateHeaderInvalid',
+            },
+          });
+        }
+        await this.permissionService.validTemplatePermissions(tableId, ['record|update']);
+        return;
+      }
+
+      if (!userId) {
+        throw new CustomHttpException('Unauthorized', HttpErrorCode.UNAUTHORIZED);
+      }
+
+      await this.permissionService.validPermissions(tableId, ['record|update']);
+    });
+  }
+
   private onSubmit = (
     context: ShareDBClass.middleware.SubmitContext,
     next: (err?: unknown) => void
@@ -220,8 +315,22 @@ export class ShareDbService extends ShareDBClass {
         this.realtimeMetrics?.recordOperationError('invalid_doc_type');
         return next(new Error('only record op can be committed'));
       }
-      this.realtimeMetrics?.recordOperationSubmit();
-      next();
+
+      const tableId = context.collection.split('_')[1];
+      if (!tableId) {
+        this.realtimeMetrics?.recordOperationError('invalid_table_id');
+        return next(new Error('invalid record collection id'));
+      }
+
+      void this.validateSubmitPermission(tableId, context)
+        .then(() => {
+          this.realtimeMetrics?.recordOperationSubmit();
+          next();
+        })
+        .catch((error: unknown) => {
+          this.realtimeMetrics?.recordOperationError('permission_denied');
+          next(error);
+        });
     });
   };
 }
