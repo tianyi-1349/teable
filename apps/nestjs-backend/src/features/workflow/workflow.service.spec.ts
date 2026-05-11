@@ -22,6 +22,10 @@ describe('WorkflowService', () => {
       findMany: vi.fn(),
       findFirstOrThrow: vi.fn(),
     },
+    workflowNode: {
+      create: vi.fn(),
+      createMany: vi.fn(),
+    },
     workflowSnapshot: {
       aggregate: vi.fn(),
       create: vi.fn(),
@@ -32,13 +36,16 @@ describe('WorkflowService', () => {
   const cls = {
     get: vi.fn((key: string) => (key === 'user.id' ? userId : undefined)),
   };
+  const aiService = {
+    generateText: vi.fn(),
+  };
 
   let service: WorkflowService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prismaService.$tx.mockImplementation((fn) => fn(prismaService));
-    service = new WorkflowService(prismaService as never, cls as never);
+    service = new WorkflowService(prismaService as never, cls as never, aiService as never);
   });
 
   it('creates a pending button workflow run', async () => {
@@ -110,7 +117,8 @@ describe('WorkflowService', () => {
           update,
         },
       } as never,
-      cls as never
+      cls as never,
+      aiService as never
     );
 
     await runService.completeEmptyRun(runId);
@@ -168,5 +176,51 @@ describe('WorkflowService', () => {
       })
     );
     expect(result).toMatchObject({ isActive: true, activeSnapshotId: 'wsn123' });
+  });
+
+  it('creates an inactive AI workflow draft for review', async () => {
+    prismaService.workflow.aggregate.mockResolvedValue({ _max: { order: 1 } });
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'AI draft',
+      description: 'Draft',
+      order: 2,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: userId,
+      nodes: [],
+    });
+    aiService.generateText.mockResolvedValue(
+      JSON.stringify({ name: 'AI draft', description: 'Draft', script: 'return { ok: true };' })
+    );
+
+    const result = await service.aiCreateWorkflowDraft(baseId, {
+      prompt: 'When a button is clicked, summarize the record',
+      tableId: 'tbl123',
+      fieldId: 'fld123',
+    });
+
+    expect(prismaService.workflow.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ name: 'AI draft' }),
+      })
+    );
+    expect(prismaService.workflowNode.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ nodeType: 'trigger', kind: 'buttonClick' }),
+          expect.objectContaining({
+            nodeType: 'action',
+            kind: 'runScript',
+            config: { script: 'return { ok: true };', source: 'aiDraft' },
+          }),
+        ]),
+      })
+    );
+    expect(result).toMatchObject({ id: workflowId, isActive: false });
   });
 });

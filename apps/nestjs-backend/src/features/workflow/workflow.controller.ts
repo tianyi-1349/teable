@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import type {
+  IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
   IUpdateWorkflowRo,
   IWorkflowDetailVo,
@@ -9,6 +10,7 @@ import type {
   IWorkflowVo,
 } from '@teable/openapi';
 import {
+  aiCreateWorkflowDraftRoSchema,
   duplicateWorkflowRoSchema,
   updateWorkflowRoSchema,
   workflowRoSchema,
@@ -65,6 +67,16 @@ export class WorkflowController {
     @Body(new ZodValidationPipe(workflowRoSchema)) ro: IWorkflowRo
   ): Promise<IWorkflowVo> {
     return this.workflowService.createWorkflow(baseId, ro);
+  }
+
+  @Post('ai-create-draft')
+  @Permissions('automation|create')
+  @EmitControllerEvent(Events.WORKFLOW_CREATE)
+  aiCreateWorkflowDraft(
+    @Param('baseId') baseId: string,
+    @Body(new ZodValidationPipe(aiCreateWorkflowDraftRoSchema)) ro: IAiCreateWorkflowDraftRo
+  ): Promise<IWorkflowDetailVo> {
+    return this.workflowService.aiCreateWorkflowDraft(baseId, ro);
   }
 
   @Put(':workflowId')

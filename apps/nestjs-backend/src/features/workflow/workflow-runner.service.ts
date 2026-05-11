@@ -1,0 +1,162 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@teable/db-main-prisma';
+import { Prisma } from '@prisma/client';
+import { ScriptRuntimeService } from './script/script-runtime.service';
+
+interface IWorkflowSnapshotNode {
+  id: string;
+  nodeType: string;
+  kind: string;
+  config?: unknown;
+}
+
+interface IWorkflowSnapshot {
+  baseId: string;
+  nodes?: IWorkflowSnapshotNode[];
+}
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  return (value ?? Prisma.JsonNull) as Prisma.InputJsonValue;
+}
+
+function getScript(config: unknown): string | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { script, code } = config as { script?: unknown; code?: unknown };
+  return typeof script === 'string' ? script : typeof code === 'string' ? code : undefined;
+}
+
+@Injectable()
+export class WorkflowRunnerService {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly scriptRuntimeService: ScriptRuntimeService
+  ) {}
+
+  async executeWorkflowRun(runId: string): Promise<void> {
+    const run = await this.prismaService.workflowRun.findUniqueOrThrow({
+      where: { id: runId },
+      select: {
+        id: true,
+        input: true,
+        workflow: { select: { baseId: true } },
+        snapshot: { select: { snapshot: true } },
+      },
+    });
+    const startedTime = new Date();
+    const snapshot = (run.snapshot?.snapshot ?? {}) as Partial<IWorkflowSnapshot>;
+    const baseId = snapshot.baseId ?? run.workflow.baseId;
+    const actions = (snapshot.nodes ?? []).filter(
+      (node) => node.nodeType === 'action' && node.kind === 'runScript'
+    );
+
+    await this.prismaService.workflowRun.update({
+      where: { id: runId },
+      data: { status: 'running', startedTime },
+    });
+
+    if (!actions.length) {
+      await this.prismaService.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'completed',
+          finishedTime: startedTime,
+          durationMs: 0,
+          output: { skipped: true, reason: 'No workflow runner actions are configured yet' },
+        },
+      });
+      return;
+    }
+
+    let currentInput: unknown = run.input;
+
+    try {
+      for (const action of actions) {
+        currentInput = await this.executeAction(runId, baseId, action, currentInput);
+      }
+
+      const finishedTime = new Date();
+      await this.prismaService.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'completed',
+          finishedTime,
+          durationMs: finishedTime.getTime() - startedTime.getTime(),
+          output: toJson(currentInput),
+        },
+      });
+    } catch (error) {
+      const finishedTime = new Date();
+      const message = error instanceof Error ? error.message : String(error);
+      await this.prismaService.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'failed',
+          finishedTime,
+          durationMs: finishedTime.getTime() - startedTime.getTime(),
+          error: { message },
+        },
+      });
+    }
+  }
+
+  private async executeAction(
+    runId: string,
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ): Promise<unknown> {
+    const script = getScript(action.config);
+    const step = await this.prismaService.workflowRunStep.create({
+      data: {
+        runId,
+        nodeId: action.id,
+        status: 'running',
+        input: toJson(input),
+      },
+      select: { id: true, startedTime: true },
+    });
+
+    if (!script) {
+      const message = `Run Script node ${action.id} is missing script content`;
+      await this.prismaService.workflowRunStep.update({
+        where: { id: step.id },
+        data: {
+          status: 'failed',
+          finishedTime: new Date(),
+          error: { message },
+        },
+      });
+      throw new Error(message);
+    }
+
+    try {
+      const output = await this.scriptRuntimeService.execute(script, { baseId, input });
+      const finishedTime = new Date();
+      await this.prismaService.workflowRunStep.update({
+        where: { id: step.id },
+        data: {
+          status: 'completed',
+          output: toJson(output),
+          finishedTime,
+          durationMs: finishedTime.getTime() - step.startedTime.getTime(),
+        },
+      });
+      return output;
+    } catch (error) {
+      const finishedTime = new Date();
+      const message = error instanceof Error ? error.message : String(error);
+      await this.prismaService.workflowRunStep.update({
+        where: { id: step.id },
+        data: {
+          status: 'failed',
+          error: { message },
+          finishedTime,
+          durationMs: finishedTime.getTime() - step.startedTime.getTime(),
+        },
+      });
+      throw error;
+    }
+  }
+}

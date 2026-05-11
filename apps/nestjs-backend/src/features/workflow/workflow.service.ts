@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
 import type {
+  IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
   IUpdateWorkflowRo,
   IWorkflowDetailVo,
@@ -20,6 +21,7 @@ import type {
 import { ClsService } from 'nestjs-cls';
 import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
+import { WorkflowAiService } from './workflow-ai.service';
 
 const WORKFLOW_NOT_FOUND_LOCALIZATION = {
   i18nKey: 'httpErrors.baseNode.notFound',
@@ -29,7 +31,8 @@ const WORKFLOW_NOT_FOUND_LOCALIZATION = {
 export class WorkflowService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly cls: ClsService<IClsStore>
+    private readonly cls: ClsService<IClsStore>,
+    private readonly workflowAiService: WorkflowAiService
   ) {}
 
   private get userId() {
@@ -204,6 +207,155 @@ export class WorkflowService {
 
       return workflow;
     });
+  }
+
+  async aiCreateWorkflowDraft(
+    baseId: string,
+    ro: IAiCreateWorkflowDraftRo
+  ): Promise<IWorkflowDetailVo> {
+    const draft = await this.generateWorkflowDraft(baseId, ro);
+    const maxOrder = await this.prismaService.workflow.aggregate({
+      where: { baseId, deletedTime: null },
+      _max: { order: true },
+    });
+
+    const workflowId = generateWorkflowId();
+    const triggerId = generateWorkflowTriggerId();
+    const actionId = generateWorkflowActionId();
+
+    await this.prismaService.$tx(async (prisma) => {
+      await prisma.workflow.create({
+        data: {
+          id: workflowId,
+          baseId,
+          name: draft.name,
+          description: draft.description,
+          order: (maxOrder._max.order ?? 0) + 1,
+          createdBy: this.userId,
+          lastModifiedBy: this.userId,
+        },
+      });
+
+      await prisma.workflowNode.createMany({
+        data: [
+          {
+            id: triggerId,
+            workflowId,
+            nodeType: 'trigger',
+            kind: 'buttonClick',
+            nextNodeId: actionId,
+            config: {
+              tableId: ro.tableId,
+              fieldId: ro.fieldId,
+              recordId: ro.recordId,
+              source: 'aiDraft',
+            } as Prisma.InputJsonValue,
+            createdBy: this.userId,
+            lastModifiedBy: this.userId,
+          },
+          {
+            id: actionId,
+            workflowId,
+            nodeType: 'action',
+            kind: 'runScript',
+            parentNodeId: triggerId,
+            config: { script: draft.script, source: 'aiDraft' } as Prisma.InputJsonValue,
+            createdBy: this.userId,
+            lastModifiedBy: this.userId,
+          },
+        ],
+      });
+    });
+
+    return this.getWorkflow(baseId, workflowId);
+  }
+
+  private async generateWorkflowDraft(
+    baseId: string,
+    ro: IAiCreateWorkflowDraftRo
+  ): Promise<{ name: string; description: string; script: string }> {
+    const fallback = this.createFallbackDraft(ro.prompt);
+    const prompt = [
+      'Create a Teable automation workflow draft.',
+      'Return only compact JSON with keys: name, description, script.',
+      'The workflow must be inactive until a user reviews and activates it.',
+      'The trigger is buttonClick. The single action is runScript.',
+      'The script runs in an async function with input, console.log, JSON, and ai.generateText available.',
+      'Do not include network requests, secrets, imports, require, eval, filesystem access, or destructive operations.',
+      `User request: ${ro.prompt}`,
+      `Context: ${JSON.stringify({ tableId: ro.tableId, fieldId: ro.fieldId, recordId: ro.recordId })}`,
+    ].join('\n');
+
+    try {
+      const text = await this.workflowAiService.generateText(baseId, {
+        prompt,
+        ...(ro.modelKey && { modelKey: ro.modelKey }),
+      });
+      return this.normalizeGeneratedDraft(text, fallback);
+    } catch {
+      return fallback;
+    }
+  }
+
+  private normalizeGeneratedDraft(
+    text: string,
+    fallback: { name: string; description: string; script: string }
+  ) {
+    try {
+      const jsonText = text
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/i, '')
+        .trim();
+      const parsed = JSON.parse(jsonText) as Partial<typeof fallback>;
+      const name =
+        typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : fallback.name;
+      const description =
+        typeof parsed.description === 'string' && parsed.description.trim()
+          ? parsed.description.trim()
+          : fallback.description;
+      const script =
+        typeof parsed.script === 'string' && parsed.script.trim()
+          ? parsed.script.trim()
+          : fallback.script;
+
+      return {
+        name: name.slice(0, 100),
+        description: description.slice(0, 500),
+        script: this.sanitizeDraftScript(script),
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  private createFallbackDraft(prompt: string) {
+    const name = `AI draft: ${prompt.trim().slice(0, 40) || 'Run script'}`;
+    return {
+      name,
+      description: 'Inactive AI-created workflow draft. Review the script before activation.',
+      script: [
+        'console.log("AI-created workflow draft input", input);',
+        'return {',
+        '  reviewed: false,',
+        '  message: "Review and replace this draft script before activating the workflow.",',
+        '  input,',
+        '};',
+      ].join('\n'),
+    };
+  }
+
+  private sanitizeDraftScript(script: string) {
+    const deniedPatterns = [
+      /\brequire\s*\(/,
+      /\bimport\s+/,
+      /\beval\s*\(/,
+      /\bFunction\s*\(/,
+      /process\./,
+    ];
+    if (deniedPatterns.some((pattern) => pattern.test(script))) {
+      return this.createFallbackDraft('Run script').script;
+    }
+    return script.slice(0, 8000);
   }
 
   async updateWorkflow(

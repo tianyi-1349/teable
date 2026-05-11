@@ -2,26 +2,26 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { WorkflowRunListener } from './workflow-run.listener';
 
 describe('WorkflowRunListener', () => {
-  const workflowService = {
-    completeEmptyRun: vi.fn(),
+  const workflowRunnerService = {
+    executeWorkflowRun: vi.fn(),
   };
 
   let listener: WorkflowRunListener;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    listener = new WorkflowRunListener(workflowService as never);
+    listener = new WorkflowRunListener(workflowRunnerService as never);
   });
 
-  it('completes workflow run from button click event', async () => {
+  it('executes workflow run from button click event', async () => {
     await listener.handleButtonClick({ payload: { runId: 'wrun123' } } as never);
 
-    expect(workflowService.completeEmptyRun).toHaveBeenCalledWith('wrun123');
+    expect(workflowRunnerService.executeWorkflowRun).toHaveBeenCalledWith('wrun123');
   });
 
   it('ignores button click events without run id', async () => {
     await listener.handleButtonClick({ payload: {} } as never);
 
-    expect(workflowService.completeEmptyRun).not.toHaveBeenCalled();
+    expect(workflowRunnerService.executeWorkflowRun).not.toHaveBeenCalled();
   });
 });

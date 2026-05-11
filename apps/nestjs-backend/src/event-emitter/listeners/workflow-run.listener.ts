@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WorkflowService } from '../../features/workflow/workflow.service';
+import { WorkflowRunnerService } from '../../features/workflow/workflow-runner.service';
 import type { ButtonClickEvent } from '../events';
 import { Events } from '../events';
 
@@ -8,7 +8,7 @@ import { Events } from '../events';
 export class WorkflowRunListener {
   private readonly logger = new Logger(WorkflowRunListener.name);
 
-  constructor(private readonly workflowService: WorkflowService) {}
+  constructor(private readonly workflowRunnerService: WorkflowRunnerService) {}
 
   @OnEvent(Events.TABLE_BUTTON_CLICK, { async: true })
   async handleButtonClick(event: ButtonClickEvent): Promise<void> {
@@ -18,10 +18,10 @@ export class WorkflowRunListener {
     }
 
     try {
-      await this.workflowService.completeEmptyRun(runId);
+      await this.workflowRunnerService.executeWorkflowRun(runId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Complete workflow run ${runId} failed: ${message}`);
+      this.logger.warn(`Execute workflow run ${runId} failed: ${message}`);
     }
   }
 }
