@@ -352,7 +352,7 @@ export class TableOpenApiService {
         await this.detachLink(tableId);
       }
     } catch (e) {
-      console.log('Permanent delete tables error:', e);
+      this.logger.error('Permanent delete tables detach link failed', e);
     }
 
     return await this.prismaService.$tx(
@@ -631,13 +631,9 @@ export class TableOpenApiService {
 
     await this.prismaService.$tx(async (prisma) => {
       const linkFieldsRaw =
-        await this.prismaService.$queryRawUnsafe<{ id: string; options: string }[]>(
-          linkFieldsQuery
-        );
+        await prisma.$queryRawUnsafe<{ id: string; options: string }[]>(linkFieldsQuery);
       const lookupFieldsRaw =
-        await this.prismaService.$queryRawUnsafe<{ id: string; lookupOptions: string }[]>(
-          lookupFieldsQuery
-        );
+        await prisma.$queryRawUnsafe<{ id: string; lookupOptions: string }[]>(lookupFieldsQuery);
 
       for (const field of linkFieldsRaw) {
         const options = JSON.parse(field.options as string) as ILinkFieldOptions;

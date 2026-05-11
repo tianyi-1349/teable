@@ -144,8 +144,12 @@ export const streamSSE = async <T extends { id: string }>(
     throw new Error('No response body for SSE stream');
   }
 
-  await readSSEStream(reader, {
-    onResult: options?.onResult,
-    ignoredResultIds: options?.ignoredResultIds,
-  });
+  try {
+    await readSSEStream(reader, {
+      onResult: options?.onResult,
+      ignoredResultIds: options?.ignoredResultIds,
+    });
+  } finally {
+    reader.releaseLock();
+  }
 };
