@@ -96,6 +96,19 @@ const getRecordTriggerKind = (workflow?: IWorkflowDetailVo) => {
   return recordTriggerNode?.kind === 'recordUpdated' ? 'recordUpdated' : 'recordCreated';
 };
 
+const getRecordTriggerFilterText = (workflow?: IWorkflowDetailVo) => {
+  const recordTriggerNode = workflow?.nodes.find(
+    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+  );
+  const config = recordTriggerNode?.config as { filter?: unknown } | undefined;
+  return config?.filter ? JSON.stringify(config.filter, null, 2) : '';
+};
+
+const parseOptionalJson = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed ? JSON.parse(trimmed) : undefined;
+};
+
 const appendActionNode = (
   workflow: IWorkflowDetailVo,
   kind: 'runScript' | 'aiGenerate'
@@ -304,6 +317,7 @@ interface IWorkflowDetailProps {
   recordTriggerTableIdPreview: string;
   recordTriggerTableIdDraft: string;
   recordTriggerKindDraft: 'recordCreated' | 'recordUpdated';
+  recordTriggerFilterDraft: string;
   isActivating: boolean;
   isDeactivating: boolean;
   isDeleting: boolean;
@@ -328,6 +342,7 @@ interface IWorkflowDetailProps {
   onSaveAiPrompt: () => void;
   onRecordTriggerKindDraftChange: (value: 'recordCreated' | 'recordUpdated') => void;
   onRecordTriggerTableIdDraftChange: (value: string) => void;
+  onRecordTriggerFilterDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
   onAddAction: (kind: 'runScript' | 'aiGenerate') => void;
   onRemoveAction: (nodeId: string) => void;
@@ -460,7 +475,12 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
 
 const getWorkflowDetailCapabilities = (
   workflow: IWorkflowDetailVo | undefined,
-  previews: { script: string; aiPrompt: string; recordTriggerTableId: string }
+  previews: {
+    script: string;
+    aiPrompt: string;
+    recordTriggerTableId: string;
+    recordTriggerFilter: string;
+  }
 ) => ({
   hasRunScript: Boolean(
     previews.script || workflow?.nodes.some((node) => node.kind === 'runScript')
@@ -470,6 +490,7 @@ const getWorkflowDetailCapabilities = (
   ),
   hasRecordTrigger: Boolean(
     previews.recordTriggerTableId ||
+      previews.recordTriggerFilter ||
       workflow?.nodes.some(
         (node) =>
           node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
@@ -502,6 +523,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     recordTriggerTableIdPreview,
     recordTriggerTableIdDraft,
     recordTriggerKindDraft,
+    recordTriggerFilterDraft,
     isActivating,
     isDeactivating,
     isDeleting,
@@ -526,6 +548,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onSaveAiPrompt,
     onRecordTriggerKindDraftChange,
     onRecordTriggerTableIdDraftChange,
+    onRecordTriggerFilterDraftChange,
     onSaveRecordTrigger,
     onAddAction,
     onRemoveAction,
@@ -536,6 +559,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
       script: scriptPreview,
       aiPrompt: aiPromptPreview,
       recordTriggerTableId: recordTriggerTableIdPreview,
+      recordTriggerFilter: recordTriggerFilterDraft,
     }
   );
 
@@ -664,8 +688,18 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   <SelectItem value="recordUpdated">When record is updated</SelectItem>
                 </SelectContent>
               </Select>
+              <Textarea
+                value={
+                  hasRecordTrigger ? recordTriggerFilterDraft : 'No record trigger configured.'
+                }
+                disabled={!hasRecordTrigger}
+                onChange={(event) => onRecordTriggerFilterDraftChange(event.target.value)}
+                placeholder='Optional filter JSON, for example {"conjunction":"and","filterSet":[]}'
+                className="min-h-28 resize-none font-mono text-xs"
+              />
               <p className="text-xs text-muted-foreground">
-                Leave table id empty to listen to all tables in this base.
+                Leave table id empty to listen to all tables in this base. Leave filter empty to run
+                on every matching record event.
               </p>
             </div>
             <div className="space-y-2">
@@ -832,6 +866,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [recordTriggerKindDraft, setRecordTriggerKindDraft] = useState<
     'recordCreated' | 'recordUpdated'
   >('recordCreated');
+  const [recordTriggerFilterDraft, setRecordTriggerFilterDraft] = useState('');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -865,6 +900,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const aiPromptPreview = getAiGeneratePrompt(workflow, activeAiNodeId);
   const recordTriggerTableIdPreview = getRecordTriggerTableId(workflow);
   const recordTriggerKindPreview = getRecordTriggerKind(workflow);
+  const recordTriggerFilterPreview = getRecordTriggerFilterText(workflow);
 
   useEffect(() => {
     setNameDraft(workflow?.name ?? '');
@@ -898,6 +934,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   useEffect(() => {
     setRecordTriggerKindDraft(recordTriggerKindPreview);
   }, [recordTriggerKindPreview]);
+
+  useEffect(() => {
+    setRecordTriggerFilterDraft(recordTriggerFilterPreview);
+  }, [recordTriggerFilterPreview]);
 
   const { data: runs = [] } = useQuery({
     queryKey: selectedId
@@ -1120,6 +1160,17 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     mutationFn: async () => {
       if (!workflow) return undefined;
       const tableId = recordTriggerTableIdDraft.trim();
+      let filter: Record<string, unknown> | undefined;
+      try {
+        const parsedFilter = parseOptionalJson(recordTriggerFilterDraft);
+        filter =
+          parsedFilter && typeof parsedFilter === 'object'
+            ? (parsedFilter as Record<string, unknown>)
+            : undefined;
+      } catch {
+        toast.error('Record trigger filter must be valid JSON');
+        return undefined;
+      }
       const nodes = workflow.nodes.map((node) => {
         if (
           node.nodeType !== 'trigger' ||
@@ -1128,11 +1179,15 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           return node;
         }
         const config = (node.config ?? {}) as Record<string, unknown>;
-        const { tableId: _tableId, ...restConfig } = config;
+        const { tableId: _tableId, filter: _filter, ...restConfig } = config;
         return {
           ...node,
           kind: recordTriggerKindDraft,
-          config: tableId ? { ...restConfig, tableId } : restConfig,
+          config: {
+            ...restConfig,
+            ...(tableId && { tableId }),
+            ...(filter && { filter }),
+          },
         };
       });
       return updateWorkflow(baseId, workflow.id, { nodes });
@@ -1244,6 +1299,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             recordTriggerTableIdPreview={recordTriggerTableIdPreview}
             recordTriggerTableIdDraft={recordTriggerTableIdDraft}
             recordTriggerKindDraft={recordTriggerKindDraft}
+            recordTriggerFilterDraft={recordTriggerFilterDraft}
             isActivating={activateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
@@ -1268,6 +1324,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onSaveAiPrompt={() => saveAiPromptMutation.mutate()}
             onRecordTriggerKindDraftChange={setRecordTriggerKindDraft}
             onRecordTriggerTableIdDraftChange={setRecordTriggerTableIdDraft}
+            onRecordTriggerFilterDraftChange={setRecordTriggerFilterDraft}
             onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
             onAddAction={(kind) => addActionMutation.mutate(kind)}
             onRemoveAction={(nodeId) => removeActionMutation.mutate(nodeId)}

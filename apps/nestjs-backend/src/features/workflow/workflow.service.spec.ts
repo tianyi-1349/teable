@@ -45,13 +45,21 @@ describe('WorkflowService', () => {
   const aiService = {
     generateText: vi.fn(),
   };
+  const recordService = {
+    filterRecordIdsByFilter: vi.fn(),
+  };
 
   let service: WorkflowService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prismaService.$tx.mockImplementation((fn) => fn(prismaService));
-    service = new WorkflowService(prismaService as never, cls as never, aiService as never);
+    service = new WorkflowService(
+      prismaService as never,
+      cls as never,
+      aiService as never,
+      recordService as never
+    );
   });
 
   it('creates a pending button workflow run', async () => {
@@ -211,7 +219,8 @@ describe('WorkflowService', () => {
         },
       } as never,
       cls as never,
-      aiService as never
+      aiService as never,
+      recordService as never
     );
 
     await runService.completeEmptyRun(runId);
@@ -510,6 +519,58 @@ describe('WorkflowService', () => {
       select: { id: true, workflowId: true },
     });
     expect(result).toEqual([{ runId, workflowId }]);
+  });
+
+  it('creates record trigger runs only when the trigger filter matches', async () => {
+    const filter = {
+      conjunction: 'and' as const,
+      filterSet: [{ fieldId: 'fldStatus', operator: 'is', value: 'Open' }],
+    };
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl123', filter } }],
+      },
+    ]);
+    recordService.filterRecordIdsByFilter.mockResolvedValue(['rec123']);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId, workflowId });
+
+    const input = { tableId: 'tbl123', record: { id: 'rec123', fields: {} } };
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordCreated', input);
+
+    expect(recordService.filterRecordIdsByFilter).toHaveBeenCalledWith(
+      'tbl123',
+      ['rec123'],
+      filter
+    );
+    expect(prismaService.workflowRun.create).toHaveBeenCalled();
+    expect(result).toEqual([{ runId, workflowId }]);
+  });
+
+  it('does not create record trigger runs when the trigger filter does not match', async () => {
+    const filter = {
+      conjunction: 'and' as const,
+      filterSet: [{ fieldId: 'fldStatus', operator: 'is', value: 'Open' }],
+    };
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl123', filter } }],
+      },
+    ]);
+    recordService.filterRecordIdsByFilter.mockResolvedValue([]);
+
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordUpdated', {
+      tableId: 'tbl123',
+      record: { id: 'rec123', fields: {} },
+    });
+
+    expect(prismaService.workflowRun.create).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
   });
 
   it('does not create record trigger runs when trigger table does not match', async () => {

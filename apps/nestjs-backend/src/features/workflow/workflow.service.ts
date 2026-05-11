@@ -5,6 +5,7 @@ import {
   generateWorkflowTriggerId,
   getUniqName,
   HttpErrorCode,
+  type IFilter,
 } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
@@ -21,12 +22,14 @@ import type {
 import { ClsService } from 'nestjs-cls';
 import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
+import { RecordService } from '../record/record.service';
 import { WorkflowAiService } from './workflow-ai.service';
 
 type IRecordTriggerType = 'recordCreated' | 'recordUpdated';
 
 type IRecordTriggerConfig = {
   tableId?: string;
+  filter?: IFilter;
 };
 
 type IWorkflowActionConfig = {
@@ -44,7 +47,8 @@ export class WorkflowService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly cls: ClsService<IClsStore>,
-    private readonly workflowAiService: WorkflowAiService
+    private readonly workflowAiService: WorkflowAiService,
+    private readonly recordService: RecordService
   ) {}
 
   private get userId() {
@@ -639,9 +643,14 @@ export class WorkflowService {
       },
     });
 
-    const matchedWorkflows = workflows.filter((workflow) =>
-      workflow.nodes.some((node) => this.matchRecordTriggerConfig(node.config, tableId))
-    );
+    const matchedWorkflows = (
+      await Promise.all(
+        workflows.map(async (workflow) => {
+          const isMatched = await this.matchRecordTriggerNodes(workflow.nodes, tableId, input);
+          return isMatched ? workflow : undefined;
+        })
+      )
+    ).filter((workflow): workflow is (typeof workflows)[number] => Boolean(workflow));
 
     if (!matchedWorkflows.length) {
       return [];
@@ -669,6 +678,50 @@ export class WorkflowService {
   private matchRecordTriggerConfig(config: unknown, tableId: string) {
     const triggerConfig = config as IRecordTriggerConfig | null;
     return !triggerConfig?.tableId || triggerConfig.tableId === tableId;
+  }
+
+  private async matchRecordTriggerNodes(
+    nodes: { config: unknown }[],
+    tableId: string,
+    input: unknown
+  ) {
+    for (const node of nodes) {
+      if (await this.matchRecordTriggerNode(node.config, tableId, input)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async matchRecordTriggerNode(config: unknown, tableId: string, input: unknown) {
+    if (!this.matchRecordTriggerConfig(config, tableId)) {
+      return false;
+    }
+
+    const triggerConfig = config as IRecordTriggerConfig | null;
+    if (!triggerConfig?.filter) {
+      return true;
+    }
+
+    const recordIds = this.getInputRecordIds(input);
+    if (!recordIds.length) {
+      return false;
+    }
+
+    const matchedRecordIds = await this.recordService.filterRecordIdsByFilter(
+      tableId,
+      recordIds,
+      triggerConfig.filter
+    );
+    return matchedRecordIds.length > 0;
+  }
+
+  private getInputRecordIds(input: unknown) {
+    const record = (input as { record?: unknown } | null)?.record;
+    const records = Array.isArray(record) ? record : record ? [record] : [];
+    return records
+      .map((item) => (item as { id?: unknown } | null)?.id)
+      .filter((id): id is string => typeof id === 'string' && Boolean(id));
   }
 
   private assertWorkflowCanActivate(workflow: IWorkflowDetailVo) {
