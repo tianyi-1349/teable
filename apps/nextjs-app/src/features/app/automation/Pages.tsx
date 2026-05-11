@@ -68,6 +68,14 @@ const getAiGeneratePrompt = (workflow?: IWorkflowDetailVo) => {
   return config?.prompt ?? '';
 };
 
+const getRecordTriggerTableId = (workflow?: IWorkflowDetailVo) => {
+  const recordTriggerNode = workflow?.nodes.find(
+    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+  );
+  const config = recordTriggerNode?.config as { tableId?: string } | undefined;
+  return config?.tableId ?? '';
+};
+
 const formatJson = (value: unknown): string => {
   if (value == null) {
     return 'None';
@@ -212,12 +220,15 @@ interface IWorkflowDetailProps {
   scriptDraft: string;
   aiPromptPreview: string;
   aiPromptDraft: string;
+  recordTriggerTableIdPreview: string;
+  recordTriggerTableIdDraft: string;
   isActivating: boolean;
   isDeactivating: boolean;
   isDeleting: boolean;
   isTesting: boolean;
   isSavingScript: boolean;
   isSavingAiPrompt: boolean;
+  isSavingRecordTrigger: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
@@ -225,6 +236,8 @@ interface IWorkflowDetailProps {
   onSaveScript: () => void;
   onAiPromptDraftChange: (value: string) => void;
   onSaveAiPrompt: () => void;
+  onRecordTriggerTableIdDraftChange: (value: string) => void;
+  onSaveRecordTrigger: () => void;
 }
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
@@ -234,12 +247,15 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     scriptDraft,
     aiPromptPreview,
     aiPromptDraft,
+    recordTriggerTableIdPreview,
+    recordTriggerTableIdDraft,
     isActivating,
     isDeactivating,
     isDeleting,
     isTesting,
     isSavingScript,
     isSavingAiPrompt,
+    isSavingRecordTrigger,
     onToggleActive,
     onDelete,
     onTestRun,
@@ -247,12 +263,21 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onSaveScript,
     onAiPromptDraftChange,
     onSaveAiPrompt,
+    onRecordTriggerTableIdDraftChange,
+    onSaveRecordTrigger,
   } = props;
   const hasRunScript = Boolean(
     scriptPreview || workflow?.nodes.some((node) => node.kind === 'runScript')
   );
   const hasAiGenerate = Boolean(
     aiPromptPreview || workflow?.nodes.some((node) => node.kind === 'aiGenerate')
+  );
+  const hasRecordTrigger = Boolean(
+    recordTriggerTableIdPreview ||
+      workflow?.nodes.some(
+        (node) =>
+          node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+      )
   );
 
   return (
@@ -327,6 +352,31 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">Record trigger scope</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!hasRecordTrigger || isSavingRecordTrigger}
+                  onClick={onSaveRecordTrigger}
+                >
+                  Save trigger
+                </Button>
+              </div>
+              <Input
+                value={
+                  hasRecordTrigger ? recordTriggerTableIdDraft : 'No record trigger configured.'
+                }
+                disabled={!hasRecordTrigger}
+                onChange={(event) => onRecordTriggerTableIdDraftChange(event.target.value)}
+                placeholder="Optional table id"
+                className="text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave table id empty to listen to all tables in this base.
+              </p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -480,6 +530,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
   const [scriptDraft, setScriptDraft] = useState('');
   const [aiPromptDraft, setAiPromptDraft] = useState('');
+  const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -507,6 +558,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
 
   const scriptPreview = getScriptPreview(workflow);
   const aiPromptPreview = getAiGeneratePrompt(workflow);
+  const recordTriggerTableIdPreview = getRecordTriggerTableId(workflow);
 
   useEffect(() => {
     setScriptDraft(scriptPreview);
@@ -515,6 +567,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   useEffect(() => {
     setAiPromptDraft(aiPromptPreview);
   }, [aiPromptPreview]);
+
+  useEffect(() => {
+    setRecordTriggerTableIdDraft(recordTriggerTableIdPreview);
+  }, [recordTriggerTableIdPreview]);
 
   const { data: runs = [] } = useQuery({
     queryKey: selectedId
@@ -710,6 +766,33 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const saveRecordTriggerMutation = useMutation({
+    mutationFn: async () => {
+      if (!workflow) return undefined;
+      const tableId = recordTriggerTableIdDraft.trim();
+      const nodes = workflow.nodes.map((node) => {
+        if (
+          node.nodeType !== 'trigger' ||
+          !['recordCreated', 'recordUpdated'].includes(node.kind)
+        ) {
+          return node;
+        }
+        const config = (node.config ?? {}) as Record<string, unknown>;
+        const { tableId: _tableId, ...restConfig } = config;
+        return {
+          ...node,
+          config: tableId ? { ...restConfig, tableId } : restConfig,
+        };
+      });
+      return updateWorkflow(baseId, workflow.id, { nodes });
+    },
+    onSuccess: async (result) => {
+      if (!result?.data) return;
+      toast.success('Record trigger draft saved');
+      await refreshWorkflow(result.data.id);
+    },
+  });
+
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
     setSelectedRunId(undefined);
@@ -779,12 +862,15 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             scriptDraft={scriptDraft}
             aiPromptPreview={aiPromptPreview}
             aiPromptDraft={aiPromptDraft}
+            recordTriggerTableIdPreview={recordTriggerTableIdPreview}
+            recordTriggerTableIdDraft={recordTriggerTableIdDraft}
             isActivating={activateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
             isTesting={testRunMutation.isPending}
             isSavingScript={saveScriptMutation.isPending}
             isSavingAiPrompt={saveAiPromptMutation.isPending}
+            isSavingRecordTrigger={saveRecordTriggerMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
@@ -792,6 +878,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onSaveScript={() => saveScriptMutation.mutate()}
             onAiPromptDraftChange={setAiPromptDraft}
             onSaveAiPrompt={() => saveAiPromptMutation.mutate()}
+            onRecordTriggerTableIdDraftChange={setRecordTriggerTableIdDraft}
+            onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
           />
           <RunHistory
             runs={runs}
