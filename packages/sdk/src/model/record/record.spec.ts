@@ -1,6 +1,7 @@
 import type { IFieldVo, IRecord } from '@teable/core';
-import { CellValueType, DbFieldType, FieldType } from '@teable/core';
+import { CellValueType, Colors, DbFieldType, FieldType } from '@teable/core';
 import { describe, expect, it } from 'vitest';
+import type { SingleSelectField } from '../field';
 import { createFieldInstance } from '../field/factory';
 import { createRecordInstance, recordInstanceFieldMap } from './factory';
 
@@ -73,14 +74,16 @@ describe('sdk Record cell value normalization', () => {
   });
 
   it('keeps displaying select values when realtime mutates field options', () => {
-    const field = createFieldInstance(createSelectField(FieldType.SingleSelect));
+    const field = createFieldInstance(
+      createSelectField(FieldType.SingleSelect)
+    ) as SingleSelectField;
 
     expect(field.displayChoiceMap.Open).toBeDefined();
 
     field.options.choices.push({
       id: 'optClosed00000001',
       name: 'Closed',
-      color: 'greenBright',
+      color: Colors.GreenBright,
     });
 
     const record = recordInstanceFieldMap(createRecordInstance(createRecord('Closed')), {

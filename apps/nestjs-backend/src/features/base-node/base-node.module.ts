@@ -7,6 +7,7 @@ import { FieldDuplicateModule } from '../field/field-duplicate/field-duplicate.m
 import { FieldOpenApiModule } from '../field/open-api/field-open-api.module';
 import { TableOpenApiModule } from '../table/open-api/table-open-api.module';
 import { TableModule } from '../table/table.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { BaseNodeController } from './base-node.controller';
 import { BaseNodeListener } from './base-node.listener';
 import { BaseNodeService } from './base-node.service';
@@ -22,6 +23,7 @@ import { BaseNodeFolderModule } from './folder/base-node-folder.module';
     TableModule,
     FieldOpenApiModule,
     FieldDuplicateModule,
+    WorkflowModule,
   ],
   controllers: [BaseNodeController],
   providers: [BaseNodePermissionGuard, BaseNodeService, BaseNodeListener],

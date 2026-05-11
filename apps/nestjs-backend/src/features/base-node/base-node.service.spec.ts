@@ -14,18 +14,21 @@ describe('BaseNodeService', () => {
   const tableId = 'tbl1';
   const tableName = 'Projects Copy';
   const tableIcon = '📋';
+  const workflowId = 'wfl1';
+  const workflowName = 'Workflow Copy';
 
   type IDuplicateResourceInvoker = {
     duplicateResource: (
       baseId: string,
       type: BaseNodeResourceType,
       id: string,
-      duplicateRo: { name: string; includeRecords: boolean }
+      duplicateRo: { name: string; includeRecords?: boolean }
     ) => Promise<{
       id: string;
       name: string;
       icon?: string;
       defaultViewId?: string;
+      isActive?: boolean;
     }>;
   };
 
@@ -169,6 +172,13 @@ describe('BaseNodeService', () => {
           defaultViewId: 'viwLegacy',
         }),
       };
+      const workflowService = {
+        duplicateWorkflow: vi.fn().mockResolvedValue({
+          id: 'wfl-copy',
+          name: workflowName,
+          isActive: false,
+        }),
+      };
       const routingService = new BaseNodeService(
         {} as never,
         {} as never,
@@ -184,13 +194,15 @@ describe('BaseNodeService', () => {
         {} as never,
         tableOpenApiV2Service as never,
         tableDuplicateService as never,
-        {} as never
+        {} as never,
+        workflowService as never
       );
 
       return {
         routingService,
         tableOpenApiV2Service,
         tableDuplicateService,
+        workflowService,
       };
     };
 
@@ -237,6 +249,26 @@ describe('BaseNodeService', () => {
         name: tableName,
         icon: tableIcon,
         defaultViewId: 'viwLegacy',
+      });
+    });
+
+    it('duplicates workflow resources through workflow service', async () => {
+      const { routingService, workflowService } = createDuplicateRoutingService(false);
+      const duplicateRo = { name: workflowName };
+
+      const result = await (
+        routingService as unknown as IDuplicateResourceInvoker
+      ).duplicateResource(baseId, BaseNodeResourceType.Workflow, workflowId, duplicateRo);
+
+      expect(workflowService.duplicateWorkflow).toHaveBeenCalledWith(
+        baseId,
+        workflowId,
+        duplicateRo
+      );
+      expect(result).toEqual({
+        id: 'wfl-copy',
+        name: workflowName,
+        isActive: false,
       });
     });
   });

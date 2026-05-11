@@ -405,7 +405,7 @@ export class RecordOpenApiController {
     @Param('fieldId') fieldId: string
   ): Promise<IButtonClickVo> {
     const result = await this.recordOpenApiService.buttonClick(tableId, recordId, fieldId);
-    return { ...result, runId: '' };
+    return result;
   }
 
   @Permissions('record|update')

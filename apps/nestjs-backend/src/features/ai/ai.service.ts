@@ -45,6 +45,7 @@ import type {
 import type { ImageModel, LanguageModel } from 'ai';
 import { createGateway, generateText, streamText } from 'ai';
 import axios from 'axios';
+import { difference } from 'lodash';
 import type { Response } from 'express';
 import { BaseConfig, IBaseConfig } from '../../configs/base.config';
 import { CustomHttpException } from '../../custom.exception';
@@ -85,7 +86,7 @@ type IExtractField = {
   isComputed?: boolean | null;
 };
 
-type ITextShowAsType = SingleLineTextDisplayType | null;
+type ITextShowAsType = SingleLineTextDisplayType | 'barcode' | 'qrcode' | null;
 
 type IAttachmentApplyValue = {
   keepAttachmentIds: string[];
@@ -155,11 +156,7 @@ export class AiService {
     if (action === 'update') {
       await this.permissionService.validPermissions(tableId, ['record|update']);
       const recordIds = body.payload.records.map((record) => record.id);
-      await this.recordService.assertRecordIdsInQueryScope(
-        tableId,
-        recordIds,
-        body.payload.aiContext
-      );
+      await this.assertRecordsExist(tableId, recordIds);
 
       const result = await this.recordOpenApiService.updateRecords(
         tableId,
@@ -176,11 +173,7 @@ export class AiService {
     }
 
     await this.permissionService.validPermissions(tableId, ['record|delete']);
-    await this.recordService.assertRecordIdsInQueryScope(
-      tableId,
-      body.payload.recordIds,
-      body.payload.aiContext
-    );
+    await this.assertRecordsExist(tableId, body.payload.recordIds);
     await this.recordOpenApiService.deleteRecords(tableId, body.payload.recordIds);
 
     return {
@@ -188,6 +181,30 @@ export class AiService {
       tableId,
       deletedRecordIds: body.payload.recordIds,
     };
+  }
+
+  private async assertRecordsExist(tableId: string, recordIds: string[]) {
+    if (!recordIds.length) {
+      return;
+    }
+
+    const records = await this.recordService.getRecords(
+      tableId,
+      {
+        selectedRecordIds: recordIds,
+        fieldKeyType: FieldKeyType.Id,
+        projection: [],
+      },
+      true
+    );
+    const existingIds = records.records.map((record) => record.id);
+    const missingIds = difference(recordIds, existingIds);
+    if (missingIds.length) {
+      throw new CustomHttpException(
+        `Some records cannot be found, ids: ${missingIds.join(',')}`,
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
   }
 
   private parseJsonString<T>(value?: string | null): T | undefined {
@@ -272,22 +289,24 @@ export class AiService {
   }
 
   private getTextShowAsType(field: IExtractField): ITextShowAsType {
-    if (
-      field.type !== FieldType.SingleLineText &&
-      field.type !== FieldType.Barcode &&
-      field.type !== FieldType.QRCode
-    ) {
+    if (field.type !== FieldType.SingleLineText) {
       return null;
     }
 
-    const options = this.parseJsonString<{ showAs?: { type?: SingleLineTextDisplayType } }>(
-      field.options
-    );
+    const options = this.parseJsonString<{
+      showAs?: { type?: SingleLineTextDisplayType | string };
+    }>(field.options);
     const showAsType = options?.showAs?.type;
 
-    return showAsType && Object.values(SingleLineTextDisplayType).includes(showAsType)
-      ? showAsType
-      : null;
+    if (showAsType === 'barcode' || showAsType === 'qrcode') {
+      return showAsType;
+    }
+
+    if (showAsType && Object.values(SingleLineTextDisplayType).includes(showAsType as never)) {
+      return showAsType as SingleLineTextDisplayType;
+    }
+
+    return null;
   }
 
   private getFieldFormatHint(field: IExtractField): string {
@@ -303,9 +322,9 @@ export class AiService {
         return ' Format: valid phone number only.';
       case SingleLineTextDisplayType.Url:
         return ' Format: absolute http or https URL only.';
-      case SingleLineTextDisplayType.Barcode:
+      case 'barcode':
         return ' Format: barcode content as plain text only.';
-      case SingleLineTextDisplayType.QRCode:
+      case 'qrcode':
         return ' Format: QR code content as plain text only.';
       default:
         return '';
@@ -400,8 +419,8 @@ export class AiService {
         } catch {
           return null;
         }
-      case SingleLineTextDisplayType.Barcode:
-      case SingleLineTextDisplayType.QRCode:
+      case 'barcode':
+      case 'qrcode':
         return normalized;
       default:
         return normalized;
@@ -623,8 +642,6 @@ export class AiService {
     let value: unknown;
     switch (field.type as IExtractSupportedFieldType) {
       case FieldType.SingleLineText:
-      case FieldType.Barcode:
-      case FieldType.QRCode:
         value = this.normalizeStructuredTextValue(rawValue, this.getTextShowAsType(field));
         break;
       case FieldType.LongText:
@@ -695,20 +712,7 @@ export class AiService {
       },
     });
 
-    const editableFields = fields
-      .filter((field) => !field.isComputed)
-      .map((field) => {
-        const options = this.parseJsonString<{ showAs?: { type?: string } }>(field.options);
-        if (field.type === FieldType.SingleLineText && options?.showAs?.type === 'barcode') {
-          return { ...field, type: FieldType.Barcode };
-        }
-
-        if (field.type === FieldType.SingleLineText && options?.showAs?.type === 'qrcode') {
-          return { ...field, type: FieldType.QRCode };
-        }
-
-        return field;
-      });
+    const editableFields = fields.filter((field) => !field.isComputed).map((field) => field);
     if (fieldIds?.length) {
       const orderedFields = fieldIds
         .map((fieldId) => editableFields.find((field) => field.id === fieldId))
@@ -988,6 +992,7 @@ export class AiService {
   async getViewContext(baseId: string, query: IAiViewContextQuery): Promise<IAiViewContextVo> {
     const { tableId, viewId, ignoreViewQuery, filter, orderBy, groupBy, search } = query;
     const sampleSize = query.sampleSize ?? 5;
+    const normalizedSearch = this.normalizeSearchQuery(search);
 
     await this.prismaService.tableMeta.findFirstOrThrow({
       where: {
@@ -1053,19 +1058,20 @@ export class AiService {
       filter,
       orderBy,
       groupBy,
-      search,
+      search: normalizedSearch,
     });
 
     const effectiveGroupBy = (groupBy ??
       (viewRaw?.group ? (JSON.parse(viewRaw.group) as IGroup) : undefined)) as IGroup | undefined;
 
-    const totalCount = await this.recordService.countRecordsByQuery(tableId, {
+    const totalRecords = await this.recordService.getRecords(tableId, {
       viewId,
       ignoreViewQuery,
       filter,
       orderBy,
       groupBy: effectiveGroupBy,
-      search,
+      search: normalizedSearch,
+      take: 1,
     });
 
     const sampleRecords = await this.recordService.getRecords(
@@ -1076,7 +1082,7 @@ export class AiService {
         filter,
         orderBy,
         groupBy: effectiveGroupBy,
-        search,
+        search: normalizedSearch,
         take: sampleSize,
         fieldKeyType: FieldKeyType.Id,
         projection: sampleFieldIds,
@@ -1088,7 +1094,7 @@ export class AiService {
       tableId,
       viewId,
       summary: {
-        totalCount,
+        totalCount: totalRecords.records.length,
         sampleSize,
         appliedViewQuery: Boolean(viewId) && !ignoreViewQuery,
       },
@@ -1107,11 +1113,19 @@ export class AiService {
         filter: effectiveQuery.filter,
         orderBy: effectiveQuery.orderBy,
         groupBy: effectiveGroupBy,
-        search,
+        search: normalizedSearch,
       },
       fields,
       sampleRecords: sampleRecords.records,
     };
+  }
+
+  private normalizeSearchQuery(search?: string[]) {
+    if (!search?.length) {
+      return undefined;
+    }
+
+    return search.slice(0, 3) as [string] | [string, string] | [string, string, boolean];
   }
 
   public parseModelKey(modelKey: string) {

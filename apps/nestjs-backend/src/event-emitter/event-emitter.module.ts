@@ -5,6 +5,7 @@ import { EventEmitterModule as BaseEventEmitterModule } from '@nestjs/event-emit
 import { AttachmentsTableModule } from '../features/attachments/attachments-table.module';
 import { NotificationModule } from '../features/notification/notification.module';
 import { RecordModule } from '../features/record/record.module';
+import { WorkflowModule } from '../features/workflow/workflow.module';
 import { ShareDbModule } from '../share-db/share-db.module';
 import { EventEmitterService } from './event-emitter.service';
 import { ActionTriggerListener } from './listeners/action-trigger.listener';
@@ -14,6 +15,7 @@ import { CollaboratorNotificationListener } from './listeners/collaborator-notif
 import { PinListener } from './listeners/pin.listener';
 import { RecordHistoryListener } from './listeners/record-history.listener';
 import { TrashListener } from './listeners/trash.listener';
+import { WorkflowRunListener } from './listeners/workflow-run.listener';
 
 export interface EventEmitterModuleOptions {
   global?: boolean;
@@ -33,7 +35,14 @@ export class EventEmitterModule extends EventEmitterModuleClass {
     });
 
     return {
-      imports: [module, ShareDbModule, NotificationModule, AttachmentsTableModule, RecordModule],
+      imports: [
+        module,
+        ShareDbModule,
+        NotificationModule,
+        AttachmentsTableModule,
+        RecordModule,
+        WorkflowModule,
+      ],
       module: EventEmitterModule,
       global,
       providers: [
@@ -44,6 +53,7 @@ export class EventEmitterModule extends EventEmitterModuleClass {
         BasePermissionUpdateListener,
         PinListener,
         RecordHistoryListener,
+        WorkflowRunListener,
         TrashListener,
       ],
       exports: [EventEmitterService],

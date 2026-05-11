@@ -13,6 +13,7 @@ import { TableDomainQueryModule } from '../../table-domain';
 import { V2Module } from '../../v2/v2.module';
 import { ViewOpenApiModule } from '../../view/open-api/view-open-api.module';
 import { ViewModule } from '../../view/view.module';
+import { WorkflowModule } from '../../workflow/workflow.module';
 import { RecordModifyModule } from '../record-modify/record-modify.module';
 import { RecordModule } from '../record.module';
 import { RecordOpenApiV2Service } from './record-open-api-v2.service';
@@ -36,6 +37,7 @@ import { RecordOpenApiService } from './record-open-api.service';
     TableDomainQueryModule,
     V2Module,
     CanaryModule,
+    WorkflowModule,
     forwardRef(() => SelectionModule),
   ],
   controllers: [RecordOpenApiController],
