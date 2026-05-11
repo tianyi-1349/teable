@@ -38,19 +38,18 @@ export class BaseShareOpenController {
   @UseGuards(BaseShareAuthLocalGuard)
   @Post('/:shareId/base/auth')
   async auth(
-    @Request() req: Express.Request & { shareId: string; password: string },
+    @Request() req: Express.Request & { shareId: string },
     @Res({ passthrough: true }) res: Response
   ): Promise<IBaseShareAuthVo> {
     const shareId = req.shareId;
-    const password = req.password;
-    const token = await this.baseShareAuthService.authToken({ shareId, password });
+    const token = await this.baseShareAuthService.authToken({ shareId, authenticated: true });
     res.cookie(shareId, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
-    return { token };
+    return { success: true };
   }
 
   @Public()

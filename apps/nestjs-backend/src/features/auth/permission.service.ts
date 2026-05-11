@@ -580,20 +580,14 @@ export class PermissionService {
 
   async validateBaseSharePasswordToken(shareId: string, token: string) {
     try {
-      const payload = await this.jwtService.verifyAsync<{ shareId: string; password: string }>(
-        token
-      );
-      if (payload.shareId !== shareId) {
+      const payload = await this.jwtService.verifyAsync<{
+        shareId: string;
+        authenticated: boolean;
+      }>(token);
+      if (payload.shareId !== shareId || !payload.authenticated) {
         return false;
       }
-      const baseShare = await this.prismaService.baseShare.findFirst({
-        where: { shareId, enabled: true },
-        select: { password: true },
-      });
-      if (!baseShare?.password) {
-        return false;
-      }
-      return payload.password === baseShare.password;
+      return true;
     } catch {
       return false;
     }

@@ -13,17 +13,28 @@ const getCookieSecure = (value: string | undefined) => {
   return value === 'true';
 };
 
+const requireEnv = (env: string | undefined, name: string): string => {
+  if (!env) {
+    throw new Error(
+      `Security: required environment variable ${name} is not set. Refusing to start with insecure defaults.`
+    );
+  }
+  return env;
+};
+
 export const authConfig = registerAs('auth', () => ({
   jwt: {
-    secret:
-      process.env.BACKEND_JWT_SECRET ?? process.env.SECRET_KEY ?? '533Cr3tK3yF0rH4sh1nGJ4W773k3n$',
+    secret: requireEnv(
+      process.env.BACKEND_JWT_SECRET ?? process.env.SECRET_KEY,
+      'BACKEND_JWT_SECRET or SECRET_KEY'
+    ),
     expiresIn: process.env.BACKEND_JWT_EXPIRES_IN ?? '20d',
   },
   session: {
-    secret:
-      process.env.BACKEND_SESSION_SECRET ??
-      process.env.SECRET_KEY ??
-      'dafea6be69af1c1c3b8caf2b609342f6eb4540b554e19539f7643b75b480c932',
+    secret: requireEnv(
+      process.env.BACKEND_SESSION_SECRET ?? process.env.SECRET_KEY,
+      'BACKEND_SESSION_SECRET or SECRET_KEY'
+    ),
     expiresIn: process.env.BACKEND_SESSION_EXPIRES_IN ?? '7d',
     cookie: {
       secure: getCookieSecure(process.env.BACKEND_SESSION_COOKIE_SECURE),
@@ -33,8 +44,14 @@ export const authConfig = registerAs('auth', () => ({
     prefix: 'teable',
     encryption: {
       algorithm: process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_ALGORITHM ?? 'aes-128-cbc',
-      key: process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY ?? 'ie21hOKjlXUiGDx9',
-      iv: process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_IV ?? 'i0vKGXBWkzyAoGf4',
+      key: requireEnv(
+        process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY ?? process.env.SECRET_KEY,
+        'BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY or SECRET_KEY'
+      ),
+      iv: requireEnv(
+        process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_IV ?? process.env.SECRET_KEY,
+        'BACKEND_ACCESS_TOKEN_ENCRYPTION_IV or SECRET_KEY'
+      ),
     },
   },
   resetPasswordEmailExpiresIn:

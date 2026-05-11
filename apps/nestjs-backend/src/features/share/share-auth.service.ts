@@ -20,7 +20,7 @@ export interface IShareViewInfo {
 
 export interface IJwtShareInfo {
   shareId: string;
-  password: string;
+  authenticated: boolean;
 }
 
 @Injectable()

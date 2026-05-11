@@ -7,7 +7,13 @@ export const baseConfig = registerAs('base', () => ({
   isCloud: process.env.NEXT_BUILD_ENV_EDITION?.toUpperCase() === 'CLOUD',
   publicOrigin: process.env.PUBLIC_ORIGIN,
   storagePrefix: process.env.STORAGE_PREFIX ?? process.env.PUBLIC_ORIGIN,
-  secretKey: process.env.SECRET_KEY ?? 'defaultSecretKey',
+  secretKey:
+    process.env.SECRET_KEY ??
+    (() => {
+      throw new Error(
+        'Security: required environment variable SECRET_KEY is not set. Refusing to start with insecure defaults.'
+      );
+    })(),
   publicDatabaseProxy: process.env.PUBLIC_DATABASE_PROXY,
   defaultMaxBaseDBConnections: Number(process.env.DEFAULT_MAX_BASE_DB_CONNECTIONS ?? 20),
   templateSpaceId: process.env.TEMPLATE_SPACE_ID,

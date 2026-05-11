@@ -5,7 +5,10 @@ import { CustomHttpException } from '../../custom.exception';
 
 export const validateRoleOperations = (sql: string) => {
   const removeQuotedContent = (sql: string) => {
-    return sql.replace(/'[^']*'|"[^"]*"/g, ' ');
+    let result = sql.replace(/\$\$.*?\$\$/gs, ' ');
+    result = result.replace(/'[^']*'|"[^"]*"/g, ' ');
+    result = result.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    return result;
   };
 
   const normalizedSql = sql.toLowerCase().replace(/\s+/g, ' ');

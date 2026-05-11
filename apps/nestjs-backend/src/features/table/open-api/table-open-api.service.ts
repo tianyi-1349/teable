@@ -45,6 +45,7 @@ import { EventEmitterService } from '../../../event-emitter/event-emitter.servic
 import { Events } from '../../../event-emitter/events';
 import { RawOpType } from '../../../share-db/interface';
 import type { IClsStore } from '../../../types/cls';
+import { validateRoleOperations } from '../../base-sql-executor/utils';
 import { updateOrder } from '../../../utils/update-order';
 import { PermissionService } from '../../auth/permission.service';
 import { BatchService } from '../../calculation/batch.service';
@@ -543,7 +544,8 @@ export class TableOpenApiService {
   }
 
   async sqlQuery(tableId: string, viewId: string, sql: string) {
-    this.logger.log('sqlQuery:sql: ' + sql);
+    validateRoleOperations(sql);
+    this.logger.log(`sqlQuery: tableId=${tableId}, viewId=${viewId}`);
     const { queryBuilder } = await this.recordService.buildFilterSortQuery(
       tableId,
       {
@@ -562,7 +564,6 @@ export class TableOpenApiService {
       WITH base AS (${baseQuery})
       ${sql.replace(dbTableName, 'base')};
     `;
-    this.logger.log('sqlQuery:sql:combine: ' + combinedQuery);
 
     return this.prismaService.$queryRawUnsafe(combinedQuery);
   }

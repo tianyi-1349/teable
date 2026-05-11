@@ -30,11 +30,10 @@ export class BaseShareJwtStrategy extends PassportStrategy(Strategy, BASE_SHARE_
   }
 
   async validate(payload: IJwtBaseShareInfo) {
-    const { shareId, password } = payload;
-    const authShareId = await this.baseShareAuthService.authBaseShare(shareId, password);
-    if (!authShareId) {
+    const { shareId, authenticated } = payload;
+    if (!authenticated) {
       throw new UnauthorizedException();
     }
-    return authShareId;
+    return shareId;
   }
 }
