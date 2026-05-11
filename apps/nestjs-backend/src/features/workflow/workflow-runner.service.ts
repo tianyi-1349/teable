@@ -8,6 +8,8 @@ interface IWorkflowSnapshotNode {
   id: string;
   nodeType: string;
   kind: string;
+  parentNodeId?: string | null;
+  nextNodeId?: string | null;
   config?: unknown;
 }
 
@@ -42,6 +44,29 @@ function getAiGenerateConfig(config: unknown): { prompt: string; modelKey?: stri
   };
 }
 
+function sortActionsByChain(actions: IWorkflowSnapshotNode[]) {
+  const actionMap = new Map(actions.map((action) => [action.id, action]));
+  const firstAction = actions.find(
+    (action) => !action.parentNodeId || !actionMap.has(action.parentNodeId)
+  );
+  if (!firstAction) {
+    return actions;
+  }
+
+  const sorted: IWorkflowSnapshotNode[] = [];
+  const visited = new Set<string>();
+  let current: IWorkflowSnapshotNode | undefined = firstAction;
+
+  while (current && !visited.has(current.id)) {
+    sorted.push(current);
+    visited.add(current.id);
+    current = current.nextNodeId ? actionMap.get(current.nextNodeId) : undefined;
+  }
+
+  const remaining = actions.filter((action) => !visited.has(action.id));
+  return [...sorted, ...remaining];
+}
+
 @Injectable()
 export class WorkflowRunnerService {
   constructor(
@@ -63,7 +88,9 @@ export class WorkflowRunnerService {
     const startedTime = new Date();
     const snapshot = (run.snapshot?.snapshot ?? {}) as Partial<IWorkflowSnapshot>;
     const baseId = snapshot.baseId ?? run.workflow.baseId;
-    const actions = (snapshot.nodes ?? []).filter((node) => node.nodeType === 'action');
+    const actions = sortActionsByChain(
+      (snapshot.nodes ?? []).filter((node) => node.nodeType === 'action')
+    );
 
     await this.prismaService.workflowRun.update({
       where: { id: runId },

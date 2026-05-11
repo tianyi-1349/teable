@@ -99,6 +99,59 @@ describe('WorkflowRunnerService', () => {
     });
   });
 
+  it('executes actions by parent and next node chain order', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { count: 0 },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-second',
+              nodeType: 'action',
+              kind: 'runScript',
+              parentNodeId: 'wa-first',
+              config: { script: 'return second;' },
+            },
+            {
+              id: 'wa-first',
+              nodeType: 'action',
+              kind: 'runScript',
+              nextNodeId: 'wa-second',
+              config: { script: 'return first;' },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create
+      .mockResolvedValueOnce({ id: 'step-first', startedTime })
+      .mockResolvedValueOnce({ id: 'step-second', startedTime });
+    scriptRuntimeService.execute
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 2 });
+
+    await service.executeWorkflowRun(runId);
+
+    expect(scriptRuntimeService.execute).toHaveBeenNthCalledWith(1, 'return first;', {
+      baseId,
+      input: { count: 0 },
+    });
+    expect(scriptRuntimeService.execute).toHaveBeenNthCalledWith(2, 'return second;', {
+      baseId,
+      input: { count: 1 },
+    });
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { count: 2 },
+      }),
+    });
+  });
+
   it('marks run failed when a script action fails', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
