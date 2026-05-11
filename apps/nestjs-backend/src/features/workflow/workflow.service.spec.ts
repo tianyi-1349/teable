@@ -25,6 +25,7 @@ describe('WorkflowService', () => {
     workflowNode: {
       create: vi.fn(),
       createMany: vi.fn(),
+      deleteMany: vi.fn(),
       update: vi.fn(),
       upsert: vi.fn(),
     },
@@ -181,6 +182,12 @@ describe('WorkflowService', () => {
         config: { script: 'return { ok: true };' },
         lastModifiedBy: userId,
       }),
+    });
+    expect(prismaService.workflowNode.deleteMany).toHaveBeenCalledWith({
+      where: {
+        workflowId,
+        id: { notIn: ['wa123'] },
+      },
     });
     expect(prismaService.workflow.update).toHaveBeenCalledWith(
       expect.objectContaining({

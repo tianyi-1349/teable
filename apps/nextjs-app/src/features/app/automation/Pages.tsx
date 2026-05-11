@@ -114,6 +114,25 @@ const appendActionNode = (
   ];
 };
 
+const removeActionNode = (workflow: IWorkflowDetailVo, nodeId: string): IWorkflowNode[] => {
+  const nodeToRemove = workflow.nodes.find((node) => node.id === nodeId);
+  if (!nodeToRemove || nodeToRemove.nodeType !== 'action') {
+    return workflow.nodes;
+  }
+
+  return workflow.nodes
+    .filter((node) => node.id !== nodeId)
+    .map((node) => {
+      if (node.id === nodeToRemove.parentNodeId) {
+        return { ...node, nextNodeId: nodeToRemove.nextNodeId };
+      }
+      if (node.id === nodeToRemove.nextNodeId) {
+        return { ...node, parentNodeId: nodeToRemove.parentNodeId };
+      }
+      return node;
+    });
+};
+
 const formatJson = (value: unknown): string => {
   if (value == null) {
     return 'None';
@@ -271,6 +290,7 @@ interface IWorkflowDetailProps {
   isSavingAiPrompt: boolean;
   isSavingRecordTrigger: boolean;
   isAddingAction: boolean;
+  isRemovingAction: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
@@ -284,6 +304,7 @@ interface IWorkflowDetailProps {
   onRecordTriggerTableIdDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
   onAddAction: (kind: 'runScript' | 'aiGenerate') => void;
+  onRemoveAction: (nodeId: string) => void;
 }
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
@@ -306,6 +327,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     isSavingAiPrompt,
     isSavingRecordTrigger,
     isAddingAction,
+    isRemovingAction,
     onToggleActive,
     onDelete,
     onTestRun,
@@ -319,6 +341,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onRecordTriggerTableIdDraftChange,
     onSaveRecordTrigger,
     onAddAction,
+    onRemoveAction,
   } = props;
   const hasRunScript = Boolean(
     scriptPreview || workflow?.nodes.some((node) => node.kind === 'runScript')
@@ -441,7 +464,19 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <div key={node.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-medium">{node.kind}</div>
-                    <Badge variant="outline">{node.nodeType}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{node.nodeType}</Badge>
+                      {node.nodeType === 'action' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isRemovingAction}
+                          onClick={() => onRemoveAction(node.id)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
                     <div>id: {node.id}</div>
@@ -924,6 +959,18 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const removeActionMutation = useMutation({
+    mutationFn: async (nodeId: string) => {
+      if (!workflow) return undefined;
+      return updateWorkflow(baseId, workflow.id, { nodes: removeActionNode(workflow, nodeId) });
+    },
+    onSuccess: async (result) => {
+      if (!result?.data) return;
+      toast.success('Workflow action removed');
+      await refreshWorkflow(result.data.id);
+    },
+  });
+
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
     setSelectedRunId(undefined);
@@ -1006,6 +1053,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             isSavingAiPrompt={saveAiPromptMutation.isPending}
             isSavingRecordTrigger={saveRecordTriggerMutation.isPending}
             isAddingAction={addActionMutation.isPending}
+            isRemovingAction={removeActionMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
@@ -1019,6 +1067,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onRecordTriggerTableIdDraftChange={setRecordTriggerTableIdDraft}
             onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
             onAddAction={(kind) => addActionMutation.mutate(kind)}
+            onRemoveAction={(nodeId) => removeActionMutation.mutate(nodeId)}
           />
           <RunHistory
             runs={runs}

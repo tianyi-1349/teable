@@ -408,6 +408,13 @@ export class WorkflowService {
 
     return this.prismaService.$tx(async (prisma) => {
       if (ro.nodes) {
+        const nextNodeIds = ro.nodes.map((node) => node.id);
+        await prisma.workflowNode.deleteMany({
+          where: {
+            workflowId: workflow.id,
+            id: { notIn: nextNodeIds },
+          },
+        });
         await Promise.all(
           ro.nodes.map((node) =>
             prisma.workflowNode.upsert({
