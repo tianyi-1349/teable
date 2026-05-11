@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { IWorkflowDetailVo, IWorkflowVo } from '@teable/openapi';
+import type { IWorkflowDetailVo, IWorkflowRunDetailVo, IWorkflowVo } from '@teable/openapi';
 import {
   activateWorkflow,
   aiCreateWorkflowDraft,
@@ -8,6 +8,7 @@ import {
   deleteWorkflow,
   getWorkflow,
   getWorkflowList,
+  getWorkflowRun,
   getWorkflowRunList,
   testRunWorkflow,
 } from '@teable/openapi';
@@ -40,6 +41,8 @@ interface IAutomationPageProps {
 const workflowListQueryKey = (baseId: string) => ['workflow-list', baseId] as const;
 const workflowRunListQueryKey = (baseId: string, workflowId: string) =>
   ['workflow-run-list', baseId, workflowId] as const;
+const workflowRunDetailQueryKey = (baseId: string, workflowId: string, runId: string) =>
+  ['workflow-run-detail', baseId, workflowId, runId] as const;
 
 const getStatusTone = (status: string) => {
   if (status === 'completed') return 'text-emerald-600';
@@ -54,6 +57,17 @@ const getScriptPreview = (workflow?: IWorkflowDetailVo) => {
   );
   const config = runScriptNode?.config as { script?: string; code?: string } | undefined;
   return config?.script ?? config?.code ?? '';
+};
+
+const formatJson = (value: unknown): string => {
+  if (value == null) {
+    return 'None';
+  }
+  try {
+    return JSON.stringify(value, null, 2) ?? 'None';
+  } catch {
+    return String(value);
+  }
 };
 
 interface IWorkflowSidebarProps {
@@ -300,9 +314,12 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
 
 interface IRunHistoryProps {
   runs: Array<{ id: string; status: string; durationMs?: number | null }>;
+  selectedRunId?: string;
+  runDetail?: IWorkflowRunDetailVo;
+  onSelectRun: (runId: string) => void;
 }
 
-const RunHistory = ({ runs }: IRunHistoryProps) => {
+const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistoryProps) => {
   return (
     <Card className="min-h-0 overflow-hidden">
       <CardHeader>
@@ -310,17 +327,70 @@ const RunHistory = ({ runs }: IRunHistoryProps) => {
       </CardHeader>
       <CardContent className="space-y-2 overflow-auto">
         {runs.map((run) => (
-          <div key={run.id} className="rounded-lg border p-3 text-sm">
+          <button
+            key={run.id}
+            className={cn(
+              'w-full rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted/50',
+              selectedRunId === run.id && 'border-primary bg-primary/5'
+            )}
+            onClick={() => onSelectRun(run.id)}
+          >
             <div className="flex items-center justify-between gap-2">
               <span className={cn('font-medium', getStatusTone(run.status))}>{run.status}</span>
               <span className="text-xs text-muted-foreground">{run.durationMs ?? 0} ms</span>
             </div>
             <div className="mt-2 truncate text-xs text-muted-foreground">{run.id}</div>
-          </div>
+          </button>
         ))}
         {!runs.length && (
           <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
             No runs yet. Activate a workflow and click its linked button field to run it.
+          </div>
+        )}
+        {runDetail && (
+          <div className="space-y-3 rounded-lg border bg-muted/20 p-3 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-medium">Run detail</div>
+              <Badge variant="outline">{runDetail.steps.length} steps</Badge>
+            </div>
+            <div className="grid gap-2 text-xs text-muted-foreground">
+              <div>trigger: {runDetail.triggerType}</div>
+              <div>snapshot: {runDetail.snapshotId ?? 'none'}</div>
+              {runDetail.error != null && (
+                <div className="text-destructive">error: {formatJson(runDetail.error)}</div>
+              )}
+            </div>
+            {runDetail.steps.map((step) => (
+              <div key={step.id} className="space-y-2 rounded-md border bg-background p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn('font-medium', getStatusTone(step.status))}>
+                    {step.status}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{step.durationMs ?? 0} ms</span>
+                </div>
+                <div className="truncate text-xs text-muted-foreground">node: {step.nodeId}</div>
+                <div className="space-y-1">
+                  <div className="text-xs font-medium">Input</div>
+                  <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 text-xs">
+                    {formatJson(step.input)}
+                  </pre>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs font-medium">Output</div>
+                  <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 text-xs">
+                    {formatJson(step.output)}
+                  </pre>
+                </div>
+                {step.error != null && (
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-destructive">Error</div>
+                    <pre className="max-h-40 overflow-auto rounded border bg-destructive/10 p-2 text-xs text-destructive">
+                      {formatJson(step.error)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
@@ -338,6 +408,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const isReadOnlyPreview = useIsReadOnlyPreview();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | undefined>(selectedWorkflowId);
+  const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [draftPrompt, setDraftPrompt] = useState(
     'When the button is clicked, inspect the record and return a short summary.'
   );
@@ -376,6 +447,21 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   });
 
   useEffect(() => {
+    if (!runs.some((run) => run.id === selectedRunId)) {
+      setSelectedRunId(runs[0]?.id);
+    }
+  }, [runs, selectedRunId]);
+
+  const { data: runDetail } = useQuery({
+    queryKey:
+      selectedId && selectedRunId
+        ? workflowRunDetailQueryKey(baseId, selectedId, selectedRunId)
+        : ['workflow-run-detail-disabled', baseId],
+    queryFn: () => getWorkflowRun(baseId, selectedId!, selectedRunId!).then(({ data }) => data),
+    enabled: Boolean(baseId && selectedId && selectedRunId) && !isReadOnlyPreview,
+  });
+
+  useEffect(() => {
     props.onWorkflowChange?.(workflow);
   }, [props, workflow]);
 
@@ -388,6 +474,11 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       await queryClient.invalidateQueries({
         queryKey: workflowRunListQueryKey(baseId, workflowId),
       });
+      if (selectedRunId) {
+        await queryClient.invalidateQueries({
+          queryKey: workflowRunDetailQueryKey(baseId, workflowId, selectedRunId),
+        });
+      }
     }
   };
 
@@ -493,6 +584,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
 
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
+    setSelectedRunId(undefined);
   };
 
   const handleToggleActive = () => {
@@ -566,7 +658,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
           />
-          <RunHistory runs={runs} />
+          <RunHistory
+            runs={runs}
+            selectedRunId={selectedRunId}
+            runDetail={runDetail}
+            onSelectRun={setSelectedRunId}
+          />
         </div>
       </div>
     </div>
