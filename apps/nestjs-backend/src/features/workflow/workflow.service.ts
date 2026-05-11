@@ -395,21 +395,47 @@ export class WorkflowService {
     workflowId: string,
     ro: IUpdateWorkflowRo
   ): Promise<IWorkflowVo> {
-    return this.prismaService.workflow
-      .update({
+    const workflow = await this.prismaService.workflow
+      .findFirstOrThrow({
         where: { id: workflowId, baseId, deletedTime: null },
-        data: {
-          ...(ro.name !== undefined && { name: ro.name }),
-          ...(ro.description !== undefined && { description: ro.description }),
-          lastModifiedBy: this.userId,
-        },
-        select: this.selectWorkflow(),
+        select: { id: true },
       })
       .catch(() => {
         throw new CustomHttpException('Workflow not found', HttpErrorCode.NOT_FOUND, {
           localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
         });
       });
+
+    return this.prismaService.$tx(async (prisma) => {
+      if (ro.nodes) {
+        await Promise.all(
+          ro.nodes.map((node) =>
+            prisma.workflowNode.update({
+              where: { id: node.id, workflowId: workflow.id },
+              data: {
+                nodeType: node.nodeType,
+                kind: node.kind,
+                parentNodeId: node.parentNodeId,
+                nextNodeId: node.nextNodeId,
+                branchKey: node.branchKey,
+                config: node.config as Prisma.InputJsonValue,
+                lastModifiedBy: this.userId,
+              },
+            })
+          )
+        );
+      }
+
+      return prisma.workflow.update({
+        where: { id: workflowId },
+        data: {
+          ...(ro.name !== undefined && { name: ro.name }),
+          ...(ro.description !== undefined && { description: ro.description }),
+          lastModifiedBy: this.userId,
+        },
+        select: this.selectWorkflow(),
+      });
+    });
   }
 
   async deleteWorkflow(baseId: string, workflowId: string, permanent = false): Promise<void> {

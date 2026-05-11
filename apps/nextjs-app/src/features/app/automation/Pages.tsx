@@ -11,6 +11,7 @@ import {
   getWorkflowRun,
   getWorkflowRunList,
   testRunWorkflow,
+  updateWorkflow,
 } from '@teable/openapi';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import { useBaseId, useIsReadOnlyPreview } from '@teable/sdk/hooks';
@@ -200,27 +201,38 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
 interface IWorkflowDetailProps {
   workflow?: IWorkflowDetailVo;
   scriptPreview: string;
+  scriptDraft: string;
   isActivating: boolean;
   isDeactivating: boolean;
   isDeleting: boolean;
   isTesting: boolean;
+  isSavingScript: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
+  onScriptDraftChange: (value: string) => void;
+  onSaveScript: () => void;
 }
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
   const {
     workflow,
     scriptPreview,
+    scriptDraft,
     isActivating,
     isDeactivating,
     isDeleting,
     isTesting,
+    isSavingScript,
     onToggleActive,
     onDelete,
     onTestRun,
+    onScriptDraftChange,
+    onSaveScript,
   } = props;
+  const hasRunScript = Boolean(
+    scriptPreview || workflow?.nodes.some((node) => node.kind === 'runScript')
+  );
 
   return (
     <Card className="min-h-0 overflow-hidden">
@@ -296,10 +308,23 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
               ))}
             </div>
             <div className="space-y-2">
-              <div className="text-sm font-medium">Run Script preview</div>
-              <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 text-xs">
-                {scriptPreview || 'No runScript action configured.'}
-              </pre>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">Run Script draft</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!hasRunScript || isSavingScript}
+                  onClick={onSaveScript}
+                >
+                  Save script
+                </Button>
+              </div>
+              <Textarea
+                value={hasRunScript ? scriptDraft : 'No runScript action configured.'}
+                disabled={!hasRunScript}
+                onChange={(event) => onScriptDraftChange(event.target.value)}
+                className="min-h-80 resize-none font-mono text-xs"
+              />
             </div>
           </>
         ) : (
@@ -413,6 +438,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     'When the button is clicked, inspect the record and return a short summary.'
   );
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
+  const [scriptDraft, setScriptDraft] = useState('');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -437,6 +463,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     queryFn: () => getWorkflow(baseId, selectedId!).then(({ data }) => data),
     enabled: Boolean(baseId && selectedId) && !isReadOnlyPreview,
   });
+
+  const scriptPreview = getScriptPreview(workflow);
+
+  useEffect(() => {
+    setScriptDraft(scriptPreview);
+  }, [scriptPreview]);
 
   const { data: runs = [] } = useQuery({
     queryKey: selectedId
@@ -582,6 +614,31 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const saveScriptMutation = useMutation({
+    mutationFn: async () => {
+      if (!workflow) return undefined;
+      const nodes = workflow.nodes.map((node) => {
+        if (node.nodeType !== 'action' || node.kind !== 'runScript') {
+          return node;
+        }
+        const config = (node.config ?? {}) as Record<string, unknown>;
+        return {
+          ...node,
+          config: {
+            ...config,
+            script: scriptDraft,
+          },
+        };
+      });
+      return updateWorkflow(baseId, workflow.id, { nodes });
+    },
+    onSuccess: async (result) => {
+      if (!result?.data) return;
+      toast.success('Run Script draft saved');
+      await refreshWorkflow(result.data.id);
+    },
+  });
+
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
     setSelectedRunId(undefined);
@@ -595,8 +652,6 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       activateMutation.mutate(workflow.id);
     }
   };
-
-  const scriptPreview = getScriptPreview(workflow);
 
   if (isReadOnlyPreview) {
     return (
@@ -650,13 +705,17 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           <WorkflowDetail
             workflow={workflow}
             scriptPreview={scriptPreview}
+            scriptDraft={scriptDraft}
             isActivating={activateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
             isTesting={testRunMutation.isPending}
+            isSavingScript={saveScriptMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
+            onScriptDraftChange={setScriptDraft}
+            onSaveScript={() => saveScriptMutation.mutate()}
           />
           <RunHistory
             runs={runs}

@@ -101,6 +101,19 @@ export type IWorkflowRo = z.infer<typeof workflowRoSchema>;
 export const updateWorkflowRoSchema = z.object({
   name: z.string().trim().min(1).optional(),
   description: z.string().trim().nullable().optional(),
+  nodes: z
+    .array(
+      z.object({
+        id: z.string(),
+        nodeType: workflowNodeTypeSchema,
+        kind: z.string(),
+        parentNodeId: z.string().nullable().optional(),
+        nextNodeId: z.string().nullable().optional(),
+        branchKey: z.string().nullable().optional(),
+        config: z.unknown().optional(),
+      })
+    )
+    .optional(),
 });
 
 export type IUpdateWorkflowRo = z.infer<typeof updateWorkflowRoSchema>;
