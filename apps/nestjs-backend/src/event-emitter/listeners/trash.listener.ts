@@ -75,12 +75,18 @@ export class TrashListener {
       case Events.APP_DELETE: {
         resourceId = payload.appId;
         resourceType = ResourceType.App;
-        const app = await this.prismaService.app.findUnique({
-          where: { id: resourceId },
-          select: { id: true, baseId: true, deletedTime: true },
+        const appNode = await this.prismaService.baseNode.findUnique({
+          where: {
+            baseId_resourceType_resourceId: {
+              baseId: payload.baseId,
+              resourceType: ResourceType.App,
+              resourceId,
+            },
+          },
+          select: { id: true, baseId: true },
         });
-        deletedTime = app?.deletedTime;
-        parentId = app?.baseId;
+        deletedTime = new Date();
+        parentId = appNode?.baseId ?? payload.baseId;
         break;
       }
       case Events.WORKFLOW_DELETE: {

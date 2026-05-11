@@ -236,7 +236,7 @@ describe('Computed Orchestrator (e2e)', () => {
     events: any[],
     tableId: string,
     recordId: string
-  ): FieldChangeMap | undefined => {
+  ): FieldChangeMap => {
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index];
       if (!event?.payload || event.payload.tableId !== tableId) continue;
@@ -249,7 +249,7 @@ describe('Computed Orchestrator (e2e)', () => {
         }
       }
     }
-    return undefined;
+    return {};
   };
 
   // ===== Formula related =====

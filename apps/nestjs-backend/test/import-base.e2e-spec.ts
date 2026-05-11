@@ -48,6 +48,7 @@ import { Events } from '../src/event-emitter/events';
 import { AttachmentsService } from '../src/features/attachments/attachments.service';
 import { IntegrityV2Service } from '../src/features/integrity/integrity-v2.service';
 import { replaceStringByMap } from '../src/features/base/utils';
+import type { IClsStore } from '../src/types/cls';
 import { x_20 } from './data-helpers/20x';
 import { x_20_link, x_20_link_from_lookups } from './data-helpers/20x-link';
 import { createAwaitWithEventWithResult } from './utils/event-promise';
@@ -969,8 +970,11 @@ describe('OpenAPI BaseController for base import (e2e)', () => {
 
       const integrityV2Service = app.get(IntegrityV2Service);
       const integrityResults: IV2SchemaIntegrityCheckResult[] = [];
-      const integrityClsService = app.get(ClsService);
+      const integrityClsService = app.get(ClsService) as ClsService<IClsStore>;
       await runWithTestUser(integrityClsService, async () => {
+        if (!importedCanaryBaseId) {
+          throw new Error('Imported canary base id is missing');
+        }
         const integrityStream = await integrityV2Service.createBaseCheckStream(
           importedCanaryBaseId,
           ['warn', 'error']

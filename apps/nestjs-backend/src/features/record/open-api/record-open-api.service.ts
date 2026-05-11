@@ -45,6 +45,11 @@ import type { IRecordInnerRo } from '../record.service';
 import { RecordService } from '../record.service';
 import type { IUpdateRecordsInternalRo } from '../type';
 
+export interface IUpdateRecordsResult {
+  records: IRecord[];
+  cellContexts: import('../../calculation/utils/changes').ICellContext[];
+}
+
 @Injectable()
 export class RecordOpenApiService {
   private static readonly logger = new Logger(RecordOpenApiService.name);
@@ -135,12 +140,13 @@ export class RecordOpenApiService {
     updateRecordsRo: IUpdateRecordsRo,
     windowId?: string,
     isAiInternal?: string
-  ) {
+  ): Promise<IUpdateRecordsResult> {
     const res = await this.recordModifyService.updateRecords(
       tableId,
       updateRecordsRo as IUpdateRecordsInternalRo,
       windowId
     );
+    const result = Array.isArray(res) ? { records: [], cellContexts: res } : res;
 
     const appId = this.cls.get('appId');
     if (appId) {
@@ -161,7 +167,7 @@ export class RecordOpenApiService {
       );
     }
 
-    return res;
+    return result;
   }
 
   async simpleUpdateRecords(tableId: string, updateRecordsRo: IUpdateRecordsRo) {

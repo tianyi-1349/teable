@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import type { INestApplication } from '@nestjs/common';
-import type { ILinkFieldOptions, ITableFullVo } from '@teable/core';
+import type { ILinkFieldOptions } from '@teable/core';
 import { FieldKeyType, FieldType, Relationship, getRandomString } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
+import type { ITableFullVo } from '@teable/openapi';
 import type { Knex } from 'knex';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -84,7 +85,7 @@ describe('link id-only payload title regression (e2e)', () => {
     }
 
     const launchId = launchesTable.records[0].id;
-    const releaseIds = releasesTable.records.map((record) => record.id);
+    const releaseIds = releasesTable.records.map((record: { id: string }) => record.id);
 
     const updateResult = await updateRecord(launchesTable.id, launchId, {
       typecast: true,

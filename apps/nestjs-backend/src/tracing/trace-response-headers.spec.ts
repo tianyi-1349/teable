@@ -11,7 +11,7 @@ const { getActiveSpan } = vi.hoisted(() => ({
 }));
 
 vi.mock('@opentelemetry/api', async () => {
-  const actual = await vi.importActual('@opentelemetry/api');
+  const actual = await vi.importActual<typeof import('@opentelemetry/api')>('@opentelemetry/api');
   return {
     ...actual,
     trace: {

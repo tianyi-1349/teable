@@ -208,14 +208,13 @@ export class RecordOpenApiController {
       return await this.recordOpenApiV2Service.updateRecords(tableId, updateRecordsRo);
     }
 
-    return (
-      await this.recordOpenApiService.updateRecords(
-        tableId,
-        updateRecordsRo,
-        windowId,
-        isAiInternal
-      )
-    ).records;
+    const result = await this.recordOpenApiService.updateRecords(
+      tableId,
+      updateRecordsRo,
+      windowId,
+      isAiInternal
+    );
+    return result.records;
   }
 
   @UseV2Feature('createRecord')

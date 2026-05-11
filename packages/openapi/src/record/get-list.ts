@@ -182,6 +182,9 @@ export const contentQueryBaseSchema = queryBaseSchema.extend({
     example: 'qry_xxxxxxxx',
     description: 'When provided, other query parameters will be merged with the saved ones.',
   }),
+  type: z.string().optional().meta({
+    description: 'Legacy range/comment query type used by selection-adjacent APIs.',
+  }),
 });
 
 export const getRecordsRoSchema = getRecordQuerySchema.extend(contentQueryBaseSchema.shape).extend({
