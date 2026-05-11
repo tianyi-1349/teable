@@ -23,6 +23,12 @@ import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
 import { WorkflowAiService } from './workflow-ai.service';
 
+type IRecordTriggerType = 'recordCreated' | 'recordUpdated';
+
+type IRecordTriggerConfig = {
+  tableId?: string;
+};
+
 const WORKFLOW_NOT_FOUND_LOCALIZATION = {
   i18nKey: 'httpErrors.baseNode.notFound',
 } as const;
@@ -191,17 +197,37 @@ export class WorkflowService {
         select: this.selectWorkflow(),
       });
 
-      if (ro.trigger) {
+      const actionIds = ro.actions?.map(() => generateWorkflowActionId()) ?? [];
+      const triggerId = ro.trigger ? generateWorkflowTriggerId() : undefined;
+
+      if (ro.trigger && triggerId) {
         await prisma.workflowNode.create({
           data: {
-            id: generateWorkflowTriggerId(),
+            id: triggerId,
             workflowId: workflow.id,
             nodeType: 'trigger',
             kind: ro.trigger.type,
+            nextNodeId: actionIds[0],
             config: ro.trigger.config as Prisma.InputJsonValue,
             createdBy: this.userId,
             lastModifiedBy: this.userId,
           },
+        });
+      }
+
+      if (ro.actions?.length) {
+        await prisma.workflowNode.createMany({
+          data: ro.actions.map((action, index) => ({
+            id: actionIds[index],
+            workflowId: workflow.id,
+            nodeType: 'action',
+            kind: action.type,
+            parentNodeId: index === 0 ? triggerId : actionIds[index - 1],
+            nextNodeId: actionIds[index + 1],
+            config: action.config as Prisma.InputJsonValue,
+            createdBy: this.userId,
+            lastModifiedBy: this.userId,
+          })),
         });
       }
 
@@ -519,6 +545,77 @@ export class WorkflowService {
     });
 
     return { runId: run.id };
+  }
+
+  async createRecordTriggerRuns(
+    tableId: string,
+    triggerType: IRecordTriggerType,
+    input: unknown
+  ): Promise<{ runId: string; workflowId: string }[]> {
+    const table = await this.prismaService.tableMeta.findFirst({
+      where: { id: tableId, deletedTime: null },
+      select: { baseId: true },
+    });
+    if (!table) {
+      return [];
+    }
+
+    const workflows = await this.prismaService.workflow.findMany({
+      where: {
+        baseId: table.baseId,
+        deletedTime: null,
+        isActive: true,
+        activeSnapshotId: { not: null },
+        nodes: {
+          some: {
+            nodeType: 'trigger',
+            kind: triggerType,
+          },
+        },
+      },
+      select: {
+        id: true,
+        activeSnapshotId: true,
+        nodes: {
+          where: {
+            nodeType: 'trigger',
+            kind: triggerType,
+          },
+          select: { config: true },
+        },
+      },
+    });
+
+    const matchedWorkflows = workflows.filter((workflow) =>
+      workflow.nodes.some((node) => this.matchRecordTriggerConfig(node.config, tableId))
+    );
+
+    if (!matchedWorkflows.length) {
+      return [];
+    }
+
+    const runs = await Promise.all(
+      matchedWorkflows.map((workflow) =>
+        this.prismaService.workflowRun.create({
+          data: {
+            workflowId: workflow.id,
+            snapshotId: workflow.activeSnapshotId,
+            triggerType,
+            status: 'pending',
+            input: input as Prisma.InputJsonValue,
+            createdBy: this.userId,
+          },
+          select: { id: true, workflowId: true },
+        })
+      )
+    );
+
+    return runs.map((run) => ({ runId: run.id, workflowId: run.workflowId }));
+  }
+
+  private matchRecordTriggerConfig(config: unknown, tableId: string) {
+    const triggerConfig = config as IRecordTriggerConfig | null;
+    return !triggerConfig?.tableId || triggerConfig.tableId === tableId;
   }
 
   async createTestRun(baseId: string, workflowId: string, input: unknown): Promise<IWorkflowRunVo> {

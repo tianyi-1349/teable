@@ -3,6 +3,7 @@ import type { IWorkflowDetailVo, IWorkflowVo } from '@teable/openapi';
 import {
   activateWorkflow,
   aiCreateWorkflowDraft,
+  createWorkflow,
   deactivateWorkflow,
   deleteWorkflow,
   getWorkflow,
@@ -19,6 +20,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Input,
   Textarea,
   cn,
 } from '@teable/ui-lib/shadcn';
@@ -58,9 +60,13 @@ interface IWorkflowSidebarProps {
   workflows: IWorkflowVo[];
   selectedId?: string;
   draftPrompt: string;
+  recordTriggerTableId: string;
   isCreatingDraft: boolean;
+  isCreatingRecordTrigger: boolean;
   onDraftPromptChange: (value: string) => void;
   onCreateDraft: () => void;
+  onRecordTriggerTableIdChange: (value: string) => void;
+  onCreateRecordTrigger: (triggerType: 'recordCreated' | 'recordUpdated') => void;
   onSelectWorkflow: (workflow: IWorkflowVo) => void;
 }
 
@@ -69,9 +75,13 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
     workflows,
     selectedId,
     draftPrompt,
+    recordTriggerTableId,
     isCreatingDraft,
+    isCreatingRecordTrigger,
     onDraftPromptChange,
     onCreateDraft,
+    onRecordTriggerTableIdChange,
+    onCreateRecordTrigger,
     onSelectWorkflow,
   } = props;
 
@@ -96,6 +106,37 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
           >
             Create inactive draft
           </Button>
+        </div>
+
+        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+          <div className="text-sm font-medium">Create record trigger</div>
+          <Input
+            value={recordTriggerTableId}
+            onChange={(event) => onRecordTriggerTableIdChange(event.target.value)}
+            placeholder="Optional table id"
+            className="text-xs"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isCreatingRecordTrigger}
+              onClick={() => onCreateRecordTrigger('recordCreated')}
+            >
+              On create
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isCreatingRecordTrigger}
+              onClick={() => onCreateRecordTrigger('recordUpdated')}
+            >
+              On update
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Leave table id empty to listen to all tables in this base.
+          </p>
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
@@ -288,6 +329,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [draftPrompt, setDraftPrompt] = useState(
     'When the button is clicked, inspect the record and return a short summary.'
   );
+  const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -341,6 +383,38 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     mutationFn: () => aiCreateWorkflowDraft(baseId, { prompt: draftPrompt }),
     onSuccess: async ({ data }) => {
       toast.success('Workflow draft created');
+      setSelectedId(data.id);
+      await refreshWorkflow(data.id);
+    },
+  });
+
+  const recordTriggerMutation = useMutation({
+    mutationFn: (triggerType: 'recordCreated' | 'recordUpdated') =>
+      createWorkflow(baseId, {
+        name: triggerType === 'recordCreated' ? 'When record is created' : 'When record is updated',
+        description: 'Inactive record trigger workflow draft. Add actions before activation.',
+        trigger: {
+          type: triggerType,
+          config: recordTriggerTableId.trim() ? { tableId: recordTriggerTableId.trim() } : {},
+        },
+        actions: [
+          {
+            type: 'runScript',
+            config: {
+              script: [
+                'console.log("Record trigger input", input);',
+                'return {',
+                `  triggerType: "${triggerType}",`,
+                '  tableId: input.tableId,',
+                '  record: input.record,',
+                '};',
+              ].join('\n'),
+            },
+          },
+        ],
+      }),
+    onSuccess: async ({ data }) => {
+      toast.success('Record trigger workflow created');
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -437,9 +511,13 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           workflows={workflows}
           selectedId={selectedId}
           draftPrompt={draftPrompt}
+          recordTriggerTableId={recordTriggerTableId}
           isCreatingDraft={aiDraftMutation.isPending}
+          isCreatingRecordTrigger={recordTriggerMutation.isPending}
           onDraftPromptChange={setDraftPrompt}
           onCreateDraft={() => aiDraftMutation.mutate()}
+          onRecordTriggerTableIdChange={setRecordTriggerTableId}
+          onCreateRecordTrigger={(triggerType) => recordTriggerMutation.mutate(triggerType)}
           onSelectWorkflow={handleSelectWorkflow}
         />
 

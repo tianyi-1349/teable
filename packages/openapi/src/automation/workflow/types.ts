@@ -86,6 +86,14 @@ export const workflowRoSchema = z.object({
       config: z.unknown().optional(),
     })
     .optional(),
+  actions: z
+    .array(
+      z.object({
+        type: z.string(),
+        config: z.unknown().optional(),
+      })
+    )
+    .optional(),
 });
 
 export type IWorkflowRo = z.infer<typeof workflowRoSchema>;

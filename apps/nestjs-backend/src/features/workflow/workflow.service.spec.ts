@@ -30,6 +30,9 @@ describe('WorkflowService', () => {
       aggregate: vi.fn(),
       create: vi.fn(),
     },
+    tableMeta: {
+      findFirst: vi.fn(),
+    },
     $tx: vi.fn(),
   };
 
@@ -75,6 +78,42 @@ describe('WorkflowService', () => {
       select: { id: true },
     });
     expect(result).toEqual({ runId });
+  });
+
+  it('creates workflow with trigger and initial actions', async () => {
+    prismaService.workflow.aggregate.mockResolvedValue({ _max: { order: 0 } });
+    prismaService.workflow.create.mockResolvedValue({ id: workflowId });
+
+    const result = await service.createWorkflow(baseId, {
+      name: 'Record trigger',
+      trigger: { type: 'recordCreated', config: { tableId: 'tbl123' } },
+      actions: [{ type: 'runScript', config: { script: 'return input;' } }],
+    });
+
+    expect(prismaService.workflowNode.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'recordCreated',
+          nextNodeId: expect.any(String),
+        }),
+      })
+    );
+    expect(prismaService.workflowNode.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            workflowId,
+            nodeType: 'action',
+            kind: 'runScript',
+            parentNodeId: expect.any(String),
+            config: { script: 'return input;' },
+          }),
+        ],
+      })
+    );
+    expect(result).toEqual({ id: workflowId });
   });
 
   it('lists workflow runs after validating workflow ownership', async () => {
@@ -268,5 +307,72 @@ describe('WorkflowService', () => {
       })
     );
     expect(result).toMatchObject({ id: runId, status: 'pending' });
+  });
+
+  it('creates active record trigger runs for matching table', async () => {
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl123' } }],
+      },
+    ]);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId, workflowId });
+
+    const input = { tableId: 'tbl123', record: { id: 'rec123', fields: {} } };
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordCreated', input);
+
+    expect(prismaService.workflow.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          baseId,
+          isActive: true,
+          nodes: { some: { nodeType: 'trigger', kind: 'recordCreated' } },
+        }),
+      })
+    );
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith({
+      data: {
+        workflowId,
+        snapshotId: 'wsn123',
+        triggerType: 'recordCreated',
+        status: 'pending',
+        input,
+        createdBy: userId,
+      },
+      select: { id: true, workflowId: true },
+    });
+    expect(result).toEqual([{ runId, workflowId }]);
+  });
+
+  it('does not create record trigger runs when trigger table does not match', async () => {
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl999' } }],
+      },
+    ]);
+
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordUpdated', {
+      tableId: 'tbl123',
+    });
+
+    expect(prismaService.workflowRun.create).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  it('does not create record trigger runs when table is missing', async () => {
+    prismaService.tableMeta.findFirst.mockResolvedValue(null);
+
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordCreated', {
+      tableId: 'tbl123',
+    });
+
+    expect(prismaService.workflow.findMany).not.toHaveBeenCalled();
+    expect(prismaService.workflowRun.create).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
   });
 });
