@@ -63,17 +63,19 @@ const getStatusTone = (status: string) => {
   return 'text-muted-foreground';
 };
 
-const getScriptPreview = (workflow?: IWorkflowDetailVo) => {
+const getScriptPreview = (workflow?: IWorkflowDetailVo, nodeId?: string) => {
   const runScriptNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'action' && node.kind === 'runScript'
+    (node) =>
+      node.nodeType === 'action' && node.kind === 'runScript' && (!nodeId || node.id === nodeId)
   );
   const config = runScriptNode?.config as { script?: string; code?: string } | undefined;
   return config?.script ?? config?.code ?? '';
 };
 
-const getAiGeneratePrompt = (workflow?: IWorkflowDetailVo) => {
+const getAiGeneratePrompt = (workflow?: IWorkflowDetailVo, nodeId?: string) => {
   const aiGenerateNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'action' && node.kind === 'aiGenerate'
+    (node) =>
+      node.nodeType === 'action' && node.kind === 'aiGenerate' && (!nodeId || node.id === nodeId)
   );
   const config = aiGenerateNode?.config as { prompt?: string } | undefined;
   return config?.prompt ?? '';
@@ -144,6 +146,12 @@ const removeActionNode = (workflow: IWorkflowDetailVo, nodeId: string): IWorkflo
       return node;
     });
 };
+
+const hasSelectedActionNode = (
+  workflow: IWorkflowDetailVo | undefined,
+  nodeId: string | undefined,
+  kind: 'runScript' | 'aiGenerate'
+) => Boolean(workflow?.nodes.some((node) => node.id === nodeId && node.kind === kind));
 
 const formatJson = (value: unknown): string => {
   if (value == null) {
@@ -289,8 +297,10 @@ interface IWorkflowDetailProps {
   descriptionDraft: string;
   scriptPreview: string;
   scriptDraft: string;
+  selectedScriptNodeId?: string;
   aiPromptPreview: string;
   aiPromptDraft: string;
+  selectedAiNodeId?: string;
   recordTriggerTableIdPreview: string;
   recordTriggerTableIdDraft: string;
   recordTriggerKindDraft: 'recordCreated' | 'recordUpdated';
@@ -310,8 +320,10 @@ interface IWorkflowDetailProps {
   onNameDraftChange: (value: string) => void;
   onDescriptionDraftChange: (value: string) => void;
   onSaveMetadata: () => void;
+  onSelectScriptNode: (nodeId: string) => void;
   onScriptDraftChange: (value: string) => void;
   onSaveScript: () => void;
+  onSelectAiNode: (nodeId: string) => void;
   onAiPromptDraftChange: (value: string) => void;
   onSaveAiPrompt: () => void;
   onRecordTriggerKindDraftChange: (value: 'recordCreated' | 'recordUpdated') => void;
@@ -321,6 +333,161 @@ interface IWorkflowDetailProps {
   onRemoveAction: (nodeId: string) => void;
 }
 
+interface IWorkflowNodeCardProps {
+  node: IWorkflowNode;
+  selectedScriptNodeId?: string;
+  selectedAiNodeId?: string;
+  isRemovingAction: boolean;
+  onSelectScriptNode: (nodeId: string) => void;
+  onSelectAiNode: (nodeId: string) => void;
+  onRemoveAction: (nodeId: string) => void;
+}
+
+const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
+  const {
+    node,
+    selectedScriptNodeId,
+    selectedAiNodeId,
+    isRemovingAction,
+    onSelectScriptNode,
+    onSelectAiNode,
+    onRemoveAction,
+  } = props;
+  const isAction = node.nodeType === 'action';
+  const isRunScript = isAction && node.kind === 'runScript';
+  const isAiGenerate = isAction && node.kind === 'aiGenerate';
+
+  return (
+    <div className="rounded-lg border p-3 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-medium">{node.kind}</div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{node.nodeType}</Badge>
+          {isAction && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isRemovingAction}
+              onClick={() => onRemoveAction(node.id)}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="mt-2 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+        <div>id: {node.id}</div>
+        <div>next: {node.nextNodeId ?? 'none'}</div>
+      </div>
+      {isRunScript && (
+        <Button
+          size="sm"
+          variant={selectedScriptNodeId === node.id ? 'default' : 'outline'}
+          className="mt-3"
+          onClick={() => onSelectScriptNode(node.id)}
+        >
+          Edit script
+        </Button>
+      )}
+      {isAiGenerate && (
+        <Button
+          size="sm"
+          variant={selectedAiNodeId === node.id ? 'default' : 'outline'}
+          className="mt-3"
+          onClick={() => onSelectAiNode(node.id)}
+        >
+          Edit prompt
+        </Button>
+      )}
+    </div>
+  );
+};
+
+interface IWorkflowDetailHeaderProps {
+  workflow?: IWorkflowDetailVo;
+  isActivating: boolean;
+  isDeactivating: boolean;
+  isDeleting: boolean;
+  isTesting: boolean;
+  onToggleActive: () => void;
+  onDelete: (workflowId: string) => void;
+  onTestRun: (workflowId: string) => void;
+}
+
+const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
+  const { workflow, isActivating, isDeactivating, isDeleting, isTesting } = props;
+
+  return (
+    <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+      <div>
+        <CardTitle className="text-base">{workflow?.name ?? 'Workflow detail'}</CardTitle>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {workflow?.description ??
+            'Select a workflow to inspect trigger, script, and activation state.'}
+        </p>
+      </div>
+      {workflow && (
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isTesting}
+            onClick={() => props.onTestRun(workflow.id)}
+          >
+            Test run
+          </Button>
+          <Button
+            size="sm"
+            variant={workflow.isActive ? 'outline' : 'default'}
+            disabled={isActivating || isDeactivating}
+            onClick={props.onToggleActive}
+          >
+            {workflow.isActive ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={isDeleting}
+            onClick={() => props.onDelete(workflow.id)}
+          >
+            Delete
+          </Button>
+        </div>
+      )}
+    </CardHeader>
+  );
+};
+
+const getWorkflowDetailCapabilities = (
+  workflow: IWorkflowDetailVo | undefined,
+  previews: { script: string; aiPrompt: string; recordTriggerTableId: string }
+) => ({
+  hasRunScript: Boolean(
+    previews.script || workflow?.nodes.some((node) => node.kind === 'runScript')
+  ),
+  hasAiGenerate: Boolean(
+    previews.aiPrompt || workflow?.nodes.some((node) => node.kind === 'aiGenerate')
+  ),
+  hasRecordTrigger: Boolean(
+    previews.recordTriggerTableId ||
+      workflow?.nodes.some(
+        (node) =>
+          node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+      )
+  ),
+});
+
+const getFirstActionNodeId = (
+  workflow: IWorkflowDetailVo | undefined,
+  kind: 'runScript' | 'aiGenerate'
+) => workflow?.nodes.find((node) => node.nodeType === 'action' && node.kind === kind)?.id;
+
+const getActiveActionNodeId = (
+  workflow: IWorkflowDetailVo | undefined,
+  selectedNodeId: string | undefined,
+  kind: 'runScript' | 'aiGenerate'
+) => selectedNodeId ?? getFirstActionNodeId(workflow, kind);
+
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
   const {
     workflow,
@@ -328,8 +495,10 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     descriptionDraft,
     scriptPreview,
     scriptDraft,
+    selectedScriptNodeId,
     aiPromptPreview,
     aiPromptDraft,
+    selectedAiNodeId,
     recordTriggerTableIdPreview,
     recordTriggerTableIdDraft,
     recordTriggerKindDraft,
@@ -349,8 +518,10 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onNameDraftChange,
     onDescriptionDraftChange,
     onSaveMetadata,
+    onSelectScriptNode,
     onScriptDraftChange,
     onSaveScript,
+    onSelectAiNode,
     onAiPromptDraftChange,
     onSaveAiPrompt,
     onRecordTriggerKindDraftChange,
@@ -359,59 +530,27 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onAddAction,
     onRemoveAction,
   } = props;
-  const hasRunScript = Boolean(
-    scriptPreview || workflow?.nodes.some((node) => node.kind === 'runScript')
-  );
-  const hasAiGenerate = Boolean(
-    aiPromptPreview || workflow?.nodes.some((node) => node.kind === 'aiGenerate')
-  );
-  const hasRecordTrigger = Boolean(
-    recordTriggerTableIdPreview ||
-      workflow?.nodes.some(
-        (node) =>
-          node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
-      )
+  const { hasRunScript, hasAiGenerate, hasRecordTrigger } = getWorkflowDetailCapabilities(
+    workflow,
+    {
+      script: scriptPreview,
+      aiPrompt: aiPromptPreview,
+      recordTriggerTableId: recordTriggerTableIdPreview,
+    }
   );
 
   return (
     <Card className="min-h-0 overflow-hidden">
-      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-        <div>
-          <CardTitle className="text-base">{workflow?.name ?? 'Workflow detail'}</CardTitle>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {workflow?.description ??
-              'Select a workflow to inspect trigger, script, and activation state.'}
-          </p>
-        </div>
-        {workflow && (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isTesting}
-              onClick={() => onTestRun(workflow.id)}
-            >
-              Test run
-            </Button>
-            <Button
-              size="sm"
-              variant={workflow.isActive ? 'outline' : 'default'}
-              disabled={isActivating || isDeactivating}
-              onClick={onToggleActive}
-            >
-              {workflow.isActive ? 'Deactivate' : 'Activate'}
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={isDeleting}
-              onClick={() => onDelete(workflow.id)}
-            >
-              Delete
-            </Button>
-          </div>
-        )}
-      </CardHeader>
+      <WorkflowDetailHeader
+        workflow={workflow}
+        isActivating={isActivating}
+        isDeactivating={isDeactivating}
+        isDeleting={isDeleting}
+        isTesting={isTesting}
+        onToggleActive={onToggleActive}
+        onDelete={onDelete}
+        onTestRun={onTestRun}
+      />
       <CardContent className="space-y-4 overflow-auto">
         {workflow ? (
           <>
@@ -477,28 +616,16 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 </Button>
               </div>
               {workflow.nodes.map((node) => (
-                <div key={node.id} className="rounded-lg border p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium">{node.kind}</div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{node.nodeType}</Badge>
-                      {node.nodeType === 'action' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={isRemovingAction}
-                          onClick={() => onRemoveAction(node.id)}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                    <div>id: {node.id}</div>
-                    <div>next: {node.nextNodeId ?? 'none'}</div>
-                  </div>
-                </div>
+                <WorkflowNodeCard
+                  key={node.id}
+                  node={node}
+                  selectedScriptNodeId={selectedScriptNodeId}
+                  selectedAiNodeId={selectedAiNodeId}
+                  isRemovingAction={isRemovingAction}
+                  onSelectScriptNode={onSelectScriptNode}
+                  onSelectAiNode={onSelectAiNode}
+                  onRemoveAction={onRemoveAction}
+                />
               ))}
             </div>
             <div className="space-y-2">
@@ -543,7 +670,9 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium">Run Script draft</div>
+                <div className="text-sm font-medium">
+                  Run Script draft{selectedScriptNodeId ? `: ${selectedScriptNodeId}` : ''}
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -562,7 +691,9 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium">AI Generate prompt draft</div>
+                <div className="text-sm font-medium">
+                  AI Generate prompt draft{selectedAiNodeId ? `: ${selectedAiNodeId}` : ''}
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -693,7 +824,9 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
   const [nameDraft, setNameDraft] = useState('');
   const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [selectedScriptNodeId, setSelectedScriptNodeId] = useState<string | undefined>();
   const [scriptDraft, setScriptDraft] = useState('');
+  const [selectedAiNodeId, setSelectedAiNodeId] = useState<string | undefined>();
   const [aiPromptDraft, setAiPromptDraft] = useState('');
   const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
   const [recordTriggerKindDraft, setRecordTriggerKindDraft] = useState<
@@ -724,8 +857,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     enabled: Boolean(baseId && selectedId) && !isReadOnlyPreview,
   });
 
-  const scriptPreview = getScriptPreview(workflow);
-  const aiPromptPreview = getAiGeneratePrompt(workflow);
+  const firstScriptNodeId = getFirstActionNodeId(workflow, 'runScript');
+  const firstAiNodeId = getFirstActionNodeId(workflow, 'aiGenerate');
+  const activeScriptNodeId = getActiveActionNodeId(workflow, selectedScriptNodeId, 'runScript');
+  const activeAiNodeId = getActiveActionNodeId(workflow, selectedAiNodeId, 'aiGenerate');
+  const scriptPreview = getScriptPreview(workflow, activeScriptNodeId);
+  const aiPromptPreview = getAiGeneratePrompt(workflow, activeAiNodeId);
   const recordTriggerTableIdPreview = getRecordTriggerTableId(workflow);
   const recordTriggerKindPreview = getRecordTriggerKind(workflow);
 
@@ -739,8 +876,20 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   }, [scriptPreview]);
 
   useEffect(() => {
+    if (!hasSelectedActionNode(workflow, selectedScriptNodeId, 'runScript')) {
+      setSelectedScriptNodeId(firstScriptNodeId);
+    }
+  }, [firstScriptNodeId, selectedScriptNodeId, workflow?.nodes]);
+
+  useEffect(() => {
     setAiPromptDraft(aiPromptPreview);
   }, [aiPromptPreview]);
+
+  useEffect(() => {
+    if (!hasSelectedActionNode(workflow, selectedAiNodeId, 'aiGenerate')) {
+      setSelectedAiNodeId(firstAiNodeId);
+    }
+  }, [firstAiNodeId, selectedAiNodeId, workflow?.nodes]);
 
   useEffect(() => {
     setRecordTriggerTableIdDraft(recordTriggerTableIdPreview);
@@ -913,7 +1062,11 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     mutationFn: async () => {
       if (!workflow) return undefined;
       const nodes = workflow.nodes.map((node) => {
-        if (node.nodeType !== 'action' || node.kind !== 'runScript') {
+        if (
+          node.nodeType !== 'action' ||
+          node.kind !== 'runScript' ||
+          node.id !== activeScriptNodeId
+        ) {
           return node;
         }
         const config = (node.config ?? {}) as Record<string, unknown>;
@@ -938,7 +1091,11 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     mutationFn: async () => {
       if (!workflow) return undefined;
       const nodes = workflow.nodes.map((node) => {
-        if (node.nodeType !== 'action' || node.kind !== 'aiGenerate') {
+        if (
+          node.nodeType !== 'action' ||
+          node.kind !== 'aiGenerate' ||
+          node.id !== activeAiNodeId
+        ) {
           return node;
         }
         const config = (node.config ?? {}) as Record<string, unknown>;
@@ -1080,8 +1237,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             descriptionDraft={descriptionDraft}
             scriptPreview={scriptPreview}
             scriptDraft={scriptDraft}
+            selectedScriptNodeId={activeScriptNodeId}
             aiPromptPreview={aiPromptPreview}
             aiPromptDraft={aiPromptDraft}
+            selectedAiNodeId={activeAiNodeId}
             recordTriggerTableIdPreview={recordTriggerTableIdPreview}
             recordTriggerTableIdDraft={recordTriggerTableIdDraft}
             recordTriggerKindDraft={recordTriggerKindDraft}
@@ -1101,8 +1260,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onNameDraftChange={setNameDraft}
             onDescriptionDraftChange={setDescriptionDraft}
             onSaveMetadata={() => saveMetadataMutation.mutate()}
+            onSelectScriptNode={setSelectedScriptNodeId}
             onScriptDraftChange={setScriptDraft}
             onSaveScript={() => saveScriptMutation.mutate()}
+            onSelectAiNode={setSelectedAiNodeId}
             onAiPromptDraftChange={setAiPromptDraft}
             onSaveAiPrompt={() => saveAiPromptMutation.mutate()}
             onRecordTriggerKindDraftChange={setRecordTriggerKindDraft}
