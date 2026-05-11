@@ -22,6 +22,8 @@ import type { RecordOpenApiService } from '../record/open-api/record-open-api.se
 import { SelectionController } from './selection.controller';
 import type { SelectionService } from './selection.service';
 
+type IClsGet = Pick<ClsService<IClsStore>, 'get'>['get'];
+
 describe('SelectionController', () => {
   let controller: SelectionController;
   let selectionService: Mocked<
@@ -34,7 +36,7 @@ describe('SelectionController', () => {
       'clearStream' | 'deleteByRangeStream' | 'duplicateByRangeStream' | 'pasteStream'
     >
   >;
-  let cls: Mocked<Pick<ClsService<IClsStore>, 'get'>>;
+  let cls: { get: ReturnType<typeof vi.fn<IClsGet>> };
 
   const rangesRo: IRangesRo = {
     viewId: 'viwTest',
@@ -263,7 +265,7 @@ describe('SelectionController', () => {
         v2Reason: 'canary',
         v2Feature: 'deleteRecord',
       };
-      return values[key];
+      return typeof key === 'string' ? values[key] : undefined;
     });
     const response = createMockSseResponse();
 
@@ -524,7 +526,7 @@ describe('SelectionController', () => {
       const values: Record<string, unknown> = {
         useV2: true,
       };
-      return values[key];
+      return typeof key === 'string' ? values[key] : undefined;
     });
 
     async function* createStream(): AsyncIterable<IPasteSelectionStreamEvent> {

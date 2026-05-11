@@ -158,17 +158,12 @@ export class AiService {
       const recordIds = body.payload.records.map((record) => record.id);
       await this.assertRecordsExist(tableId, recordIds);
 
-      const result = await this.recordOpenApiService.updateRecords(
-        tableId,
-        body.payload,
-        undefined,
-        'true'
-      );
+      await this.recordOpenApiService.updateRecords(tableId, body.payload, undefined, 'true');
 
       return {
         action,
         tableId,
-        records: result.records,
+        records: recordIds.map((id) => ({ id, fields: {} })),
       };
     }
 
@@ -197,7 +192,8 @@ export class AiService {
       },
       true
     );
-    const existingIds = records.records.map((record) => record.id);
+    const existingRecords = Array.isArray(records) ? [] : records.records;
+    const existingIds = existingRecords.map((record) => record.id);
     const missingIds = difference(recordIds, existingIds);
     if (missingIds.length) {
       throw new CustomHttpException(

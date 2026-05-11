@@ -71,7 +71,11 @@ describe('ShareDbService submit permission', () => {
     } as never;
 
     await expect(
-      (service as never).validateSubmitPermission('tbl_test', context)
+      (
+        service as unknown as {
+          validateSubmitPermission: (typeof service)['validateSubmitPermission'];
+        }
+      ).validateSubmitPermission('tbl_test', context)
     ).rejects.toMatchObject({
       code: HttpErrorCode.RESTRICTED_RESOURCE,
     });
@@ -87,7 +91,11 @@ describe('ShareDbService submit permission', () => {
     } as never;
 
     await expect(
-      (service as never).validateSubmitPermission('tbl_test', context)
+      (
+        service as unknown as {
+          validateSubmitPermission: (typeof service)['validateSubmitPermission'];
+        }
+      ).validateSubmitPermission('tbl_test', context)
     ).rejects.toMatchObject({
       code: HttpErrorCode.UNAUTHORIZED_SHARE,
     });
@@ -110,7 +118,11 @@ describe('ShareDbService submit permission', () => {
     } as never;
 
     await expect(
-      (service as never).validateSubmitPermission('tbl_test', context)
+      (
+        service as unknown as {
+          validateSubmitPermission: (typeof service)['validateSubmitPermission'];
+        }
+      ).validateSubmitPermission('tbl_test', context)
     ).resolves.toBeUndefined();
     expect(permissionService.validBaseSharePermissions).toHaveBeenCalledWith(
       'shr_base_share',
@@ -126,7 +138,11 @@ describe('ShareDbService submit permission', () => {
     } as never;
 
     await expect(
-      (service as never).validateSubmitPermission('tbl_test', context)
+      (
+        service as unknown as {
+          validateSubmitPermission: (typeof service)['validateSubmitPermission'];
+        }
+      ).validateSubmitPermission('tbl_test', context)
     ).rejects.toMatchObject({
       code: HttpErrorCode.UNAUTHORIZED,
     });

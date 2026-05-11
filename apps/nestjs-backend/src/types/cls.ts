@@ -70,6 +70,13 @@ export interface IClsStore extends ClsStore {
   skipRecordAuditLog?: boolean; // skip individual record audit logs for automation
   appId?: string; // for app internal call
   workflowContext?: IWorkflowContext;
+  automationContext?: {
+    source: 'automation';
+    workflowId: string;
+    runId?: string;
+    baseId: string;
+    timestamp: string;
+  };
   dataLoaderCache?: IDataLoaderCache;
   clearCacheKeys?: (keyof IPerformanceCacheStore)[];
   canaryHeader?: string; // x-canary header value for canary release override

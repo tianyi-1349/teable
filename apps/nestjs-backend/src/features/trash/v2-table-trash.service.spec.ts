@@ -182,9 +182,10 @@ describe('V2RecordTrashService', () => {
         }),
       })),
     };
+    type ITrx = typeof trx;
     const db = {
       transaction: vi.fn(() => ({
-        execute: async (callback: (trx: typeof trx) => Promise<void>) => callback(trx),
+        execute: async (callback: (trx: ITrx) => Promise<void>) => callback(trx),
       })),
     };
     const container = {

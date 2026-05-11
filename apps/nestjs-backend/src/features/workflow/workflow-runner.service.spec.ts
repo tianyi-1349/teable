@@ -23,12 +23,13 @@ describe('WorkflowRunnerService', () => {
   };
   const recordsService = {
     updateRecord: vi.fn(),
-    createRecords: vi.fn(),
+    multipleCreateRecords: vi.fn(),
+  };
+  const recordService = {
     getRecords: vi.fn(),
   };
   const permissionService = {
-    checkBasePermission: vi.fn(),
-    checkTablePermission: vi.fn(),
+    validPermissions: vi.fn(),
   };
   const clsService = {
     get: vi.fn(),
@@ -43,6 +44,7 @@ describe('WorkflowRunnerService', () => {
       scriptRuntimeService as never,
       workflowAiService as never,
       recordsService as never,
+      recordService as never,
       permissionService as never,
       clsService as never
     );

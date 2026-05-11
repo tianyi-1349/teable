@@ -55,6 +55,7 @@ describe('V2FieldDeletedCompatProjection', () => {
         fields: [{ id: 'fldCompatA00000001' }],
         records: [{ id: 'recCompat000000001' }],
       },
+      completed: undefined as boolean | undefined,
     };
 
     const result = await projection.handle(
@@ -101,6 +102,7 @@ describe('V2FieldDeletedCompatProjection', () => {
         fields: [{ id: 'fldCompatA00000001' }],
         records: [{ id: 'recCompat000000001' }],
       },
+      completed: undefined as boolean | undefined,
     };
 
     const result = await projection.handle(

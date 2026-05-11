@@ -439,10 +439,7 @@ export class TrashService {
       nextCursor = nextItem?.id;
     }
 
-    const deletedResourceMap: Record<
-      TableTrashType.View | TableTrashType.Field | TableTrashType.Record,
-      string[]
-    > = {
+    const deletedResourceMap: Record<TableTrashType, string[]> = {
       [TableTrashType.View]: [],
       [TableTrashType.Field]: [],
       [TableTrashType.Record]: [],

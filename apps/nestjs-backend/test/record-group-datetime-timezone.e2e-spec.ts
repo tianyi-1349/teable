@@ -8,6 +8,7 @@ import {
   formatDateToString,
 } from '@teable/core';
 import { GroupPointType } from '@teable/openapi';
+import type { IGroupHeaderPoint } from '@teable/openapi';
 import type { ITableFullVo } from '@teable/openapi';
 import { createTable, getRecords, initApp, permanentDeleteTable } from './utils/init-app';
 
@@ -135,7 +136,7 @@ describe('OpenAPI Record-Group-DateTime-TimeZone (e2e)', async () => {
       });
 
       const groupHeaders = grouped.extra?.groupPoints?.filter(
-        (p): p is { type: GroupPointType.Header; value: string; depth: number } =>
+        (p): p is IGroupHeaderPoint & { value: string } =>
           p.type === GroupPointType.Header && p.depth === 0 && typeof p.value === 'string'
       );
 
