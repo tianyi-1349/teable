@@ -185,7 +185,22 @@ describe('WorkflowService', () => {
       createdTime: new Date(),
       lastModifiedTime: null,
       lastModifiedBy: null,
-      nodes: [],
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'buttonClick',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          config: { script: 'return input;' },
+        },
+      ],
     });
     prismaService.workflowSnapshot.aggregate.mockResolvedValue({ _max: { version: 2 } });
     prismaService.workflowSnapshot.create.mockResolvedValue({ id: 'wsn123' });
@@ -215,6 +230,103 @@ describe('WorkflowService', () => {
       })
     );
     expect(result).toMatchObject({ isActive: true, activeSnapshotId: 'wsn123' });
+  });
+
+  it('rejects activation without a trigger', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'No trigger',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          config: { script: 'return input;' },
+        },
+      ],
+    });
+
+    await expect(service.activateWorkflow(baseId, workflowId)).rejects.toThrow(
+      'Workflow requires a trigger before activation'
+    );
+    expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects activation without actions', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'No action',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'recordCreated',
+          config: {},
+        },
+      ],
+    });
+
+    await expect(service.activateWorkflow(baseId, workflowId)).rejects.toThrow(
+      'Workflow requires at least one action before activation'
+    );
+    expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects activation with invalid action config', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Invalid action',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'recordCreated',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'aiGenerate',
+          config: {},
+        },
+      ],
+    });
+
+    await expect(service.activateWorkflow(baseId, workflowId)).rejects.toThrow(
+      'Workflow action aiGenerate is not runnable'
+    );
+    expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
   });
 
   it('creates an inactive AI workflow draft for review', async () => {

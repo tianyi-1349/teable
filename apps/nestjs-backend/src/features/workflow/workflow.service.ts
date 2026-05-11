@@ -29,6 +29,12 @@ type IRecordTriggerConfig = {
   tableId?: string;
 };
 
+type IWorkflowActionConfig = {
+  script?: string;
+  code?: string;
+  prompt?: string;
+};
+
 const WORKFLOW_NOT_FOUND_LOCALIZATION = {
   i18nKey: 'httpErrors.baseNode.notFound',
 } as const;
@@ -483,6 +489,7 @@ export class WorkflowService {
 
   async activateWorkflow(baseId: string, workflowId: string): Promise<IWorkflowVo> {
     const workflow = await this.getWorkflow(baseId, workflowId);
+    this.assertWorkflowCanActivate(workflow);
     const version = await this.getNextSnapshotVersion(workflowId);
 
     return this.prismaService.$tx(async (prisma) => {
@@ -616,6 +623,45 @@ export class WorkflowService {
   private matchRecordTriggerConfig(config: unknown, tableId: string) {
     const triggerConfig = config as IRecordTriggerConfig | null;
     return !triggerConfig?.tableId || triggerConfig.tableId === tableId;
+  }
+
+  private assertWorkflowCanActivate(workflow: IWorkflowDetailVo) {
+    const trigger = workflow.nodes.find((node) => node.nodeType === 'trigger');
+    if (!trigger) {
+      throw new CustomHttpException(
+        'Workflow requires a trigger before activation',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+
+    const actions = workflow.nodes.filter((node) => node.nodeType === 'action');
+    if (!actions.length) {
+      throw new CustomHttpException(
+        'Workflow requires at least one action before activation',
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+
+    const invalidAction = actions.find(
+      (action) => !this.isRunnableAction(action.kind, action.config)
+    );
+    if (invalidAction) {
+      throw new CustomHttpException(
+        `Workflow action ${invalidAction.kind} is not runnable`,
+        HttpErrorCode.VALIDATION_ERROR
+      );
+    }
+  }
+
+  private isRunnableAction(kind: string, config: unknown) {
+    const actionConfig = config as IWorkflowActionConfig | null;
+    if (kind === 'runScript') {
+      return Boolean(actionConfig?.script || actionConfig?.code);
+    }
+    if (kind === 'aiGenerate') {
+      return Boolean(actionConfig?.prompt);
+    }
+    return false;
   }
 
   async createTestRun(baseId: string, workflowId: string, input: unknown): Promise<IWorkflowRunVo> {
