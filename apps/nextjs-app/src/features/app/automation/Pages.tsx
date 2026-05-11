@@ -29,6 +29,11 @@ import {
   CardHeader,
   CardTitle,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   cn,
 } from '@teable/ui-lib/shadcn';
@@ -80,6 +85,13 @@ const getRecordTriggerTableId = (workflow?: IWorkflowDetailVo) => {
   );
   const config = recordTriggerNode?.config as { tableId?: string } | undefined;
   return config?.tableId ?? '';
+};
+
+const getRecordTriggerKind = (workflow?: IWorkflowDetailVo) => {
+  const recordTriggerNode = workflow?.nodes.find(
+    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+  );
+  return recordTriggerNode?.kind === 'recordUpdated' ? 'recordUpdated' : 'recordCreated';
 };
 
 const appendActionNode = (
@@ -281,6 +293,7 @@ interface IWorkflowDetailProps {
   aiPromptDraft: string;
   recordTriggerTableIdPreview: string;
   recordTriggerTableIdDraft: string;
+  recordTriggerKindDraft: 'recordCreated' | 'recordUpdated';
   isActivating: boolean;
   isDeactivating: boolean;
   isDeleting: boolean;
@@ -301,6 +314,7 @@ interface IWorkflowDetailProps {
   onSaveScript: () => void;
   onAiPromptDraftChange: (value: string) => void;
   onSaveAiPrompt: () => void;
+  onRecordTriggerKindDraftChange: (value: 'recordCreated' | 'recordUpdated') => void;
   onRecordTriggerTableIdDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
   onAddAction: (kind: 'runScript' | 'aiGenerate') => void;
@@ -318,6 +332,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     aiPromptDraft,
     recordTriggerTableIdPreview,
     recordTriggerTableIdDraft,
+    recordTriggerKindDraft,
     isActivating,
     isDeactivating,
     isDeleting,
@@ -338,6 +353,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onSaveScript,
     onAiPromptDraftChange,
     onSaveAiPrompt,
+    onRecordTriggerKindDraftChange,
     onRecordTriggerTableIdDraftChange,
     onSaveRecordTrigger,
     onAddAction,
@@ -506,6 +522,21 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 placeholder="Optional table id"
                 className="text-xs"
               />
+              <Select
+                value={recordTriggerKindDraft}
+                disabled={!hasRecordTrigger}
+                onValueChange={(value) =>
+                  onRecordTriggerKindDraftChange(value as 'recordCreated' | 'recordUpdated')
+                }
+              >
+                <SelectTrigger className="text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recordCreated">When record is created</SelectItem>
+                  <SelectItem value="recordUpdated">When record is updated</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 Leave table id empty to listen to all tables in this base.
               </p>
@@ -665,6 +696,9 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [scriptDraft, setScriptDraft] = useState('');
   const [aiPromptDraft, setAiPromptDraft] = useState('');
   const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
+  const [recordTriggerKindDraft, setRecordTriggerKindDraft] = useState<
+    'recordCreated' | 'recordUpdated'
+  >('recordCreated');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -693,6 +727,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const scriptPreview = getScriptPreview(workflow);
   const aiPromptPreview = getAiGeneratePrompt(workflow);
   const recordTriggerTableIdPreview = getRecordTriggerTableId(workflow);
+  const recordTriggerKindPreview = getRecordTriggerKind(workflow);
 
   useEffect(() => {
     setNameDraft(workflow?.name ?? '');
@@ -710,6 +745,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   useEffect(() => {
     setRecordTriggerTableIdDraft(recordTriggerTableIdPreview);
   }, [recordTriggerTableIdPreview]);
+
+  useEffect(() => {
+    setRecordTriggerKindDraft(recordTriggerKindPreview);
+  }, [recordTriggerKindPreview]);
 
   const { data: runs = [] } = useQuery({
     queryKey: selectedId
@@ -935,6 +974,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         const { tableId: _tableId, ...restConfig } = config;
         return {
           ...node,
+          kind: recordTriggerKindDraft,
           config: tableId ? { ...restConfig, tableId } : restConfig,
         };
       });
@@ -1044,6 +1084,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             aiPromptDraft={aiPromptDraft}
             recordTriggerTableIdPreview={recordTriggerTableIdPreview}
             recordTriggerTableIdDraft={recordTriggerTableIdDraft}
+            recordTriggerKindDraft={recordTriggerKindDraft}
             isActivating={activateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
@@ -1064,6 +1105,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onSaveScript={() => saveScriptMutation.mutate()}
             onAiPromptDraftChange={setAiPromptDraft}
             onSaveAiPrompt={() => saveAiPromptMutation.mutate()}
+            onRecordTriggerKindDraftChange={setRecordTriggerKindDraft}
             onRecordTriggerTableIdDraftChange={setRecordTriggerTableIdDraft}
             onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
             onAddAction={(kind) => addActionMutation.mutate(kind)}
