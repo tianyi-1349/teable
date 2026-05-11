@@ -3,3 +3,7 @@ export * from './generate-stream';
 export * from './get-config';
 export * from './get-ai-disable-actions';
 export * from './image-model-config';
+export * from './extract-write';
+export * from './native-capability';
+export * from './record-operation';
+export * from './view-context';

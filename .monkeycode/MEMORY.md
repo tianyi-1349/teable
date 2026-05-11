@@ -31,6 +31,14 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[自动化任务需精简上下文并持续收口]
+- Date: 2026-05-11
+- Context: 用户指出平台出现 `Input exceeds context window of this model`，并要求修复错误后继续执行所有既定任务直到本次计划完整结束
+- Instructions:
+  - 后续自动化任务回复必须避免输出超长历史汇总，只保留必要进度、验证结果和提交信息
+  - 对已规划的自动化官方能力对齐工作持续推进、修复、验证和提交，除非遇到真实阻塞或冲突，不反复询问是否继续
+  - 若需要总结历史进度，使用短摘要而不是粘贴完整上下文
+
 [v2-core typecheck 与声明打包需区分源码边界和跨包类型依赖]
 - Date: 2026-05-06
 - Context: Agent 在清理 `packages/v2/core` 的 typecheck 与 build warning 时发现

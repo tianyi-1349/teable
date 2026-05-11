@@ -457,7 +457,7 @@ describe('AiService extract and write', () => {
       {
         fieldId: 'fldBarcode',
         name: 'Barcode',
-        type: FieldType.Barcode,
+        type: FieldType.SingleLineText,
         status: 'filled',
         value: 'ABC-123-XYZ',
         choices: undefined,
@@ -465,7 +465,7 @@ describe('AiService extract and write', () => {
       {
         fieldId: 'fldQRCode',
         name: 'QR Code',
-        type: FieldType.QRCode,
+        type: FieldType.SingleLineText,
         status: 'filled',
         value: 'https://example.com/qr/42',
         choices: undefined,

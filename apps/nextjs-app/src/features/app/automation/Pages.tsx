@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { IWorkflowDetailVo, IWorkflowRunDetailVo, IWorkflowVo } from '@teable/openapi';
+import { generateWorkflowActionId } from '@teable/core';
+import type {
+  IWorkflowDetailVo,
+  IWorkflowNode,
+  IWorkflowRunDetailVo,
+  IWorkflowVo,
+} from '@teable/openapi';
 import {
   activateWorkflow,
   aiCreateWorkflowDraft,
@@ -74,6 +80,38 @@ const getRecordTriggerTableId = (workflow?: IWorkflowDetailVo) => {
   );
   const config = recordTriggerNode?.config as { tableId?: string } | undefined;
   return config?.tableId ?? '';
+};
+
+const appendActionNode = (
+  workflow: IWorkflowDetailVo,
+  kind: 'runScript' | 'aiGenerate'
+): IWorkflowNode[] => {
+  const actionNodes = workflow.nodes.filter((node) => node.nodeType === 'action');
+  const triggerNode = workflow.nodes.find((node) => node.nodeType === 'trigger');
+  const previousNode = actionNodes[actionNodes.length - 1] ?? triggerNode;
+  const newNodeId = generateWorkflowActionId();
+  const newNode: IWorkflowNode = {
+    id: newNodeId,
+    workflowId: workflow.id,
+    nodeType: 'action',
+    kind,
+    parentNodeId: previousNode?.id,
+    config:
+      kind === 'aiGenerate'
+        ? { prompt: 'Summarize this automation input: {{ input }}' }
+        : {
+            script: ['console.log("Automation input", input);', 'return {', '  input,', '};'].join(
+              '\n'
+            ),
+          },
+  };
+
+  return [
+    ...workflow.nodes.map((node) =>
+      node.id === previousNode?.id ? { ...node, nextNodeId: newNodeId } : node
+    ),
+    newNode,
+  ];
 };
 
 const formatJson = (value: unknown): string => {
@@ -232,6 +270,7 @@ interface IWorkflowDetailProps {
   isSavingScript: boolean;
   isSavingAiPrompt: boolean;
   isSavingRecordTrigger: boolean;
+  isAddingAction: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
@@ -244,6 +283,7 @@ interface IWorkflowDetailProps {
   onSaveAiPrompt: () => void;
   onRecordTriggerTableIdDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
+  onAddAction: (kind: 'runScript' | 'aiGenerate') => void;
 }
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
@@ -265,6 +305,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     isSavingScript,
     isSavingAiPrompt,
     isSavingRecordTrigger,
+    isAddingAction,
     onToggleActive,
     onDelete,
     onTestRun,
@@ -277,6 +318,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onSaveAiPrompt,
     onRecordTriggerTableIdDraftChange,
     onSaveRecordTrigger,
+    onAddAction,
   } = props;
   const hasRunScript = Boolean(
     scriptPreview || workflow?.nodes.some((node) => node.kind === 'runScript')
@@ -377,6 +419,24 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             </div>
             <div className="space-y-2">
               <div className="text-sm font-medium">Nodes</div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isAddingAction}
+                  onClick={() => onAddAction('runScript')}
+                >
+                  Add Run Script
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isAddingAction}
+                  onClick={() => onAddAction('aiGenerate')}
+                >
+                  Add AI Generate
+                </Button>
+              </div>
               {workflow.nodes.map((node) => (
                 <div key={node.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
@@ -852,6 +912,18 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const addActionMutation = useMutation({
+    mutationFn: async (kind: 'runScript' | 'aiGenerate') => {
+      if (!workflow) return undefined;
+      return updateWorkflow(baseId, workflow.id, { nodes: appendActionNode(workflow, kind) });
+    },
+    onSuccess: async (result) => {
+      if (!result?.data) return;
+      toast.success('Workflow action added');
+      await refreshWorkflow(result.data.id);
+    },
+  });
+
   const handleSelectWorkflow = (item: IWorkflowVo) => {
     setSelectedId(item.id);
     setSelectedRunId(undefined);
@@ -933,6 +1005,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             isSavingScript={saveScriptMutation.isPending}
             isSavingAiPrompt={saveAiPromptMutation.isPending}
             isSavingRecordTrigger={saveRecordTriggerMutation.isPending}
+            isAddingAction={addActionMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
@@ -945,6 +1018,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onSaveAiPrompt={() => saveAiPromptMutation.mutate()}
             onRecordTriggerTableIdDraftChange={setRecordTriggerTableIdDraft}
             onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
+            onAddAction={(kind) => addActionMutation.mutate(kind)}
           />
           <RunHistory
             runs={runs}

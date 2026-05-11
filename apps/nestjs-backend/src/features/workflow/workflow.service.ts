@@ -410,9 +410,22 @@ export class WorkflowService {
       if (ro.nodes) {
         await Promise.all(
           ro.nodes.map((node) =>
-            prisma.workflowNode.update({
-              where: { id: node.id, workflowId: workflow.id },
-              data: {
+            prisma.workflowNode.upsert({
+              where: { id: node.id },
+              create: {
+                id: node.id,
+                workflowId: workflow.id,
+                nodeType: node.nodeType,
+                kind: node.kind,
+                parentNodeId: node.parentNodeId,
+                nextNodeId: node.nextNodeId,
+                branchKey: node.branchKey,
+                config: node.config as Prisma.InputJsonValue,
+                createdBy: this.userId,
+                lastModifiedBy: this.userId,
+              },
+              update: {
+                workflowId: workflow.id,
                 nodeType: node.nodeType,
                 kind: node.kind,
                 parentNodeId: node.parentNodeId,

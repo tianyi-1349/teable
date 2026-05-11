@@ -26,6 +26,7 @@ describe('WorkflowService', () => {
       create: vi.fn(),
       createMany: vi.fn(),
       update: vi.fn(),
+      upsert: vi.fn(),
     },
     workflowSnapshot: {
       aggregate: vi.fn(),
@@ -147,7 +148,7 @@ describe('WorkflowService', () => {
 
   it('updates workflow draft nodes without changing active snapshot', async () => {
     prismaService.workflow.findFirstOrThrow.mockResolvedValue({ id: workflowId });
-    prismaService.workflowNode.update.mockResolvedValue({ id: 'wa123' });
+    prismaService.workflowNode.upsert.mockResolvedValue({ id: 'wa123' });
     prismaService.workflow.update.mockResolvedValue({ id: workflowId, name: 'Draft' });
 
     const result = await service.updateWorkflow(baseId, workflowId, {
@@ -162,9 +163,19 @@ describe('WorkflowService', () => {
       ],
     });
 
-    expect(prismaService.workflowNode.update).toHaveBeenCalledWith({
-      where: { id: 'wa123', workflowId },
-      data: expect.objectContaining({
+    expect(prismaService.workflowNode.upsert).toHaveBeenCalledWith({
+      where: { id: 'wa123' },
+      create: expect.objectContaining({
+        id: 'wa123',
+        workflowId,
+        nodeType: 'action',
+        kind: 'runScript',
+        config: { script: 'return { ok: true };' },
+        createdBy: userId,
+        lastModifiedBy: userId,
+      }),
+      update: expect.objectContaining({
+        workflowId,
         nodeType: 'action',
         kind: 'runScript',
         config: { script: 'return { ok: true };' },
