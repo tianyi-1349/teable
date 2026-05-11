@@ -46,7 +46,7 @@ import { ShareSocketService } from './share-socket.service';
 
 export interface IJwtShareInfo {
   shareId: string;
-  password: string;
+  authenticated: boolean;
 }
 
 @Injectable()

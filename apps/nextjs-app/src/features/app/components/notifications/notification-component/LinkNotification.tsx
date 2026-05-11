@@ -3,6 +3,7 @@ import type { ILocalization, NotificationStatesEnum } from '@teable/core';
 import { type INotificationVo } from '@teable/openapi';
 import { getLocalizationMessage } from '@teable/sdk/context';
 import type { ILocaleFunction } from '@teable/sdk/context/app/i18n';
+import DOMPurify from 'dompurify';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 
@@ -52,12 +53,17 @@ export const LinkNotification = (props: LinkNotificationProps) => {
     }
   };
 
+  const sanitizedMessage = DOMPurify.sanitize(message, {
+    ALLOWED_TAGS: ['a', 'b', 'br', 'i', 'em', 'strong', 'span', 'p'],
+    ALLOWED_ATTR: ['href', 'target', 'class'],
+  });
+
   return notifyType !== NotificationTypeEnum.ExportBase ? (
     <Link href={url}>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className="max-h-20 overflow-auto break-words"
-        dangerouslySetInnerHTML={{ __html: message }}
+        dangerouslySetInnerHTML={{ __html: sanitizedMessage }}
         onClick={handleContentClick}
       />
     </Link>
@@ -65,7 +71,7 @@ export const LinkNotification = (props: LinkNotificationProps) => {
     <>
       <div
         className="max-h-20 overflow-auto break-words"
-        dangerouslySetInnerHTML={{ __html: message }}
+        dangerouslySetInnerHTML={{ __html: sanitizedMessage }}
       />
       {/* do not delete this div for tailwind css */}
       <div className="hidden underline hover:text-blue-500"></div>

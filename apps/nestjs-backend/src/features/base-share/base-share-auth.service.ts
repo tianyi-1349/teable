@@ -15,7 +15,7 @@ export interface IBaseShareInfo {
 
 export interface IJwtBaseShareInfo {
   shareId: string;
-  password: string;
+  authenticated: boolean;
 }
 
 @Injectable()

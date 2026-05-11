@@ -322,8 +322,12 @@ export class PluginService {
   }
 
   async delete(id: string) {
+    const userId = this.cls.get('user.id');
+    const isAdmin = this.cls.get('user.isAdmin');
     await this.prismaService.$tx(async (prisma) => {
-      const res = await prisma.plugin.delete({ where: { id } });
+      const res = await prisma.plugin.delete({
+        where: { id, createdBy: isAdmin ? { in: ['system', userId] } : userId },
+      });
       if (res.pluginUser) {
         await prisma.user.delete({ where: { id: res.pluginUser } });
       }
@@ -331,13 +335,15 @@ export class PluginService {
   }
 
   async regenerateSecret(id: string): Promise<IPluginRegenerateSecretVo> {
+    const userId = this.cls.get('user.id');
+    const isAdmin = this.cls.get('user.isAdmin');
     const { secret, hashedSecret, maskedSecret } = await generateSecret();
-    await this.prismaService.plugin.update({
+    const res = await this.prismaService.plugin.update({
       select: {
         id: true,
         secret: true,
       },
-      where: { id },
+      where: { id, createdBy: isAdmin ? { in: ['system', userId] } : userId },
       data: {
         secret: hashedSecret,
         maskedSecret,
@@ -417,8 +423,14 @@ export class PluginService {
   }
 
   async unpublishPlugin(id: string) {
+    const userId = this.cls.get('user.id');
+    const isAdmin = this.cls.get('user.isAdmin');
     await this.prismaService.plugin.update({
-      where: { id, status: PluginStatus.Published },
+      where: {
+        id,
+        status: PluginStatus.Published,
+        createdBy: isAdmin ? { in: ['system', userId] } : userId,
+      },
       data: { status: PluginStatus.Developing },
     });
   }

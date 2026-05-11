@@ -7,7 +7,7 @@ import { z } from '../zod';
 export const SHARE_VIEW_AUTH = '/share/{shareId}/view/auth';
 
 export const shareViewAuthVoSchema = z.object({
-  token: z.string(),
+  success: z.boolean(),
 });
 
 export type ShareViewAuthVo = z.infer<typeof shareViewAuthVoSchema>;

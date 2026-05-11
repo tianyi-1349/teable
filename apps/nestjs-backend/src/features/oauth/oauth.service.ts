@@ -78,7 +78,22 @@ export class OAuthService {
     }));
   };
 
+  private async verifyOwnership(clientId: string): Promise<void> {
+    const currentUserId = this.cls.get('user.id');
+    const app = await this.prismaService.oAuthApp.findUnique({
+      where: { clientId },
+      select: { createdBy: true },
+    });
+    if (!app) {
+      throw new NotFoundException('OAuth client not found');
+    }
+    if (app.createdBy !== currentUserId) {
+      throw new ForbiddenException('You do not have permission to access this OAuth application');
+    }
+  }
+
   async getOAuth(clientId: string): Promise<OAuthGetVo> {
+    await this.verifyOwnership(clientId);
     const res = await this.prismaService.oAuthApp.findUnique({
       where: {
         clientId,
@@ -110,6 +125,7 @@ export class OAuthService {
   }
 
   async updateOAuth(clientId: string, ro: OAuthCreateRo): Promise<OAuthUpdateVo> {
+    await this.verifyOwnership(clientId);
     const { redirectUris, name, description, scopes, homepage, logo } = ro;
     const res = await this.prismaService.oAuthApp.update({
       where: {
@@ -142,6 +158,7 @@ export class OAuthService {
   }
 
   async deleteOAuth(clientId: string): Promise<void> {
+    await this.verifyOwnership(clientId);
     await this.prismaService.$tx(async (prisma) => {
       await prisma.oAuthApp.delete({
         where: {
@@ -174,6 +191,7 @@ export class OAuthService {
   }
 
   async generateSecret(clientId: string): Promise<GenerateOAuthSecretVo> {
+    await this.verifyOwnership(clientId);
     const secret = getRandomString(40).toLocaleLowerCase();
     const hashedSecret = await bcrypt.hash(secret, 10);
 
@@ -198,6 +216,7 @@ export class OAuthService {
   }
 
   async deleteSecret(clientId: string, secretId: string): Promise<void> {
+    await this.verifyOwnership(clientId);
     await this.prismaService.oAuthAppSecret.delete({
       where: {
         id: secretId,
