@@ -1,4 +1,5 @@
-import { forwardRef, useImperativeHandle } from 'react';
+import type { IWorkflowDetailVo } from '@teable/openapi';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { AutomationPage } from '../Pages';
 
 export interface WorkFlowPanelRef {
@@ -16,16 +17,24 @@ interface WorkFlowPanelProps {
   headLeft?: React.ReactNode;
 }
 
-const WorkFlowPanel = forwardRef<WorkFlowPanelRef, WorkFlowPanelProps>((_props, ref) => {
+const WorkFlowPanel = forwardRef<WorkFlowPanelRef, WorkFlowPanelProps>((props, ref) => {
+  const [workflow, setWorkflow] = useState<IWorkflowDetailVo | undefined>();
+
   useImperativeHandle(
     ref,
     () => {
-      return {};
+      return {
+        getWorkflow: () => workflow,
+        checkCanActive: () => ({
+          canActive: Boolean(workflow && !workflow.isActive && workflow.nodes.length > 1),
+          message: workflow ? '' : 'Workflow is not loaded',
+        }),
+      };
     },
-    []
+    [workflow]
   );
 
-  return <AutomationPage />;
+  return <AutomationPage {...props} onWorkflowChange={setWorkflow} />;
 });
 
 WorkFlowPanel.displayName = 'WorkFlowPanel';
