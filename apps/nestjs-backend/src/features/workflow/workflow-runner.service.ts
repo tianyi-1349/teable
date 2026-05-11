@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
 import { ScriptRuntimeService } from './script/script-runtime.service';
+import { WorkflowAiService } from './workflow-ai.service';
 
 interface IWorkflowSnapshotNode {
   id: string;
@@ -27,11 +28,26 @@ function getScript(config: unknown): string | undefined {
   return typeof script === 'string' ? script : typeof code === 'string' ? code : undefined;
 }
 
+function getAiGenerateConfig(config: unknown): { prompt: string; modelKey?: string } | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { prompt, modelKey } = config as { prompt?: unknown; modelKey?: unknown };
+  if (typeof prompt !== 'string' || !prompt.trim()) {
+    return undefined;
+  }
+  return {
+    prompt,
+    ...(typeof modelKey === 'string' && modelKey.trim() && { modelKey }),
+  };
+}
+
 @Injectable()
 export class WorkflowRunnerService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly scriptRuntimeService: ScriptRuntimeService
+    private readonly scriptRuntimeService: ScriptRuntimeService,
+    private readonly workflowAiService: WorkflowAiService
   ) {}
 
   async executeWorkflowRun(runId: string): Promise<void> {
@@ -47,9 +63,7 @@ export class WorkflowRunnerService {
     const startedTime = new Date();
     const snapshot = (run.snapshot?.snapshot ?? {}) as Partial<IWorkflowSnapshot>;
     const baseId = snapshot.baseId ?? run.workflow.baseId;
-    const actions = (snapshot.nodes ?? []).filter(
-      (node) => node.nodeType === 'action' && node.kind === 'runScript'
-    );
+    const actions = (snapshot.nodes ?? []).filter((node) => node.nodeType === 'action');
 
     await this.prismaService.workflowRun.update({
       where: { id: runId },
@@ -107,7 +121,6 @@ export class WorkflowRunnerService {
     action: IWorkflowSnapshotNode,
     input: unknown
   ): Promise<unknown> {
-    const script = getScript(action.config);
     const step = await this.prismaService.workflowRunStep.create({
       data: {
         runId,
@@ -118,21 +131,21 @@ export class WorkflowRunnerService {
       select: { id: true, startedTime: true },
     });
 
-    if (!script) {
-      const message = `Run Script node ${action.id} is missing script content`;
+    const invalidMessage = this.getInvalidActionMessage(action);
+    if (invalidMessage) {
       await this.prismaService.workflowRunStep.update({
         where: { id: step.id },
         data: {
           status: 'failed',
           finishedTime: new Date(),
-          error: { message },
+          error: { message: invalidMessage },
         },
       });
-      throw new Error(message);
+      throw new Error(invalidMessage);
     }
 
     try {
-      const output = await this.scriptRuntimeService.execute(script, { baseId, input });
+      const output = await this.executeConfiguredAction(baseId, action, input);
       const finishedTime = new Date();
       await this.prismaService.workflowRunStep.update({
         where: { id: step.id },
@@ -158,5 +171,40 @@ export class WorkflowRunnerService {
       });
       throw error;
     }
+  }
+
+  private getInvalidActionMessage(action: IWorkflowSnapshotNode) {
+    if (action.kind === 'runScript' && !getScript(action.config)) {
+      return `Run Script node ${action.id} is missing script content`;
+    }
+    if (action.kind === 'aiGenerate' && !getAiGenerateConfig(action.config)) {
+      return `AI Generate node ${action.id} is missing prompt`;
+    }
+    if (!['runScript', 'aiGenerate'].includes(action.kind)) {
+      return `Unsupported workflow action ${action.kind}`;
+    }
+    return undefined;
+  }
+
+  private async executeConfiguredAction(
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ) {
+    if (action.kind === 'runScript') {
+      return this.scriptRuntimeService.execute(getScript(action.config)!, { baseId, input });
+    }
+
+    const config = getAiGenerateConfig(action.config)!;
+    const prompt = this.interpolatePrompt(config.prompt, input);
+    const text = await this.workflowAiService.generateText(baseId, {
+      prompt,
+      ...(config.modelKey && { modelKey: config.modelKey }),
+    });
+    return { text };
+  }
+
+  private interpolatePrompt(prompt: string, input: unknown) {
+    return prompt.replace(/\{\{\s*input\s*\}\}/g, () => JSON.stringify(input));
   }
 }

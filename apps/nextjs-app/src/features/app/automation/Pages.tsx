@@ -66,7 +66,10 @@ interface IWorkflowSidebarProps {
   onDraftPromptChange: (value: string) => void;
   onCreateDraft: () => void;
   onRecordTriggerTableIdChange: (value: string) => void;
-  onCreateRecordTrigger: (triggerType: 'recordCreated' | 'recordUpdated') => void;
+  onCreateRecordTrigger: (
+    triggerType: 'recordCreated' | 'recordUpdated',
+    actionKind?: 'runScript' | 'aiGenerate'
+  ) => void;
   onSelectWorkflow: (workflow: IWorkflowVo) => void;
 }
 
@@ -134,6 +137,15 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
               On update
             </Button>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            disabled={isCreatingRecordTrigger}
+            onClick={() => onCreateRecordTrigger('recordCreated', 'aiGenerate')}
+          >
+            AI summarize on create
+          </Button>
           <p className="text-xs text-muted-foreground">
             Leave table id empty to listen to all tables in this base.
           </p>
@@ -389,28 +401,47 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   });
 
   const recordTriggerMutation = useMutation({
-    mutationFn: (triggerType: 'recordCreated' | 'recordUpdated') =>
+    mutationFn: ({
+      triggerType,
+      actionKind = 'runScript',
+    }: {
+      triggerType: 'recordCreated' | 'recordUpdated';
+      actionKind?: 'runScript' | 'aiGenerate';
+    }) =>
       createWorkflow(baseId, {
-        name: triggerType === 'recordCreated' ? 'When record is created' : 'When record is updated',
+        name:
+          actionKind === 'aiGenerate'
+            ? 'Summarize new record with AI'
+            : triggerType === 'recordCreated'
+              ? 'When record is created'
+              : 'When record is updated',
         description: 'Inactive record trigger workflow draft. Add actions before activation.',
         trigger: {
           type: triggerType,
           config: recordTriggerTableId.trim() ? { tableId: recordTriggerTableId.trim() } : {},
         },
         actions: [
-          {
-            type: 'runScript',
-            config: {
-              script: [
-                'console.log("Record trigger input", input);',
-                'return {',
-                `  triggerType: "${triggerType}",`,
-                '  tableId: input.tableId,',
-                '  record: input.record,',
-                '};',
-              ].join('\n'),
-            },
-          },
+          actionKind === 'aiGenerate'
+            ? {
+                type: 'aiGenerate',
+                config: {
+                  prompt:
+                    'Summarize this automation trigger input in one concise paragraph: {{ input }}',
+                },
+              }
+            : {
+                type: 'runScript',
+                config: {
+                  script: [
+                    'console.log("Record trigger input", input);',
+                    'return {',
+                    `  triggerType: "${triggerType}",`,
+                    '  tableId: input.tableId,',
+                    '  record: input.record,',
+                    '};',
+                  ].join('\n'),
+                },
+              },
         ],
       }),
     onSuccess: async ({ data }) => {
@@ -517,7 +548,9 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           onDraftPromptChange={setDraftPrompt}
           onCreateDraft={() => aiDraftMutation.mutate()}
           onRecordTriggerTableIdChange={setRecordTriggerTableId}
-          onCreateRecordTrigger={(triggerType) => recordTriggerMutation.mutate(triggerType)}
+          onCreateRecordTrigger={(triggerType, actionKind) =>
+            recordTriggerMutation.mutate({ triggerType, actionKind })
+          }
           onSelectWorkflow={handleSelectWorkflow}
         />
 

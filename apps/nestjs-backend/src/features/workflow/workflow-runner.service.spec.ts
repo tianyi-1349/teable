@@ -18,11 +18,18 @@ describe('WorkflowRunnerService', () => {
   const scriptRuntimeService = {
     execute: vi.fn(),
   };
+  const workflowAiService = {
+    generateText: vi.fn(),
+  };
   let service: WorkflowRunnerService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new WorkflowRunnerService(prismaService as never, scriptRuntimeService as never);
+    service = new WorkflowRunnerService(
+      prismaService as never,
+      scriptRuntimeService as never,
+      workflowAiService as never
+    );
   });
 
   it('completes a run without script actions', async () => {
@@ -123,6 +130,50 @@ describe('WorkflowRunnerService', () => {
     expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
       where: { id: runId },
       data: expect.objectContaining({ status: 'failed', error: { message: 'boom' } }),
+    });
+  });
+
+  it('executes aiGenerate actions and records generated text', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { recordId: 'rec123' },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-ai',
+              nodeType: 'action',
+              kind: 'aiGenerate',
+              config: { prompt: 'Summarize {{ input }}', modelKey: 'gpt' },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-ai', startedTime });
+    workflowAiService.generateText.mockResolvedValue('Generated summary');
+
+    await service.executeWorkflowRun(runId);
+
+    expect(workflowAiService.generateText).toHaveBeenCalledWith(baseId, {
+      prompt: 'Summarize {"recordId":"rec123"}',
+      modelKey: 'gpt',
+    });
+    expect(prismaService.workflowRunStep.update).toHaveBeenCalledWith({
+      where: { id: 'step-ai' },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { text: 'Generated summary' },
+      }),
+    });
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { text: 'Generated summary' },
+      }),
     });
   });
 });
