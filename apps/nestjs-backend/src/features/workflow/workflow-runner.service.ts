@@ -3,6 +3,7 @@ import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
+import { PermissionService } from '../auth/permission.service';
 import { ScriptRuntimeService } from './script/script-runtime.service';
 import { WorkflowAiService } from './workflow-ai.service';
 
@@ -73,8 +74,10 @@ function sortActionsByChain(actions: IWorkflowSnapshotNode[]) {
 export class WorkflowRunnerService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly scriptRuntime: ScriptRuntimeService,
+    private readonly scriptRuntimeService: ScriptRuntimeService,
     private readonly workflowAiService: WorkflowAiService,
+    private readonly recordsService: RecordsOpenApiService,
+    private readonly permissionService: PermissionService,
     private readonly cls: ClsService<IClsStore>
   ) {}
 
@@ -233,16 +236,67 @@ export class WorkflowRunnerService {
     input: unknown
   ) {
     if (action.kind === 'runScript') {
+      // Check automation|manage permission for runScript
+      await this.permissionService.checkBasePermission(baseId, 'automation|manage');
       return this.scriptRuntimeService.execute(getScript(action.config)!, { baseId, input });
     }
 
-    const config = getAiGenerateConfig(action.config)!;
-    const prompt = this.interpolatePrompt(config.prompt, input);
-    const text = await this.workflowAiService.generateText(baseId, {
-      prompt,
-      ...(config.modelKey && { modelKey: config.modelKey }),
-    });
-    return { text };
+    if (action.kind === 'aiGenerate') {
+      // Check AI availability and permissions
+      await this.permissionService.checkBasePermission(baseId, 'automation|read');
+      const text = await this.workflowAiService.generateText(baseId, {
+        prompt: this.interpolatePrompt(getAiGenerateConfig(action.config)!.prompt, input),
+        ...(getAiGenerateConfig(action.config)!.modelKey && {
+          modelKey: getAiGenerateConfig(action.config)!.modelKey,
+        }),
+      });
+      return { text };
+    }
+
+    // Handle record actions
+    if (action.kind === 'updateRecords') {
+      const config = action.config as {
+        tableId: string;
+        recordId: string;
+        fields: Record<string, unknown>;
+      };
+      // Check record|update permission
+      await this.permissionService.checkTablePermission(config.tableId, 'record|update');
+      return this.recordsService.updateRecord(
+        config.tableId,
+        config.recordId,
+        {
+          record: { fields: config.fields },
+        },
+        { userId: this.cls.get('user.id') }
+      );
+    }
+
+    if (action.kind === 'createRecords') {
+      const config = action.config as { tableId: string; records: Record<string, unknown>[] };
+      // Check record|create permission
+      await this.permissionService.checkTablePermission(config.tableId, 'record|create');
+      return this.recordsService.createRecords(config.tableId, config.records, {
+        userId: this.cls.get('user.id'),
+      });
+    }
+
+    if (action.kind === 'queryRecords') {
+      const config = action.config as {
+        tableId: string;
+        filter?: Record<string, unknown>;
+        take?: number;
+      };
+      // Check record|read permission
+      await this.permissionService.checkTablePermission(config.tableId, 'record|read');
+      return this.recordsService.getRecords(config.tableId, {
+        filter: config.filter,
+        take: config.take,
+        userId: this.cls.get('user.id'),
+      });
+    }
+
+    throw new Error(`Unsupported action type: ${action.kind}`);
   }
 
   private interpolatePrompt(prompt: string, input: unknown) {

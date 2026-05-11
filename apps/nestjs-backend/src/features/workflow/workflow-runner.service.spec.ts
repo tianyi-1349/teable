@@ -21,6 +21,19 @@ describe('WorkflowRunnerService', () => {
   const workflowAiService = {
     generateText: vi.fn(),
   };
+  const recordsService = {
+    updateRecord: vi.fn(),
+    createRecords: vi.fn(),
+    getRecords: vi.fn(),
+  };
+  const permissionService = {
+    checkBasePermission: vi.fn(),
+    checkTablePermission: vi.fn(),
+  };
+  const clsService = {
+    get: vi.fn(),
+    set: vi.fn(),
+  };
   let service: WorkflowRunnerService;
 
   beforeEach(() => {
@@ -28,7 +41,10 @@ describe('WorkflowRunnerService', () => {
     service = new WorkflowRunnerService(
       prismaService as never,
       scriptRuntimeService as never,
-      workflowAiService as never
+      workflowAiService as never,
+      recordsService as never,
+      permissionService as never,
+      clsService as never
     );
   });
 
