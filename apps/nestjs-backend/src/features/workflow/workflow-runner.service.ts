@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@teable/db-main-prisma';
 import { Prisma } from '@prisma/client';
+import type { IFilterSet } from '@teable/core';
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
 import { PermissionService } from '../auth/permission.service';
+import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
+import { RecordService } from '../record/record.service';
 import { ScriptRuntimeService } from './script/script-runtime.service';
 import { WorkflowAiService } from './workflow-ai.service';
 
@@ -76,7 +79,8 @@ export class WorkflowRunnerService {
     private readonly prismaService: PrismaService,
     private readonly scriptRuntimeService: ScriptRuntimeService,
     private readonly workflowAiService: WorkflowAiService,
-    private readonly recordsService: RecordsOpenApiService,
+    private readonly recordsService: RecordOpenApiService,
+    private readonly recordService: RecordService,
     private readonly permissionService: PermissionService,
     private readonly cls: ClsService<IClsStore>
   ) {}
@@ -87,7 +91,7 @@ export class WorkflowRunnerService {
       select: {
         id: true,
         input: true,
-        workflow: { select: { baseId: true } },
+        workflow: { select: { id: true, baseId: true } },
         snapshot: { select: { snapshot: true } },
       },
     });
@@ -99,7 +103,7 @@ export class WorkflowRunnerService {
     );
 
     // Set automation context to prevent recursive triggers
-    const automationContext = {
+    const automationContext: IClsStore['automationContext'] = {
       source: 'automation',
       workflowId: run.workflow.id,
       runId: run.id,
@@ -236,14 +240,12 @@ export class WorkflowRunnerService {
     input: unknown
   ) {
     if (action.kind === 'runScript') {
-      // Check automation|manage permission for runScript
-      await this.permissionService.checkBasePermission(baseId, 'automation|manage');
+      await this.permissionService.validPermissions(baseId, ['automation|update']);
       return this.scriptRuntimeService.execute(getScript(action.config)!, { baseId, input });
     }
 
     if (action.kind === 'aiGenerate') {
-      // Check AI availability and permissions
-      await this.permissionService.checkBasePermission(baseId, 'automation|read');
+      await this.permissionService.validPermissions(baseId, ['automation|read']);
       const text = await this.workflowAiService.generateText(baseId, {
         prompt: this.interpolatePrompt(getAiGenerateConfig(action.config)!.prompt, input),
         ...(getAiGenerateConfig(action.config)!.modelKey && {
@@ -260,25 +262,27 @@ export class WorkflowRunnerService {
         recordId: string;
         fields: Record<string, unknown>;
       };
-      // Check record|update permission
-      await this.permissionService.checkTablePermission(config.tableId, 'record|update');
+      await this.permissionService.validPermissions(config.tableId, ['record|update']);
       return this.recordsService.updateRecord(
         config.tableId,
         config.recordId,
         {
           record: { fields: config.fields },
         },
-        { userId: this.cls.get('user.id') }
+        undefined,
+        'true'
       );
     }
 
     if (action.kind === 'createRecords') {
       const config = action.config as { tableId: string; records: Record<string, unknown>[] };
-      // Check record|create permission
-      await this.permissionService.checkTablePermission(config.tableId, 'record|create');
-      return this.recordsService.createRecords(config.tableId, config.records, {
-        userId: this.cls.get('user.id'),
-      });
+      await this.permissionService.validPermissions(config.tableId, ['record|create']);
+      return this.recordsService.multipleCreateRecords(
+        config.tableId,
+        { records: config.records.map((fields) => ({ fields })) },
+        false,
+        'true'
+      );
     }
 
     if (action.kind === 'queryRecords') {
@@ -287,12 +291,10 @@ export class WorkflowRunnerService {
         filter?: Record<string, unknown>;
         take?: number;
       };
-      // Check record|read permission
-      await this.permissionService.checkTablePermission(config.tableId, 'record|read');
-      return this.recordsService.getRecords(config.tableId, {
-        filter: config.filter,
+      await this.permissionService.validPermissions(config.tableId, ['record|read']);
+      return this.recordService.getRecords(config.tableId, {
+        filter: config.filter as IFilterSet | undefined,
         take: config.take,
-        userId: this.cls.get('user.id'),
       });
     }
 

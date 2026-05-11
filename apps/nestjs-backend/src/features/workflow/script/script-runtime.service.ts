@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { IAiGenerateRo } from '@teable/openapi';
+// @ts-expect-error vm2 does not ship declarations in this workspace.
 import { VM } from 'vm2';
 import { WorkflowAiService } from '../workflow-ai.service';
 

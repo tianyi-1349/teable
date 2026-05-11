@@ -134,41 +134,46 @@ const appendActionNode = (
   const triggerNode = workflow.nodes.find((node) => node.nodeType === 'trigger');
   const previousNode = actionNodes[actionNodes.length - 1] ?? triggerNode;
   const newNodeId = generateWorkflowActionId();
-  
-  let config: IRecordUpdateActionConfig | IRecordCreateActionConfig | IRecordQueryActionConfig | { script: string } | { prompt: string };
+
+  let config:
+    | IRecordUpdateActionConfig
+    | IRecordCreateActionConfig
+    | IRecordQueryActionConfig
+    | { script: string }
+    | { prompt: string };
   switch (kind) {
     case 'aiGenerate':
       config = { prompt: 'Summarize this automation input: {{ input }}' };
       break;
     case 'runScript':
       config = {
-        script: ['console.log("Automation input", input);', 'return {', '  input,', '};'].join('\n'),
+        script: ['console.log("Automation input", input);', 'return {', '  input,', '};'].join(
+          '\n'
+        ),
       };
       break;
     case 'updateRecords':
       config = {
         tableId: '',
         recordId: '{{ input.record?.id }}',
-        fields: {}
+        fields: {},
       };
       break;
     case 'createRecords':
       config = {
         tableId: '',
-        records: [{}]
+        records: [{}],
       };
       break;
     case 'queryRecords':
       config = {
         tableId: '',
         filter: {},
-        take: 10
+        take: 10,
       };
       break;
-    default:
-      config = {};
   }
-  
+
   const newNode: IWorkflowNode = {
     id: newNodeId,
     workflowId: workflow.id,
@@ -395,7 +400,9 @@ interface IWorkflowDetailProps {
   onRecordTriggerTableIdDraftChange: (value: string) => void;
   onRecordTriggerFilterDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
-  onAddAction: (kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords') => void;
+  onAddAction: (
+    kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
+  ) => void;
   onRemoveAction: (nodeId: string) => void;
 }
 
@@ -469,32 +476,17 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
         </Button>
       )}
       {isUpdateRecords && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-3"
-          disabled
-        >
+        <Button size="sm" variant="outline" className="mt-3" disabled>
           Edit record update (coming soon)
         </Button>
       )}
       {isCreateRecords && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-3"
-          disabled
-        >
+        <Button size="sm" variant="outline" className="mt-3" disabled>
           Edit record create (coming soon)
         </Button>
       )}
       {isQueryRecords && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-3"
-          disabled
-        >
+        <Button size="sm" variant="outline" className="mt-3" disabled>
           Edit record query (coming soon)
         </Button>
       )}
@@ -970,12 +962,29 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [scriptDraft, setScriptDraft] = useState('');
   const [selectedAiNodeId, setSelectedAiNodeId] = useState<string | undefined>();
   const [aiPromptDraft, setAiPromptDraft] = useState('');
-  const [selectedUpdateRecordsNodeId, setSelectedUpdateRecordsNodeId] = useState<string | undefined>();
-  const [updateRecordsDraft, setUpdateRecordsDraft] = useState<IRecordUpdateActionConfig>({ tableId: '', recordId: '{{ input.record?.id }}', fields: {} });
-  const [selectedCreateRecordsNodeId, setSelectedCreateRecordsNodeId] = useState<string | undefined>();
-  const [createRecordsDraft, setCreateRecordsDraft] = useState<IRecordCreateActionConfig>({ tableId: '', records: [{}] });
-  const [selectedQueryRecordsNodeId, setSelectedQueryRecordsNodeId] = useState<string | undefined>();
-  const [queryRecordsDraft, setQueryRecordsDraft] = useState<IRecordQueryActionConfig>({ tableId: '', filter: {}, take: 10 });
+  const [selectedUpdateRecordsNodeId, setSelectedUpdateRecordsNodeId] = useState<
+    string | undefined
+  >();
+  const [updateRecordsDraft, setUpdateRecordsDraft] = useState<IRecordUpdateActionConfig>({
+    tableId: '',
+    recordId: '{{ input.record?.id }}',
+    fields: {},
+  });
+  const [selectedCreateRecordsNodeId, setSelectedCreateRecordsNodeId] = useState<
+    string | undefined
+  >();
+  const [createRecordsDraft, setCreateRecordsDraft] = useState<IRecordCreateActionConfig>({
+    tableId: '',
+    records: [{}],
+  });
+  const [selectedQueryRecordsNodeId, setSelectedQueryRecordsNodeId] = useState<
+    string | undefined
+  >();
+  const [queryRecordsDraft, setQueryRecordsDraft] = useState<IRecordQueryActionConfig>({
+    tableId: '',
+    filter: {},
+    take: 10,
+  });
   const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
   const [recordTriggerKindDraft, setRecordTriggerKindDraft] = useState<
     'recordCreated' | 'recordUpdated'
@@ -1315,7 +1324,9 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   });
 
   const addActionMutation = useMutation({
-    mutationFn: async (kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords') => {
+    mutationFn: async (
+      kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
+    ) => {
       if (!workflow) return undefined;
       return updateWorkflow(baseId, workflow.id, { nodes: appendActionNode(workflow, kind) });
     },

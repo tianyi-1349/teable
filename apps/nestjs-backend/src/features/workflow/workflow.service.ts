@@ -581,7 +581,7 @@ export class WorkflowService {
     const workflow = await this.prismaService.workflow
       .findFirstOrThrow({
         where: { id: workflowId, deletedTime: null, isActive: true },
-        select: { id: true, activeSnapshotId: true },
+        select: { id: true, baseId: true, activeSnapshotId: true },
       })
       .catch(() => {
         throw new CustomHttpException('Workflow not found or inactive', HttpErrorCode.NOT_FOUND, {
@@ -596,7 +596,7 @@ export class WorkflowService {
         triggerType: 'buttonClick',
         status: 'pending',
         input: {
-          ...input,
+          ...(typeof input === 'object' && input != null ? input : { value: input }),
           __automationContext: {
             source: 'automation',
             workflowId: workflow.id,
@@ -673,7 +673,7 @@ export class WorkflowService {
             triggerType,
             status: 'pending',
             input: {
-              ...input,
+              ...(typeof input === 'object' && input != null ? input : { value: input }),
               __automationContext: {
                 source: 'automation',
                 workflowId: workflow.id,
