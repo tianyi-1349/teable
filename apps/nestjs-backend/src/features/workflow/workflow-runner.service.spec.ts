@@ -73,7 +73,7 @@ describe('WorkflowRunnerService', () => {
     });
   });
 
-  it('executes runScript actions and records step output', async () => {
+  it('marks run failed when runScript execution is disabled', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
       input: { recordId: 'rec123' },
@@ -93,7 +93,11 @@ describe('WorkflowRunnerService', () => {
       },
     });
     prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step123', startedTime });
-    scriptRuntimeService.execute.mockResolvedValue({ result: { ok: true }, logs: [] });
+    scriptRuntimeService.execute.mockRejectedValue(
+      new Error(
+        'Run Script workflow actions are disabled until a process-isolated sandbox is available'
+      )
+    );
 
     await service.executeWorkflowRun(runId);
 
@@ -104,20 +108,26 @@ describe('WorkflowRunnerService', () => {
     expect(prismaService.workflowRunStep.update).toHaveBeenCalledWith({
       where: { id: 'step123' },
       data: expect.objectContaining({
-        status: 'completed',
-        output: { result: { ok: true }, logs: [] },
+        status: 'failed',
+        error: {
+          message:
+            'Run Script workflow actions are disabled until a process-isolated sandbox is available',
+        },
       }),
     });
     expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
       where: { id: runId },
       data: expect.objectContaining({
-        status: 'completed',
-        output: { result: { ok: true }, logs: [] },
+        status: 'failed',
+        error: {
+          message:
+            'Run Script workflow actions are disabled until a process-isolated sandbox is available',
+        },
       }),
     });
   });
 
-  it('executes actions by parent and next node chain order', async () => {
+  it('executes non-script actions by parent and next node chain order', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
       input: { count: 0 },
@@ -129,16 +139,16 @@ describe('WorkflowRunnerService', () => {
             {
               id: 'wa-second',
               nodeType: 'action',
-              kind: 'runScript',
+              kind: 'aiGenerate',
               parentNodeId: 'wa-first',
-              config: { script: 'return second;' },
+              config: { prompt: 'second {{ input }}' },
             },
             {
               id: 'wa-first',
               nodeType: 'action',
-              kind: 'runScript',
+              kind: 'aiGenerate',
               nextNodeId: 'wa-second',
-              config: { script: 'return first;' },
+              config: { prompt: 'first {{ input }}' },
             },
           ],
         },
@@ -147,25 +157,23 @@ describe('WorkflowRunnerService', () => {
     prismaService.workflowRunStep.create
       .mockResolvedValueOnce({ id: 'step-first', startedTime })
       .mockResolvedValueOnce({ id: 'step-second', startedTime });
-    scriptRuntimeService.execute
-      .mockResolvedValueOnce({ count: 1 })
-      .mockResolvedValueOnce({ count: 2 });
+    workflowAiService.generateText
+      .mockResolvedValueOnce('first output')
+      .mockResolvedValueOnce('second output');
 
     await service.executeWorkflowRun(runId);
 
-    expect(scriptRuntimeService.execute).toHaveBeenNthCalledWith(1, 'return first;', {
-      baseId,
-      input: { count: 0 },
+    expect(workflowAiService.generateText).toHaveBeenNthCalledWith(1, baseId, {
+      prompt: 'first {"count":0}',
     });
-    expect(scriptRuntimeService.execute).toHaveBeenNthCalledWith(2, 'return second;', {
-      baseId,
-      input: { count: 1 },
+    expect(workflowAiService.generateText).toHaveBeenNthCalledWith(2, baseId, {
+      prompt: 'second {"text":"first output"}',
     });
     expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
       where: { id: runId },
       data: expect.objectContaining({
         status: 'completed',
-        output: { count: 2 },
+        output: { text: 'second output' },
       }),
     });
   });

@@ -40,6 +40,11 @@ import { getColorByConfig, getDateByTimezone, getEventTitle, getPlainCellText } 
 
 const ADD_EVENT_BUTTON_CLASS_NAME = 'calendar-add-event-button';
 const MORE_LINK_TEXT_CLASS_NAME = 'calendar-custom-more-link-text';
+const EVENT_CONTEXT_MENU_HANDLER_KEY = '__teableCalendarContextMenuHandler';
+
+type CalendarEventElement = HTMLElement & {
+  [EVENT_CONTEXT_MENU_HANDLER_KEY]?: (e: MouseEvent) => void;
+};
 
 const FULL_CALENDAR_LOCALE_MAP = {
   zh: zhCnLocale,
@@ -299,9 +304,9 @@ export const Calendar = (props: ICalendarProps) => {
   }, [countMap, t, containerRef]);
 
   const onEventDidMount = (info: EventMountArg) => {
-    const element = info.el as HTMLElement;
+    const element = info.el as CalendarEventElement;
 
-    element.addEventListener('contextmenu', (e) => {
+    const handler = (e: MouseEvent) => {
       e.preventDefault();
       if (!containerRef.current) return;
 
@@ -317,7 +322,17 @@ export const Calendar = (props: ICalendarProps) => {
           y: relativeY,
         },
       });
-    });
+    };
+    element[EVENT_CONTEXT_MENU_HANDLER_KEY] = handler;
+    element.addEventListener('contextmenu', handler);
+  };
+
+  const onEventWillUnmount = (info: EventMountArg) => {
+    const element = info.el as CalendarEventElement;
+    const handler = element[EVENT_CONTEXT_MENU_HANDLER_KEY];
+    if (!handler) return;
+    element.removeEventListener('contextmenu', handler);
+    delete element[EVENT_CONTEXT_MENU_HANDLER_KEY];
   };
 
   const onEventResize = (info: EventResizeDoneArg) => {
@@ -479,6 +494,7 @@ export const Calendar = (props: ICalendarProps) => {
             editable={eventDraggable}
             datesSet={onDatesChanged}
             eventDidMount={onEventDidMount}
+            eventWillUnmount={onEventWillUnmount}
             eventResize={onEventResize}
             eventDrop={onEventDrop}
             eventClick={(info) => setExpandRecordId(info.event.id)}

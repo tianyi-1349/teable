@@ -14,7 +14,11 @@ export function ProgressBar({ duration, cellCount }: { duration: number; cellCou
     const intervalId = setInterval(() => {
       setProgress((prevProgress) => {
         const nextProgress = prevProgress + step;
-        return nextProgress > 100 ? 100 : nextProgress;
+        if (nextProgress >= 100) {
+          clearInterval(intervalId);
+          return 100;
+        }
+        return nextProgress;
       });
     }, interval);
 

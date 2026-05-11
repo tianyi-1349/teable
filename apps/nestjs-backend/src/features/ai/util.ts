@@ -51,9 +51,18 @@ const createFixingFetch = (): typeof fetch => {
 
     const transformedStream = new ReadableStream({
       async pull(controller) {
-        const { done, value } = await reader.read();
+        let readResult: ReadableStreamReadResult<Uint8Array>;
+        try {
+          readResult = await reader.read();
+        } catch (error) {
+          reader.releaseLock();
+          throw error;
+        }
+
+        const { done, value } = readResult;
 
         if (done) {
+          reader.releaseLock();
           controller.close();
           return;
         }
@@ -62,6 +71,13 @@ const createFixingFetch = (): typeof fetch => {
         const fixedText = fixStreamText(text);
 
         controller.enqueue(encoder.encode(fixedText));
+      },
+      async cancel(reason) {
+        try {
+          await reader.cancel(reason);
+        } finally {
+          reader.releaseLock();
+        }
       },
     });
 

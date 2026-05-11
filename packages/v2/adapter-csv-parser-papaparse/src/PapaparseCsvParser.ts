@@ -236,6 +236,14 @@ export class PapaparseCsvParser implements ICsvParser {
         let pendingIndex = 0;
         let readerDone = false;
         let currentBuffer = buffer;
+        let readerReleased = false;
+
+        const releaseReader = () => {
+          if (!readerReleased) {
+            reader.releaseLock();
+            readerReleased = true;
+          }
+        };
 
         return {
           async next(): Promise<IteratorResult<Record<string, string>>> {
@@ -249,6 +257,7 @@ export class PapaparseCsvParser implements ICsvParser {
               const { done, value } = await reader.read();
               if (done) {
                 readerDone = true;
+                releaseReader();
                 // 处理剩余的 buffer
                 if (currentBuffer.trim()) {
                   const parseResult = Papa.parse<Record<string, string>>(currentBuffer, {
@@ -294,6 +303,17 @@ export class PapaparseCsvParser implements ICsvParser {
               }
             }
 
+            return { value: undefined as never, done: true };
+          },
+          async return(): Promise<IteratorResult<Record<string, string>>> {
+            if (!readerDone) {
+              try {
+                await reader.cancel();
+              } finally {
+                readerDone = true;
+                releaseReader();
+              }
+            }
             return { value: undefined as never, done: true };
           },
         };
