@@ -216,6 +216,8 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
 
 interface IWorkflowDetailProps {
   workflow?: IWorkflowDetailVo;
+  nameDraft: string;
+  descriptionDraft: string;
   scriptPreview: string;
   scriptDraft: string;
   aiPromptPreview: string;
@@ -226,12 +228,16 @@ interface IWorkflowDetailProps {
   isDeactivating: boolean;
   isDeleting: boolean;
   isTesting: boolean;
+  isSavingMetadata: boolean;
   isSavingScript: boolean;
   isSavingAiPrompt: boolean;
   isSavingRecordTrigger: boolean;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
+  onNameDraftChange: (value: string) => void;
+  onDescriptionDraftChange: (value: string) => void;
+  onSaveMetadata: () => void;
   onScriptDraftChange: (value: string) => void;
   onSaveScript: () => void;
   onAiPromptDraftChange: (value: string) => void;
@@ -243,6 +249,8 @@ interface IWorkflowDetailProps {
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
   const {
     workflow,
+    nameDraft,
+    descriptionDraft,
     scriptPreview,
     scriptDraft,
     aiPromptPreview,
@@ -253,12 +261,16 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     isDeactivating,
     isDeleting,
     isTesting,
+    isSavingMetadata,
     isSavingScript,
     isSavingAiPrompt,
     isSavingRecordTrigger,
     onToggleActive,
     onDelete,
     onTestRun,
+    onNameDraftChange,
+    onDescriptionDraftChange,
+    onSaveMetadata,
     onScriptDraftChange,
     onSaveScript,
     onAiPromptDraftChange,
@@ -322,6 +334,31 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
       <CardContent className="space-y-4 overflow-auto">
         {workflow ? (
           <>
+            <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">Workflow metadata</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!nameDraft.trim() || isSavingMetadata}
+                  onClick={onSaveMetadata}
+                >
+                  Save metadata
+                </Button>
+              </div>
+              <Input
+                value={nameDraft}
+                onChange={(event) => onNameDraftChange(event.target.value)}
+                placeholder="Workflow name"
+                className="text-xs"
+              />
+              <Textarea
+                value={descriptionDraft}
+                onChange={(event) => onDescriptionDraftChange(event.target.value)}
+                placeholder="Optional description"
+                className="min-h-20 resize-none text-xs"
+              />
+            </div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">Status</div>
@@ -528,6 +565,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     'When the button is clicked, inspect the record and return a short summary.'
   );
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
+  const [nameDraft, setNameDraft] = useState('');
+  const [descriptionDraft, setDescriptionDraft] = useState('');
   const [scriptDraft, setScriptDraft] = useState('');
   const [aiPromptDraft, setAiPromptDraft] = useState('');
   const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
@@ -559,6 +598,11 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const scriptPreview = getScriptPreview(workflow);
   const aiPromptPreview = getAiGeneratePrompt(workflow);
   const recordTriggerTableIdPreview = getRecordTriggerTableId(workflow);
+
+  useEffect(() => {
+    setNameDraft(workflow?.name ?? '');
+    setDescriptionDraft(workflow?.description ?? '');
+  }, [workflow?.description, workflow?.name]);
 
   useEffect(() => {
     setScriptDraft(scriptPreview);
@@ -716,6 +760,21 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
   });
 
+  const saveMetadataMutation = useMutation({
+    mutationFn: async () => {
+      if (!workflow) return undefined;
+      return updateWorkflow(baseId, workflow.id, {
+        name: nameDraft,
+        description: descriptionDraft.trim() ? descriptionDraft : null,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result?.data) return;
+      toast.success('Workflow metadata saved');
+      await refreshWorkflow(result.data.id);
+    },
+  });
+
   const saveScriptMutation = useMutation({
     mutationFn: async () => {
       if (!workflow) return undefined;
@@ -858,6 +917,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <WorkflowDetail
             workflow={workflow}
+            nameDraft={nameDraft}
+            descriptionDraft={descriptionDraft}
             scriptPreview={scriptPreview}
             scriptDraft={scriptDraft}
             aiPromptPreview={aiPromptPreview}
@@ -868,12 +929,16 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             isDeactivating={deactivateMutation.isPending}
             isDeleting={deleteMutation.isPending}
             isTesting={testRunMutation.isPending}
+            isSavingMetadata={saveMetadataMutation.isPending}
             isSavingScript={saveScriptMutation.isPending}
             isSavingAiPrompt={saveAiPromptMutation.isPending}
             isSavingRecordTrigger={saveRecordTriggerMutation.isPending}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
+            onNameDraftChange={setNameDraft}
+            onDescriptionDraftChange={setDescriptionDraft}
+            onSaveMetadata={() => saveMetadataMutation.mutate()}
             onScriptDraftChange={setScriptDraft}
             onSaveScript={() => saveScriptMutation.mutate()}
             onAiPromptDraftChange={setAiPromptDraft}
