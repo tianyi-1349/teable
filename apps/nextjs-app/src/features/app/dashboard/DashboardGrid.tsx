@@ -8,6 +8,7 @@ import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import { dashboardConfig } from '@/features/i18n/dashboard.config';
+import { useOptionalPublishedApp } from '../published-app';
 import { PluginItem } from './components/PluginItem';
 import { useIsExpandPlugin } from './hooks/useIsExpandPlugin';
 
@@ -21,8 +22,9 @@ export const DashboardGrid = (props: { dashboardId: string }) => {
   const { t } = useTranslation(dashboardConfig.i18nNamespaces);
   const [isDragging, setIsDragging] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const publishedApp = useOptionalPublishedApp();
   const basePermissions = useBasePermission();
-  const canMange = basePermissions?.['base|update'];
+  const canMange = basePermissions?.['base|update'] && !publishedApp?.isReadonly;
   const { data: dashboardData } = useQuery({
     queryKey: ReactQueryKeys.getDashboard(dashboardId),
     queryFn: () => getDashboard(baseId, dashboardId).then((res) => res.data),
@@ -98,6 +100,7 @@ export const DashboardGrid = (props: { dashboardId: string }) => {
               pluginId={pluginMap[pluginInstallId].id}
               pluginUrl={pluginMap[pluginInstallId].url}
               pluginInstallId={pluginMap[pluginInstallId].pluginInstallId}
+              publishedReadonly={publishedApp?.isReadonly}
             />
           ) : (
             <div>{t('common:pluginCenter.pluginNotFound')}</div>

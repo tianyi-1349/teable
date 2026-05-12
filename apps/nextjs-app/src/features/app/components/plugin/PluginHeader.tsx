@@ -127,10 +127,12 @@ export const PluginHeader = (props: {
               <Maximize2 className="mr-1.5" />
               {t('common:actions.expand')}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onCopy}>
-              <Copy className="mr-1.5" />
-              {t('common:actions.duplicate')}
-            </DropdownMenuItem>
+            {canManage && (
+              <DropdownMenuItem onSelect={onCopy}>
+                <Copy className="mr-1.5" />
+                {t('common:actions.duplicate')}
+              </DropdownMenuItem>
+            )}
             {canManage && (
               <>
                 <DropdownMenuSeparator />

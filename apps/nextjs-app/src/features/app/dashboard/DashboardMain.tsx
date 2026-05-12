@@ -8,15 +8,17 @@ import { Button } from '@teable/ui-lib/shadcn';
 import { isEmpty } from 'lodash';
 import { useTranslation } from 'next-i18next';
 import { dashboardConfig } from '@/features/i18n/dashboard.config';
+import { useOptionalPublishedApp } from '../published-app';
 import { AddPluginDialog } from './components/AddPluginDialog';
 import { DashboardGrid } from './DashboardGrid';
 
 export const DashboardMain = (props: { dashboardId: string }) => {
   const { dashboardId } = props;
   const { t } = useTranslation(dashboardConfig.i18nNamespaces);
+  const publishedApp = useOptionalPublishedApp();
   const baseId = useBaseId()!;
   const basePermissions = useBasePermission();
-  const canManage = basePermissions?.['base|update'];
+  const canManage = basePermissions?.['base|update'] && !publishedApp?.isReadonly;
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ReactQueryKeys.getDashboard(dashboardId),
     queryFn: () => getDashboard(baseId, dashboardId).then((res) => res.data),

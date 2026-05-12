@@ -142,3 +142,7 @@ export const usePublishedApp = () => {
   }
   return context;
 };
+
+export const useOptionalPublishedApp = () => {
+  return useContext(PublishedAppContext);
+};

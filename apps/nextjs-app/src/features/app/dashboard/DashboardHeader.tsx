@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dashboardConfig } from '@/features/i18n/dashboard.config';
 import { BaseNodeMore } from '../blocks/base/base-side-bar/BaseNodeMore';
 import { useBrand } from '../hooks/useBrand';
+import { useOptionalPublishedApp } from '../published-app';
 import { AddPluginDialog } from './components/AddPluginDialog';
 
 export const DashboardHeader = (props: { dashboardId: string }) => {
@@ -20,8 +21,9 @@ export const DashboardHeader = (props: { dashboardId: string }) => {
   const [editName, setEditName] = useState<string>('');
   const renameRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation(dashboardConfig.i18nNamespaces);
+  const publishedApp = useOptionalPublishedApp();
   const basePermissions = useBasePermission();
-  const canManage = basePermissions?.['base|update'];
+  const canManage = basePermissions?.['base|update'] && !publishedApp?.isReadonly;
   const { brandName } = useBrand();
 
   const { data: dashboard } = useQuery({
