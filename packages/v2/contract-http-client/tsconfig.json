@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext"],
     "esModuleInterop": true,
@@ -17,15 +17,44 @@
     "declaration": true,
     "declarationDir": "dist",
     "composite": true,
-    "rootDir": "../",
+    "rootDir": "../../",
     "outDir": "dist",
     "paths": {
       "@teable/v2-contract-http": ["../contract-http/src"],
       "@teable/v2-core": ["../core/src"],
+      "@teable/core": ["../../core/src"],
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"],
       "@teable/v2-di": ["../di/src"]
     },
     "types": ["vitest/globals", "node"]
   },
-  "exclude": ["**/node_modules", "**/.*/", "./dist", "./coverage"],
-  "include": ["src", "../contract-http/src", "../core/src", "../di/src"]
+  "exclude": [
+    "**/node_modules",
+    "**/.*/",
+    "./dist",
+    "./coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**",
+    "../contract-http/src/**/*.spec.ts",
+    "../contract-http/src/**/*.test.ts",
+    "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../formula/src/**/*.spec.ts"
+  ],
+  "include": [
+    "src",
+    "../contract-http/src",
+    "../core/src",
+    "../di/src",
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
+  ]
 }

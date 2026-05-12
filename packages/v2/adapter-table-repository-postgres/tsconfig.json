@@ -21,12 +21,14 @@
     "outDir": "dist",
     "paths": {
       "@teable/v2-core": ["../core/src"],
+      "@teable/core": ["../../core/src"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-field-dependency-core": ["../field-dependency-core/src"],
       "@teable/v2-formula-sql-pg": ["../formula-sql-pg/src"],
       "@teable/v2-postgres-schema": ["../postgres-schema/src"],
       "@teable/v2-adapter-table-repository-postgres": ["../adapter-table-repository-postgres/src"],
-      "@teable/formula": ["../../formula/src"]
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"]
     },
     "types": ["vitest/globals", "node"]
   },
@@ -36,10 +38,22 @@
     "./dist",
     "./coverage",
     "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
     "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../field-dependency-core/src/**/*.spec.ts",
+    "../field-dependency-core/src/**/*.test.ts",
+    "../postgres-schema/src/**/*.spec.ts",
+    "../postgres-schema/src/**/*.test.ts",
     "../formula-sql-pg/src/**/*.spec.ts",
     "../formula-sql-pg/src/**/__tests__/**",
     "../formula-sql-pg/src/testkit/**",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
     "../../formula/src/**/*.spec.ts"
   ],
   "include": [
@@ -49,6 +63,8 @@
     "../field-dependency-core/src",
     "../postgres-schema/src",
     "../formula-sql-pg/src",
-    "../../formula/src"
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
   ]
 }

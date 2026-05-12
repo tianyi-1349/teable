@@ -1,6 +1,12 @@
 import { Command, Options } from '@effect/cli';
 import { Effect, Option } from 'effect';
-import type { PasteSort, RangeType, RecordFilter, SourceFieldMeta } from '@teable/v2-core';
+import type {
+  IPasteCommandInput,
+  PasteSort,
+  RangeType,
+  RecordFilter,
+  SourceFieldMeta,
+} from '@teable/v2-core';
 import { ValidationError } from '../../errors/CliError';
 import { CommandExplain } from '../../services/CommandExplain';
 import { Output } from '../../services/Output';
@@ -57,11 +63,16 @@ const parseOptionalJson = <T>(
   return parseJson<T>(raw, field);
 };
 
-const parseContent = (value: string): Effect.Effect<unknown, ValidationError> =>
+const parseContent = (
+  value: string
+): Effect.Effect<IPasteCommandInput['content'], ValidationError> =>
   Effect.try({
     try: () => {
       try {
-        return JSON.parse(value) as unknown;
+        const parsed = JSON.parse(value) as unknown;
+        return Array.isArray(parsed)
+          ? parsed.map((row) => (Array.isArray(row) ? [...row] : [row]))
+          : String(parsed);
       } catch {
         return value;
       }
@@ -106,44 +117,31 @@ const handler = (args: {
     const sort = yield* parseOptionalJson<ReadonlyArray<PasteSort>>(args.sort, 'sort');
     const type = Option.getOrUndefined(args.type);
 
-    const input = {
+    const input: IPasteCommandInput & { readonly analyze: boolean } = {
       tableId: args.tableId,
       viewId: args.viewId,
-      ranges,
-      content,
+      ranges: ranges.map(([start, end]) => [start, end]),
+      content: Array.isArray(content)
+        ? (content as unknown[]).map((row) => (Array.isArray(row) ? [...row] : [row]))
+        : content,
       type,
       filter,
       updateFilter,
-      sourceFields,
-      projection,
-      sort,
+      sourceFields: sourceFields ? [...sourceFields] : undefined,
+      projection: projection ? [...projection] : undefined,
+      sort: sort ? [...sort] : undefined,
       typecast: args.typecast,
       analyze: args.analyze,
     };
 
-    const result = yield* commandExplain
-      .explainPaste({
-        tableId: args.tableId,
-        viewId: args.viewId,
-        ranges,
-        content,
-        type,
-        filter,
-        updateFilter,
-        sourceFields,
-        projection,
-        sort,
-        typecast: args.typecast,
-        analyze: args.analyze,
-      })
-      .pipe(
-        Effect.catchAll((error) =>
-          Effect.gen(function* () {
-            yield* output.error('explain.paste', input, error);
-            return yield* Effect.fail(error);
-          })
-        )
-      );
+    const result = yield* commandExplain.explainPaste(input).pipe(
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* output.error('explain.paste', input, error);
+          return yield* Effect.fail(error);
+        })
+      )
+    );
 
     yield* output.success('explain.paste', input, result);
   });

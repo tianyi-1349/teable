@@ -1,7 +1,16 @@
 import { ORPCError, implement } from '@orpc/server';
 import type { IExplainService } from '@teable/v2-command-explain';
 import { v2CommandExplainTokens } from '@teable/v2-command-explain';
-import type { IHandlerResolver } from '@teable/v2-contract-http';
+import type {
+  IExplainCreateFieldInput,
+  IExplainCreateRecordInput,
+  IExplainDeleteFieldInput,
+  IExplainDeleteRecordsInput,
+  IExplainDeleteTableInput,
+  IExplainUpdateFieldInput,
+  IExplainUpdateRecordInput,
+  IHandlerResolver,
+} from '@teable/v2-contract-http';
 import { v2Contract } from '@teable/v2-contract-http';
 import {
   ActorId,
@@ -54,6 +63,9 @@ export interface IV2OrpcRouterOptions {
   createContainer?: () => IHandlerResolver | Promise<IHandlerResolver>;
   createExecutionContext?: () => IExecutionContext | Promise<IExecutionContext>;
 }
+
+type OrpcHandlerOptions = { input: unknown };
+type OrpcTypedHandlerOptions<TInput> = { input: TInput };
 
 export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
   let defaultContainerPromise: Promise<IHandlerResolver> | undefined;
@@ -123,9 +135,19 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     });
   };
 
-  const os = implement(v2Contract);
+  const os = implement(v2Contract) as ReturnType<typeof implement> & {
+    bases: Record<
+      string,
+      { handler: (handler: (options: { input: unknown }) => Promise<unknown>) => unknown }
+    >;
+    tables: Record<
+      string,
+      { handler: (handler: (options: { input: unknown }) => Promise<unknown>) => unknown }
+    >;
+    router: (router: unknown) => unknown;
+  };
 
-  const basesCreate = os.bases.create.handler(async ({ input }) => {
+  const basesCreate = os.bases.create.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -149,7 +171,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const basesList = os.bases.list.handler(async ({ input }) => {
+  const basesList = os.bases.list.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -173,7 +195,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesCreate = os.tables.create.handler(async ({ input }) => {
+  const tablesCreate = os.tables.create.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -197,31 +219,33 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesCreateTables = os.tables.createTables.handler(async ({ input }) => {
-    const container = await resolveContainer();
+  const tablesCreateTables = os.tables.createTables.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeCreateTablesEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeCreateTablesEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesCreateField = os.tables.createField.handler(async ({ input }) => {
+  const tablesCreateField = os.tables.createField.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -249,35 +273,37 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesDuplicateTable = os.tables.duplicateTable.handler(async ({ input }) => {
-    const container = await resolveContainer();
+  const tablesDuplicateTable = os.tables.duplicateTable.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeDuplicateTableEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeDuplicateTableEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesUpdateField = os.tables.updateField.handler(async ({ input }) => {
+  const tablesUpdateField = os.tables.updateField.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -305,231 +331,247 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesCreateRecord = os.tables.createRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
+  const tablesCreateRecord = os.tables.createRecord.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeCreateRecordEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeCreateRecordEndpoint(executionContext, input, commandBus);
+  const tablesSubmitRecord = os.tables.submitRecord.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    if (result.status === 201) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeSubmitRecordEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
+  const tablesCreateRecords = os.tables.createRecords.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
+
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeCreateRecordsEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
+  const tablesUpdateRecord = os.tables.updateRecord.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-  const tablesSubmitRecord = os.tables.submitRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeUpdateRecordEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeSubmitRecordEndpoint(executionContext, input, commandBus);
+  const tablesUpdateRecords = os.tables.updateRecords.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    if (result.status === 201) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeUpdateRecordsEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
+  const tablesReorderRecords = os.tables.reorderRecords.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
+
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeReorderRecordsEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
+  const tablesDuplicateRecord = os.tables.duplicateRecord.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-  const tablesCreateRecords = os.tables.createRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeDuplicateRecordEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 201) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeCreateRecordsEndpoint(executionContext, input, commandBus);
+  const tablesDuplicateField = os.tables.duplicateField.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    if (result.status === 201) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeDuplicateFieldEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesUpdateRecord = os.tables.updateRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeUpdateRecordEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesUpdateRecords = os.tables.updateRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeUpdateRecordsEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesReorderRecords = os.tables.reorderRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeReorderRecordsEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesDuplicateRecord = os.tables.duplicateRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeDuplicateRecordEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 201) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesDuplicateField = os.tables.duplicateField.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeDuplicateFieldEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesPaste = os.tables.paste.handler(async ({ input }) => {
+  const tablesPaste = os.tables.paste.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -557,7 +599,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesClear = os.tables.clear.handler(async ({ input }) => {
+  const tablesClear = os.tables.clear.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -585,63 +627,67 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesDeleteByRange = os.tables.deleteByRange.handler(async ({ input }) => {
-    const container = await resolveContainer();
+  const tablesDeleteByRange = os.tables.deleteByRange.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeDeleteByRangeEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeDeleteByRangeEndpoint(executionContext, input, commandBus);
+  const tablesDeleteRecords = os.tables.deleteRecords.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    if (result.status === 200) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeDeleteRecordsEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesDeleteRecords = os.tables.deleteRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeDeleteRecordsEndpoint(executionContext, input, commandBus);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesDeleteField = os.tables.deleteField.handler(async ({ input }) => {
+  const tablesDeleteField = os.tables.deleteField.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -673,7 +719,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesGetById = os.tables.getById.handler(async ({ input }) => {
+  const tablesGetById = os.tables.getById.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -701,7 +747,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesGetRecord = os.tables.getRecord.handler(async ({ input }) => {
+  const tablesGetRecord = os.tables.getRecord.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -729,7 +775,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesDelete = os.tables.delete.handler(async ({ input }) => {
+  const tablesDelete = os.tables.delete.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -757,7 +803,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesRestore = os.tables.restore.handler(async ({ input }) => {
+  const tablesRestore = os.tables.restore.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -785,7 +831,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesList = os.tables.list.handler(async ({ input }) => {
+  const tablesList = os.tables.list.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -809,7 +855,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesListRecords = os.tables.listRecords.handler(async ({ input }) => {
+  const tablesListRecords = os.tables.listRecords.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -837,7 +883,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesRename = os.tables.rename.handler(async ({ input }) => {
+  const tablesRename = os.tables.rename.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -865,7 +911,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesImportCsv = os.tables.importCsv.handler(async ({ input }) => {
+  const tablesImportCsv = os.tables.importCsv.handler(async ({ input }: OrpcHandlerOptions) => {
     const container = await resolveContainer();
 
     let executionContext: IExecutionContext;
@@ -893,255 +939,287 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const tablesImportRecords = os.tables.importRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
+  const tablesImportRecords = os.tables.importRecords.handler(
+    async ({ input }: OrpcHandlerOptions) => {
+      const container = await resolveContainer();
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
+      const result = await executeImportRecordsEndpoint(executionContext, input, commandBus);
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
-    const result = await executeImportRecordsEndpoint(executionContext, input, commandBus);
+  const tablesExplainCreateRecord = os.tables.explainCreateRecord.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainCreateRecordInput>) => {
+      const container = await resolveContainer();
 
-    if (result.status === 200) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainCreateRecordEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
+  const tablesExplainCreateField = os.tables.explainCreateField.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainCreateFieldInput>) => {
+      const container = await resolveContainer();
+
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainCreateFieldEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
+  const tablesExplainUpdateField = os.tables.explainUpdateField.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainUpdateFieldInput>) => {
+      const container = await resolveContainer();
 
-  const tablesExplainCreateRecord = os.tables.explainCreateRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainUpdateFieldEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainCreateRecordEndpoint(
-      executionContext,
-      input,
-      explainService
-    );
+  const tablesExplainDeleteField = os.tables.explainDeleteField.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainDeleteFieldInput>) => {
+      const container = await resolveContainer();
 
-    if (result.status === 200) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainDeleteFieldEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
+  const tablesExplainDeleteTable = os.tables.explainDeleteTable.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainDeleteTableInput>) => {
+      const container = await resolveContainer();
+
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
+
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainDeleteTableEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
+  const tablesExplainUpdateRecord = os.tables.explainUpdateRecord.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainUpdateRecordInput>) => {
+      const container = await resolveContainer();
 
-  const tablesExplainCreateField = os.tables.explainCreateField.handler(async ({ input }) => {
-    const container = await resolveContainer();
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainUpdateRecordEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
+  );
 
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainCreateFieldEndpoint(executionContext, input, explainService);
+  const tablesExplainDeleteRecords = os.tables.explainDeleteRecords.handler(
+    async ({ input }: OrpcTypedHandlerOptions<IExplainDeleteRecordsInput>) => {
+      const container = await resolveContainer();
 
-    if (result.status === 200) return result.body;
+      let executionContext: IExecutionContext;
+      try {
+        executionContext = await createExecutionContext();
+      } catch {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: executionContextErrorMessage,
+        });
+      }
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
+      const explainService = container.resolve<IExplainService>(
+        v2CommandExplainTokens.explainService
+      );
+      const result = await executeExplainDeleteRecordsEndpoint(
+        executionContext,
+        input,
+        explainService
+      );
+
+      if (result.status === 200) return result.body;
+
+      if (result.status === 400) {
+        throwDomainError('BAD_REQUEST', result.body.error);
+      }
+
+      if (result.status === 404) {
+        throwDomainError('NOT_FOUND', result.body.error);
+      }
+
+      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
     }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesExplainUpdateField = os.tables.explainUpdateField.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainUpdateFieldEndpoint(executionContext, input, explainService);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesExplainDeleteField = os.tables.explainDeleteField.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainDeleteFieldEndpoint(executionContext, input, explainService);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesExplainDeleteTable = os.tables.explainDeleteTable.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainDeleteTableEndpoint(executionContext, input, explainService);
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesExplainUpdateRecord = os.tables.explainUpdateRecord.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainUpdateRecordEndpoint(
-      executionContext,
-      input,
-      explainService
-    );
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
-
-  const tablesExplainDeleteRecords = os.tables.explainDeleteRecords.handler(async ({ input }) => {
-    const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
-    const explainService = container.resolve<IExplainService>(
-      v2CommandExplainTokens.explainService
-    );
-    const result = await executeExplainDeleteRecordsEndpoint(
-      executionContext,
-      input,
-      explainService
-    );
-
-    if (result.status === 200) return result.body;
-
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-  });
+  );
 
   return os.router({
     bases: {

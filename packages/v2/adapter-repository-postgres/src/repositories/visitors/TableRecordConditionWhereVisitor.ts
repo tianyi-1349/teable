@@ -619,6 +619,60 @@ export class TableRecordConditionWhereVisitor
     return this.addCondition(sql`${sql.ref(column)} in (${sql.join(ids)})`);
   }
 
+  visitIncomingLinkSelected(
+    spec: core.IncomingLinkSelectedSpec
+  ): Result<RecordConditionWhere, DomainError> {
+    const selfColumn = this.tableAlias
+      ? `${this.tableAlias}.${spec.selfKeyName()}`
+      : spec.selfKeyName();
+    if (spec.mode() === 'currentColumnNotNull') {
+      return this.addCondition(sql`${sql.ref(selfColumn)} is not null`);
+    }
+
+    const fkHostTableName = spec.fkHostTableName();
+    const foreignKeyName = spec.foreignKeyName();
+    if (!fkHostTableName || !foreignKeyName) {
+      return err(
+        core.domainError.unexpected({ message: 'Incoming link selected requires host key' })
+      );
+    }
+
+    return this.addCondition(sql`exists (
+      select 1 from ${sql.table(fkHostTableName)} as incoming_link_host
+      where ${sql.ref(`incoming_link_host.${foreignKeyName}`)} = ${sql.ref(selfColumn)}
+    )`);
+  }
+
+  visitIncomingLinkCandidate(
+    spec: core.IncomingLinkCandidateSpec
+  ): Result<RecordConditionWhere, DomainError> {
+    const selfColumn = this.tableAlias
+      ? `${this.tableAlias}.${spec.selfKeyName()}`
+      : spec.selfKeyName();
+    if (spec.mode() === 'currentColumnAvailable') {
+      return this.addCondition(sql`${sql.ref(selfColumn)} is null`);
+    }
+
+    const fkHostTableName = spec.fkHostTableName();
+    const foreignKeyName = spec.foreignKeyName();
+    if (!fkHostTableName || !foreignKeyName) {
+      return err(
+        core.domainError.unexpected({ message: 'Incoming link candidate requires host key' })
+      );
+    }
+
+    const hostRecordId = spec.hostRecordId()?.toString();
+    const excludeCurrentHost = hostRecordId
+      ? sql`and incoming_link_host.__id <> ${hostRecordId}`
+      : sql``;
+
+    return this.addCondition(sql`not exists (
+      select 1 from ${sql.table(fkHostTableName)} as incoming_link_host
+      where ${sql.ref(`incoming_link_host.${foreignKeyName}`)} = ${sql.ref(selfColumn)}
+      ${excludeCurrentHost}
+    )`);
+  }
+
   visitSingleLineTextIs(
     spec: core.SingleLineTextConditionSpec
   ): Result<RecordConditionWhere, DomainError> {

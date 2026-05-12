@@ -26,7 +26,10 @@
       "@teable/v2-debug-data": ["../debug-data/src"],
       "@teable/v2-dottea": ["../dottea/src"],
       "@teable/v2-mock-records": ["../mock-records/src"],
-      "@teable/v2-command-explain": ["../command-explain/src"]
+      "@teable/v2-command-explain": ["../command-explain/src"],
+      "@teable/core": ["../../core/src"],
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"]
     },
     "types": ["node"]
   },
@@ -35,8 +38,27 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../container-node/src/**/*.spec.ts",
+    "../container-node/src/**/*.test.ts",
+    "../debug-data/src/**/*.spec.ts",
+    "../debug-data/src/**/*.test.ts",
+    "../dottea/src/**/*.spec.ts",
+    "../dottea/src/**/*.test.ts",
+    "../mock-records/src/**/*.spec.ts",
+    "../mock-records/src/**/*.test.ts",
+    "../command-explain/src/**/*.spec.ts",
+    "../command-explain/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../formula/src/**/*.spec.ts"
   ],
   "include": [
     "src",
@@ -47,6 +69,9 @@
     "../debug-data/src",
     "../dottea/src",
     "../mock-records/src",
-    "../command-explain/src"
+    "../command-explain/src",
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
   ]
 }
