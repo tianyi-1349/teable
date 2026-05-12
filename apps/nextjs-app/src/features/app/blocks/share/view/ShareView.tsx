@@ -33,7 +33,7 @@ export const ShareView = () => {
   };
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-dvh w-full overflow-hidden">
       {getViewComponent()}
       <DownloadAllAttachmentsDialog />
     </div>

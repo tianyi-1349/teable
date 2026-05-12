@@ -6,3 +6,4 @@ export { TablePage, getTableServerSideProps } from './TablePage';
 export { DashBoardPage, getDashboardServerSideProps } from './DashBoardPage';
 export { WorkflowPage, getWorkflowServerSideProps } from './WorkflowPage';
 export { getBaseServerSideProps } from './BasePage';
+export { AppPage, getAppServerSideProps } from './AppPage';

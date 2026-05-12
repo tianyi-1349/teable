@@ -24,15 +24,17 @@ export const PluginItem = (props: {
   pluginUrl?: string;
   dashboardId: string;
   pluginInstallId: string;
+  publishedReadonly?: boolean;
 }) => {
   const baseId = useBaseId()!;
   const { t } = useTranslation(['common']);
-  const { pluginInstallId, dashboardId, dragging, pluginId, name, pluginUrl } = props;
+  const { pluginInstallId, dashboardId, dragging, pluginId, name, pluginUrl, publishedReadonly } =
+    props;
   const router = useRouter();
   const queryClient = useQueryClient();
   const isExpandPlugin = useIsExpandPlugin();
   const basePermissions = useBasePermission();
-  const canManage = basePermissions?.['base|update'];
+  const canManage = basePermissions?.['base|update'] && !publishedReadonly;
 
   const { mutate: removePluginMutate } = useMutation({
     mutationFn: () => removePlugin(baseId, dashboardId, pluginInstallId),

@@ -18,7 +18,7 @@ export const FormViewBase = (props: IFormViewBaseProps) => {
   };
 
   return (
-    <div className="flex grow flex-col border" ref={containerRef}>
+    <div className="flex min-h-0 grow flex-col overflow-hidden border" ref={containerRef}>
       <FormBody className="grow overflow-auto pb-8" submit={submit ? onSubmit : undefined} />
       <EmbedFooter hideNewPage />
     </div>

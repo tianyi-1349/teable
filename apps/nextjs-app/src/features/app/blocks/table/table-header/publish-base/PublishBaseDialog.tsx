@@ -37,10 +37,11 @@ import {
 } from '@teable/ui-lib/shadcn';
 import { toast } from '@teable/ui-lib/shadcn/ui/sonner';
 import confetti from 'canvas-confetti';
-import { Camera, Send, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, Camera, Send, Copy, ExternalLink, Info } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useIsCloud } from '@/features/app/hooks/useIsCloud';
+import { validatePublishedAppConfig } from '@/features/app/published-app';
 import { ROOT_ID } from '../../../base/base-node/hooks';
 import { useBaseNodeContext } from '../../../base/base-node/hooks/useBaseNodeContext';
 import { useAppPublishContext } from './AppPublishContext';
@@ -123,6 +124,12 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
   });
   const isTemplatePublished = templateDetail?.isPublished;
   const isTemplateFeatured = templateDetail?.featured ?? false;
+  const validationResult = useMemo(() => {
+    return validatePublishedAppConfig({ selectedNodeIds, defaultActiveNodeId, treeItems });
+  }, [defaultActiveNodeId, selectedNodeIds, treeItems]);
+  const visibleValidationIssues = validationResult.issues.filter(
+    (issue) => issue.severity !== 'info' || selectedNodeIds.length > 0
+  );
 
   // Handle template data changes (replaces onSuccess callback removed in React Query v5)
   useEffect(() => {
@@ -375,6 +382,11 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
       return;
     }
 
+    if (validationResult.hasErrors) {
+      toast.error(validationResult.issues.find((issue) => issue.severity === 'error')?.message);
+      return;
+    }
+
     // Check for unpublished app nodes
     const unpublishedAppNodes = getUnpublishedAppNodes(selectedNodeIds, treeItems);
     if (unpublishedAppNodes.length > 0) {
@@ -386,7 +398,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
 
     // No unpublished apps, proceed with publishing
     publishBaseMutate({ title, description: description || '' });
-  }, [title, description, selectedNodeIds, treeItems, publishBaseMutate, t]);
+  }, [title, description, selectedNodeIds, validationResult, treeItems, publishBaseMutate, t]);
 
   const handleContinuePublish = useCallback(() => {
     setUnpublishedAppsDialogOpen(false);
@@ -465,6 +477,28 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                   onChange={setDefaultActiveNodeId}
                 />
               </div>
+
+              {visibleValidationIssues.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-3 text-sm">
+                  {visibleValidationIssues.map((issue, index) => (
+                    <div
+                      key={`${issue.severity}-${issue.nodeId ?? index}-${issue.message}`}
+                      className={cn('flex gap-2', {
+                        'text-destructive': issue.severity === 'error',
+                        'text-amber-600 dark:text-amber-500': issue.severity === 'warning',
+                        'text-muted-foreground': issue.severity === 'info',
+                      })}
+                    >
+                      {issue.severity === 'info' ? (
+                        <Info className="mt-0.5 size-4 shrink-0" />
+                      ) : (
+                        <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                      )}
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="absolute inset-x-0 bottom-0 flex w-full gap-3">
                 {templateDetail && (

@@ -57,7 +57,7 @@ export const FormView = () => {
   }, [authUser]);
 
   return (
-    <div className="relative flex size-full">
+    <div className="relative flex size-full min-w-0 overflow-hidden">
       <SessionProvider user={user} disabledApi>
         {embed ? (
           <FormViewBase submit={needLogin ? undefined : onSubmit} />
