@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
+import { PublishedResourceErrorBoundary } from './PublishedResourceErrorBoundary';
 
 export const PublishedResourceRenderer = ({ children }: { children: ReactNode }) => {
-  return <>{children}</>;
+  return <PublishedResourceErrorBoundary>{children}</PublishedResourceErrorBoundary>;
 };

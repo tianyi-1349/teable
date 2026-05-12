@@ -68,7 +68,11 @@ const getSafePath = (value: string | string[] | undefined, fallback: string) => 
     return fallback;
   }
 
-  return path;
+  const [pathname, search = ''] = path.split('?');
+  const normalizedPathname = pathname.replace(/\/+/g, '/');
+  const normalizedSearch = search ? `?${search}` : '';
+
+  return `${normalizedPathname}${normalizedSearch}`;
 };
 
 export default function publishedAppManifestApiRoute(

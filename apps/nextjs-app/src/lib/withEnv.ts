@@ -59,6 +59,8 @@ export default function withEnv<P extends { [key: string]: any }>(
             : envMaxSearchFieldCount,
         publicOrigin: process.env.PUBLIC_ORIGIN,
         enableCanaryFeature: process.env.ENABLE_CANARY_FEATURE === 'true' ? true : undefined,
+        publishedAppShellDisabled:
+          process.env.NEXT_PUBLIC_PUBLISHED_APP_SHELL_DISABLED === 'true' ? true : undefined,
         task,
         trash,
       },

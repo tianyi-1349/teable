@@ -12,7 +12,7 @@ import { buildPublishedAppManifest } from '../manifest';
 import type { PublishedAppManifest, PublishedAppNode } from '../manifest';
 import { buildPublishedNavigation } from '../navigation';
 import type { PublishedNavigationItem, PublishedNavigationModel } from '../navigation';
-import { useIsPwaStandalone } from '../pwa';
+import { useIsPwaStandalone } from '../pwa/useIsPwaStandalone';
 
 export interface PublishedAppContextValue {
   manifest: PublishedAppManifest;

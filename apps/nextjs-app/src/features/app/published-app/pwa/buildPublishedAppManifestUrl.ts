@@ -7,7 +7,11 @@ const getSafePath = (path?: string) => {
     return '/';
   }
 
-  return path;
+  const [pathname, search = ''] = path.split('?');
+  const normalizedPathname = pathname.replace(/\/+/g, '/');
+  const normalizedSearch = search ? `?${search}` : '';
+
+  return `${normalizedPathname}${normalizedSearch}`;
 };
 
 const appendParam = (params: URLSearchParams, key: string, value?: string | null) => {
