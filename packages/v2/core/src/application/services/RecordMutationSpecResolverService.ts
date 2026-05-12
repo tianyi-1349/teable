@@ -4,6 +4,8 @@ import type { Result } from 'neverthrow';
 
 import { domainError, type DomainError } from '../../domain/shared/DomainError';
 import { AndSpec } from '../../domain/shared/specification/AndSpec';
+import { NotSpec } from '../../domain/shared/specification/NotSpec';
+import { OrSpec } from '../../domain/shared/specification/OrSpec';
 import type {
   ICellValueSpec,
   ICellValueSpecVisitor,
@@ -93,8 +95,16 @@ class SpecResolutionCollector implements ICellValueSpecVisitor {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  visit(_spec: any): Result<void, DomainError> {
-    return ok(undefined);
+  visit(spec: any): Result<void, DomainError> {
+    // Composition specs (And/Or/Not) call v.visit(this) then delegate to children.
+    if (spec instanceof AndSpec || spec instanceof OrSpec || spec instanceof NotSpec) {
+      return ok(undefined);
+    }
+    return err(
+      domainError.invariant({
+        message: `Unhandled spec type in cell value spec collector: ${spec?.constructor?.name ?? 'unknown'}`,
+      })
+    );
   }
 
   and(): Result<void, DomainError> {

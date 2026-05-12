@@ -268,7 +268,7 @@
     "stream-json": "1.9.1",
     "through2": "4.0.2",
     "transliteration": "2.3.5",
-    "ts-pattern": "5.0.8",
+    "ts-pattern": "5.8.0",
     "unzipper": "0.12.3",
     "ws": "8.18.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
