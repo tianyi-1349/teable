@@ -5,7 +5,9 @@ import { SsrApi } from '@/backend/api/rest/ssr-api';
 import type { ISSRContext } from '@/features/app/base-node';
 import {
   DashBoardPage,
+  AppPage,
   getBaseServerSideProps,
+  getAppServerSideProps,
   getDashboardServerSideProps,
   getTableServerSideProps,
   getWorkflowServerSideProps,
@@ -32,6 +34,8 @@ const ShareBasePage: NextPageWithLayout<IShareBasePageProps> = (props: IShareBas
       return <DashBoardPage />;
     case BaseNodeResourceType.Workflow:
       return <WorkflowPage />;
+    case BaseNodeResourceType.App:
+      return <AppPage {...props} />;
     default:
       return null;
   }
@@ -52,6 +56,8 @@ const getResourcePageProps = async (
       return getDashboardServerSideProps(ctx, parsed);
     case BaseNodeResourceType.Workflow:
       return getWorkflowServerSideProps(ctx, parsed);
+    case BaseNodeResourceType.App:
+      return getAppServerSideProps(ctx, parsed);
     default:
       return null;
   }

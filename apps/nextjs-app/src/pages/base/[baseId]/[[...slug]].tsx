@@ -13,6 +13,8 @@ import {
   getDashboardServerSideProps,
   getWorkflowServerSideProps,
   WorkflowPage,
+  AppPage,
+  getAppServerSideProps,
   getBaseServerSideProps,
   redirect,
 } from '@/features/app/base-node';
@@ -38,7 +40,7 @@ const UnifiedBasePage: NextPageWithLayout<IBaseNodePageProps> = (props: IBaseNod
     case BaseNodeResourceType.Workflow:
       return <WorkflowPage />;
     case BaseNodeResourceType.App:
-      return <div>App Page</div>;
+      return <AppPage {...props} />;
     default:
       return <CommunityPage />;
   }
@@ -96,6 +98,7 @@ export const getServerSideProps: GetServerSideProps<IBaseNodePageProps> = withEn
         case BaseNodeResourceType.Workflow:
           return getWorkflowServerSideProps(ctx, parsed);
         case BaseNodeResourceType.App:
+          return getAppServerSideProps(ctx, parsed);
         default:
           return { notFound: true };
       }
