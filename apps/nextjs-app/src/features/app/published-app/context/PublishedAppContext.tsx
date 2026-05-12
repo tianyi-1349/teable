@@ -6,15 +6,19 @@ import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { BaseNodeContext } from '@/features/app/blocks/base/base-node/BaseNodeContext';
 import type { TreeItemData } from '@/features/app/blocks/base/base-node/hooks';
-import { ROOT_ID, getNodeUrl } from '@/features/app/blocks/base/base-node/hooks';
+import { ROOT_ID } from '@/features/app/blocks/base/base-node/hooks';
 import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { buildPublishedAppManifest } from '../manifest';
 import type { PublishedAppManifest, PublishedAppNode } from '../manifest';
+import { buildPublishedNavigation } from '../navigation';
+import type { PublishedNavigationItem, PublishedNavigationModel } from '../navigation';
 
 export interface PublishedAppContextValue {
   manifest: PublishedAppManifest;
+  navigation: PublishedNavigationModel;
   currentNode?: PublishedAppNode;
   defaultNode?: PublishedAppNode;
+  activeNavigationItem?: PublishedNavigationItem;
   isShare: boolean;
   isReadonly: boolean;
   isMobile: boolean;
@@ -102,12 +106,17 @@ export const PublishedAppProvider = ({
     (node) => node.resourceType === resource.resourceType && node.resourceId === resourceId
   );
   const defaultNode = manifest.nodes.find((node) => node.nodeId === manifest.defaultNodeId);
+  const navigation = useMemo(() => {
+    return buildPublishedNavigation({ manifest, currentNode });
+  }, [currentNode, manifest]);
 
   const value = useMemo<PublishedAppContextValue>(() => {
     return {
       manifest,
+      navigation,
       currentNode,
       defaultNode,
+      activeNavigationItem: navigation.activeItem,
       isShare: Boolean(shareId),
       isReadonly: !allowEdit,
       isMobile,
@@ -115,20 +124,13 @@ export const PublishedAppProvider = ({
       isEmbed: false,
       isPwaStandalone: false,
       navigateToNode: (nodeId: string) => {
-        const node = manifest.nodes.find((item) => item.nodeId === nodeId);
-        if (!node) return;
-        const url = getNodeUrl({
-          baseId: manifest.baseId,
-          resourceType: node.resourceType,
-          resourceId: node.resourceId,
-          urlPrefix: shareId ? `/share/${shareId}` : undefined,
-        });
-        if (url?.pathname) {
-          router.push(url.pathname);
+        const item = navigation.flatItems.find((navItem) => navItem.nodeId === nodeId);
+        if (item?.url) {
+          router.push(item.url);
         }
       },
     };
-  }, [allowEdit, currentNode, defaultNode, isMobile, manifest, router, shareId]);
+  }, [allowEdit, currentNode, defaultNode, isMobile, manifest, navigation, router, shareId]);
 
   return <PublishedAppContext.Provider value={value}>{children}</PublishedAppContext.Provider>;
 };
