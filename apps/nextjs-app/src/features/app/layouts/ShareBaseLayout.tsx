@@ -18,7 +18,7 @@ import type { IBaseResourceTable } from '../hooks/useBaseResource';
 import { useBaseResource } from '../hooks/useBaseResource';
 import { useEnv } from '../hooks/useEnv';
 import { useSdkLocale } from '../hooks/useSdkLocale';
-import { PublishedAppProvider } from '../published-app';
+import { PublishedAppProvider, PublishedAppRuntime } from '../published-app';
 import { initAxios } from '../utils/init-axios';
 
 interface IShareBaseLayoutProps {
@@ -112,27 +112,29 @@ export const ShareBaseLayout: React.FC<IShareBaseLayoutProps> = ({
                     allowCopy={allowCopy}
                     allowEdit={allowEdit}
                   >
-                    <BasePermissionListener />
-                    <TableProvider serverData={tableServerData}>
-                      <div
-                        id="portal"
-                        className="relative flex h-screen w-full items-start"
-                        onContextMenu={(e) => e.preventDefault()}
-                      >
-                        <div className="flex h-screen w-full">
-                          <Sidebar headerLeft={<BaseSidebarHeaderLeft />}>
-                            <Fragment>
-                              <div className="flex h-full flex-col gap-2 divide-y divide-solid overflow-auto py-2">
-                                <BaseSideBar />
-                              </div>
-                              <div className="grow basis-0" />
-                              <SideBarFooter />
-                            </Fragment>
-                          </Sidebar>
-                          <div className="min-w-80 flex-1">{children}</div>
+                    <PublishedAppRuntime>
+                      <BasePermissionListener />
+                      <TableProvider serverData={tableServerData}>
+                        <div
+                          id="portal"
+                          className="relative flex h-screen w-full items-start"
+                          onContextMenu={(e) => e.preventDefault()}
+                        >
+                          <div className="flex h-screen w-full">
+                            <Sidebar headerLeft={<BaseSidebarHeaderLeft />}>
+                              <Fragment>
+                                <div className="flex h-full flex-col gap-2 divide-y divide-solid overflow-auto py-2">
+                                  <BaseSideBar />
+                                </div>
+                                <div className="grow basis-0" />
+                                <SideBarFooter />
+                              </Fragment>
+                            </Sidebar>
+                            <div className="min-w-80 flex-1">{children}</div>
+                          </div>
                         </div>
-                      </div>
-                    </TableProvider>
+                      </TableProvider>
+                    </PublishedAppRuntime>
                   </PublishedAppProvider>
                 </BaseNodeProvider>
               </BaseProvider>
