@@ -491,6 +491,38 @@ describe('DeleteByRangeHandler', () => {
     expect(payload.events).toHaveLength(0);
   });
 
+  it('returns validation error when planned rows contain invalid record IDs', async () => {
+    const { table, tableId, viewId } = buildTable();
+    const tableRepository = new FakeTableRepository();
+    tableRepository.tables.push(table);
+
+    const queryRepository = new FakeTableRecordQueryRepository();
+    queryRepository.records = [
+      { id: 'invalid-record-id', fields: { title: 'Broken' }, version: 1 },
+    ];
+    queryRepository.total = 1;
+    const eventBus = new FakeEventBus();
+
+    const handler = createHandler({
+      tableRepository,
+      queryRepository,
+      eventBus,
+    });
+
+    const command = DeleteByRangeCommand.create({
+      tableId: tableId.toString(),
+      viewId,
+      ranges: [[0, 0]],
+      type: 'rows',
+    })._unsafeUnwrap();
+
+    const result = await handler.handle(createContext(), command);
+
+    expect(result.isErr()).toBe(true);
+    expect(result._unsafeUnwrapErr().message).toBe('Invalid RecordId');
+    expect(eventBus.published).toHaveLength(0);
+  });
+
   it('handles rows type range correctly', async () => {
     const { table, tableId, viewId } = buildTable();
     const tableRepository = new FakeTableRepository();
