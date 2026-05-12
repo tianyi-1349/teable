@@ -12,6 +12,7 @@ import { buildPublishedAppManifest } from '../manifest';
 import type { PublishedAppManifest, PublishedAppNode } from '../manifest';
 import { buildPublishedNavigation } from '../navigation';
 import type { PublishedNavigationItem, PublishedNavigationModel } from '../navigation';
+import { useIsPwaStandalone } from '../pwa';
 
 export interface PublishedAppContextValue {
   manifest: PublishedAppManifest;
@@ -71,6 +72,7 @@ export const PublishedAppProvider = ({
   const router = useRouter();
   const resource = useBaseResource();
   const isMobile = useIsMobile();
+  const isPwaStandalone = useIsPwaStandalone();
   const { treeItems } = useContext(BaseNodeContext);
 
   const manifest = useMemo(() => {
@@ -122,7 +124,7 @@ export const PublishedAppProvider = ({
       isMobile,
       isTablet: false,
       isEmbed: false,
-      isPwaStandalone: false,
+      isPwaStandalone,
       navigateToNode: (nodeId: string) => {
         const item = navigation.flatItems.find((navItem) => navItem.nodeId === nodeId);
         if (item?.url) {
@@ -130,7 +132,17 @@ export const PublishedAppProvider = ({
         }
       },
     };
-  }, [allowEdit, currentNode, defaultNode, isMobile, manifest, navigation, router, shareId]);
+  }, [
+    allowEdit,
+    currentNode,
+    defaultNode,
+    isMobile,
+    isPwaStandalone,
+    manifest,
+    navigation,
+    router,
+    shareId,
+  ]);
 
   return <PublishedAppContext.Provider value={value}>{children}</PublishedAppContext.Provider>;
 };
