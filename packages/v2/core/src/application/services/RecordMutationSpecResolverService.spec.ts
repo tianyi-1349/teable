@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { BaseId } from '../../domain/base/BaseId';
 import { ActorId } from '../../domain/shared/ActorId';
 import { AndSpec } from '../../domain/shared/specification/AndSpec';
+import type { ISpecification } from '../../domain/shared/specification/ISpecification';
 import { FieldId } from '../../domain/table/fields/FieldId';
 import { FieldName } from '../../domain/table/fields/FieldName';
+import type { ICellValueSpecVisitor } from '../../domain/table/records/specs/values/ICellValueSpecVisitor';
 import {
   SetAttachmentValueSpec,
   type AttachmentItem,
@@ -17,6 +19,7 @@ import { CellValue } from '../../domain/table/records/values/CellValue';
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
+import type { TableRecord } from '../../domain/table/records/TableRecord';
 import type {
   AttachmentLookupRecord,
   IAttachmentLookupService,
@@ -134,6 +137,39 @@ const buildTable = () => {
 };
 
 describe('RecordMutationSpecResolverService', () => {
+  it('returns an error for unknown specs instead of silently ignoring them', () => {
+    class UnknownSpec implements ISpecification<TableRecord, ICellValueSpecVisitor> {
+      isSatisfiedBy() {
+        return true;
+      }
+
+      mutate(record: TableRecord) {
+        return ok(record);
+      }
+
+      accept(visitor: ICellValueSpecVisitor) {
+        return visitor.visit(this);
+      }
+    }
+
+    const service = new RecordMutationSpecResolverService(
+      new LinkTitleResolverService(
+        new FakeTableRepository(buildTable()),
+        new FakeRecordQueryRepository()
+      ),
+      new AttachmentValueResolverService(new FakeAttachmentLookupService([])),
+      new UserValueResolverService(new FakeUserLookupService([]))
+    );
+
+    const result = service.needsResolution(new UnknownSpec());
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.tags).toContain('invariant');
+      expect(result.error.message).toContain('Unhandled spec type');
+    }
+  });
+
   it('returns false for non-resolvable specs', () => {
     const fieldId = FieldId.create(`fld${'a'.repeat(16)}`)._unsafeUnwrap();
     const spec = new SetSingleLineTextValueSpec(fieldId, CellValue.fromValidated('hello'));

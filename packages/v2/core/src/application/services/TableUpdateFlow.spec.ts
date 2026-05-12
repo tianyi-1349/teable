@@ -149,6 +149,16 @@ class FakeUnitOfWork implements IUnitOfWork {
 }
 
 describe('TableUpdateFlow', () => {
+  it('returns an error when scheduling deferred tasks outside a transaction', async () => {
+    const result = scheduleTableUpdateDeferredTask(createContext(), async () => ok(undefined));
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe('transaction.required');
+      expect(result.error.tags).toContain('invariant');
+    }
+  });
+
   it('publishes repository-added post-persist events without returning them', async () => {
     const table = buildTable();
     const eventBus = new FakeEventBus();
