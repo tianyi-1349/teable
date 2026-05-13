@@ -3,6 +3,7 @@ import {
   ActorId,
   RedoCommand,
   Table as TableAggregate,
+  TableId,
   UndoCommand,
   v2CoreTokens,
   type ICommandBus,
@@ -119,7 +120,10 @@ export const loadTable = async (ctx: SharedTestContext, tableId: string) => {
   const tableRepository = ctx.testContainer.container.resolve<ITableRepository>(
     v2CoreTokens.tableRepository
   );
-  const spec = TableAggregate.specs().byId(tableId).build()._unsafeUnwrap();
+  const spec = TableAggregate.specs()
+    .byId(TableId.create(tableId)._unsafeUnwrap())
+    .build()
+    ._unsafeUnwrap();
   return (await tableRepository.findOne(buildUndoRedoContext(), spec))._unsafeUnwrap();
 };
 

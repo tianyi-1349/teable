@@ -438,4 +438,52 @@ describe('PostgresTableSchemaRepository', () => {
     expect(backfillService.calls[0]?.fields[0]?.id().equals(linkFieldId)).toBe(true);
     expect(backfillService.calls[0]?.includeOneManyTwoWay).toBe(true);
   });
+
+  it('propagates transaction.required when deferred backfill is scheduled without transaction', async () => {
+    const baseId = BaseId.generate()._unsafeUnwrap();
+    const tableId = TableId.generate()._unsafeUnwrap();
+    const tableName = TableName.create('Deferred Backfill Guard')._unsafeUnwrap();
+    const fieldName = FieldName.create('Name')._unsafeUnwrap();
+    const actorId = ActorId.create('system')._unsafeUnwrap();
+    const context: IExecutionContext = { actorId };
+
+    const builder = Table.builder().withBaseId(baseId).withId(tableId).withName(tableName);
+    builder.field().singleLineText().withName(fieldName).done();
+    builder.view().defaultGrid().done();
+    const table = builder.build()._unsafeUnwrap();
+
+    const repository = new PostgresTableSchemaRepository(
+      db,
+      new FakeTableRepository([table]) as never,
+      new FakeComputedFieldBackfillService(),
+      new FakeComputedFieldCascadeService(),
+      new FakeComputedUpdatePlanner() as never,
+      new FakeFieldDependencyGraph() as never
+    );
+
+    const result = await (
+      repository as unknown as {
+        scheduleDeferredBackfillAfterUpdate: (
+          context: IExecutionContext,
+          table: Table,
+          valueChanges: {
+            selfBackfillFieldIds: FieldId[];
+            valueChangedFieldIds: FieldId[];
+            deferredBackfillFieldIds: FieldId[];
+            hasDbStorageTypeChange: boolean;
+          }
+        ) => Promise<{ isErr(): boolean; error?: { code?: string } }>;
+      }
+    ).scheduleDeferredBackfillAfterUpdate(context, table, {
+      selfBackfillFieldIds: [],
+      valueChangedFieldIds: [],
+      deferredBackfillFieldIds: [FieldId.generate()._unsafeUnwrap()],
+      hasDbStorageTypeChange: false,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error?.code).toBe('transaction.required');
+    }
+  });
 });

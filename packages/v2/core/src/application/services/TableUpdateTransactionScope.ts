@@ -1,7 +1,7 @@
 import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
-import type { DomainError } from '../../domain/shared/DomainError';
+import { domainError, type DomainError } from '../../domain/shared/DomainError';
 import type { Table } from '../../domain/table/Table';
 import type { TableId } from '../../domain/table/TableId';
 import type { IExecutionContext, IUnitOfWorkTransaction } from '../../ports/ExecutionContext';
@@ -44,14 +44,20 @@ export const enterTableUpdateTransactionScope = (context: IExecutionContext): vo
 export const scheduleTableUpdateDeferredTask = (
   context: IExecutionContext,
   task: TableUpdateDeferredTask
-): void => {
+): Result<void, DomainError> => {
   const transaction = context.transaction;
   if (!transaction) {
-    throw new Error('Table update deferred tasks require an active transaction');
+    return err(
+      domainError.invariant({
+        code: 'transaction.required',
+        message: 'Table update deferred tasks require an active transaction',
+      })
+    );
   }
 
   const state = getOrCreateState(transaction);
   state.deferredTasks.push(task);
+  return ok(undefined);
 };
 
 export const recordLatestTableInTransactionScope = (

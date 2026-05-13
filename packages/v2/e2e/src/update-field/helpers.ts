@@ -12,29 +12,27 @@ import type { SharedTestContext } from '../shared/globalTestContext';
  *
  * TODO: Implement once updateField endpoint is added to v2-contract-http
  */
-export const updateField = async (
-  ctx: SharedTestContext,
-  payload: {
-    tableId: string;
-    fieldId: string;
-    field: Record<string, unknown>;
-  }
-): Promise<ReturnType<typeof ctx.getTableById>> => {
+import { updateFieldOkResponseSchema } from '@teable/v2-contract-http';
+import type { IUpdateFieldCommandInput } from '@teable/v2-core';
+
+export const updateField = async (ctx: SharedTestContext, payload: IUpdateFieldCommandInput) => {
+  // NOTE: The updateField HTTP endpoint is not yet implemented in v2-contract-http.
+  // TODO: Implement once updateField endpoint is added to v2-contract-http
   const response = await fetch(`${ctx.baseUrl}/tables/updateField`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      baseId: ctx.baseId,
-      ...payload,
-    }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to update field: ${errorText}`);
   }
   const rawBody = await response.json();
-  // TODO: Add proper response parsing once contract is defined
-  return rawBody.data?.table ?? rawBody;
+  const parsed = updateFieldOkResponseSchema.safeParse(rawBody);
+  if (!parsed.success || !parsed.data.ok) {
+    throw new Error('Failed to parse update field response');
+  }
+  return parsed.data.data.table;
 };
 
 /**

@@ -567,13 +567,16 @@ export class PostgresTableSchemaRepository implements ITableSchemaRepository {
       return ok(undefined);
     }
 
-    scheduleTableUpdateDeferredTask(context, async () =>
+    const scheduleResult = scheduleTableUpdateDeferredTask(context, async () =>
       this.replayDeferredBackfillAfterUpdate(
         context,
         resolveLatestTableInTransactionScope(context, table.id(), table),
         valueChanges
       )
     );
+    if (scheduleResult.isErr()) {
+      return err(scheduleResult.error);
+    }
 
     return ok(undefined);
   }

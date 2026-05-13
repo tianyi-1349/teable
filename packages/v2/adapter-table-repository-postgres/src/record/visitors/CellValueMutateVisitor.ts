@@ -33,6 +33,9 @@ import {
   ok,
   SetLinkValueSpec as SetLinkValueSpecClass,
 } from '@teable/v2-core';
+import { AndSpec } from '@teable/v2-core';
+import { NotSpec } from '@teable/v2-core';
+import { OrSpec } from '@teable/v2-core';
 import type { CompiledQuery, Kysely } from 'kysely';
 import { sql } from 'kysely';
 import { err, safeTry } from 'neverthrow';
@@ -879,10 +882,17 @@ export class CellValueMutateVisitor implements ICellValueSpecVisitor {
   // --- ISpecVisitor required methods ---
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  visit(_spec: any): Result<void, DomainError> {
+  visit(spec: any): Result<void, DomainError> {
     // AndSpec.accept calls v.visit(this), then handles left/right itself.
-    // We just return ok here to avoid infinite recursion.
-    return ok(undefined);
+    // We accept composition specs to avoid infinite recursion.
+    if (spec instanceof AndSpec || spec instanceof OrSpec || spec instanceof NotSpec) {
+      return ok(undefined);
+    }
+    return err(
+      domainError.invariant({
+        message: `Unhandled spec type in cell value mutate visitor: ${spec?.constructor?.name ?? 'unknown'}`,
+      })
+    );
   }
 
   and(): Result<void, DomainError> {

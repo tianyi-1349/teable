@@ -22,7 +22,10 @@
     "paths": {
       "@teable/v2-core": ["../core/src"],
       "@teable/v2-di": ["../di/src"],
-      "@teable/v2-container-node": ["../container-node/src"]
+      "@teable/v2-container-node": ["../container-node/src"],
+      "@teable/core": ["../../core/src"],
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"]
     },
     "types": ["node"]
   },
@@ -31,8 +34,28 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../container-node/src/**/*.spec.ts",
+    "../container-node/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../formula/src/**/*.spec.ts"
   ],
-  "include": ["src", "scripts", "../core/src", "../di/src", "../container-node/src"]
+  "include": [
+    "src",
+    "scripts",
+    "../core/src",
+    "../di/src",
+    "../container-node/src",
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
+  ]
 }

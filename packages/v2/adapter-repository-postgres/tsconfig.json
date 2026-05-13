@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "target": "esnext",
     "lib": ["esnext"],
     "esModuleInterop": true,
@@ -21,19 +21,40 @@
     "outDir": "dist",
     "paths": {
       "@teable/v2-core": ["../core/src"],
+      "@teable/core": ["../../core/src"],
       "@teable/v2-di": ["../di/src"],
       "@teable/v2-postgres-schema": ["../postgres-schema/src"],
-      "@teable/formula": ["../../formula/src"]
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"]
   },
   "exclude": [
     "**/node_modules",
     "**/.*/",
     "./dist",
     "./coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**",
     "../core/src/**/*.spec.ts",
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../postgres-schema/src/**/*.spec.ts",
+    "../postgres-schema/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
     "../../formula/src/**/*.spec.ts"
   ],
-  "include": ["src", "../core/src", "../di/src", "../postgres-schema/src", "../../formula/src"]
+  "include": [
+    "src",
+    "../core/src",
+    "../di/src",
+    "../postgres-schema/src",
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
+  ]
 }

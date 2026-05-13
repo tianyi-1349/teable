@@ -21,6 +21,9 @@
     "outDir": "dist",
     "paths": {
       "@teable/v2-core": ["../core/src"],
+      "@teable/core": ["../../core/src"],
+      "@teable/formula": ["../../formula/src"],
+      "@teable/i18n-keys": ["../../i18n-keys/src"],
       "@teable/v2-di": ["../di/src"]
     },
     "types": ["node"]
@@ -30,8 +33,25 @@
     "**/.*/",
     "./dist",
     "./coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**",
     "../core/src/**/*.spec.ts",
-    "../core/src/**/*.test.ts"
+    "../core/src/**/*.test.ts",
+    "../core/src/testkit/**",
+    "../di/src/**/*.spec.ts",
+    "../di/src/**/*.test.ts",
+    "../../core/src/**/*.spec.ts",
+    "../../core/src/**/*.test.ts",
+    "../../formula/src/**/*.spec.ts"
   ],
-  "include": ["src", "scripts", "../core/src", "../di/src"]
+  "include": [
+    "src",
+    "scripts",
+    "../core/src",
+    "../di/src",
+    "../../core/src",
+    "../../formula/src",
+    "../../i18n-keys/src"
+  ]
 }

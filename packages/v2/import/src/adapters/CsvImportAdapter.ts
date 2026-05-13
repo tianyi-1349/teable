@@ -2,6 +2,11 @@ import Papa from 'papaparse';
 import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
+// Add TextDecoder type reference for Node.js
+type TextDecoderType = typeof globalThis.TextDecoder extends new (...args: any[]) => infer T
+  ? T
+  : never;
+
 import {
   domainError,
   type DomainError,
@@ -116,7 +121,7 @@ export class CsvImportAdapter implements IImportSourceAdapter {
   private async *createAsyncRowIterator(
     reader: ReadableStreamDefaultReader<Uint8Array>,
     initialBuffer: string,
-    decoder: TextDecoder,
+    decoder: TextDecoderType,
     options?: IImportOptions
   ): AsyncIterable<ReadonlyArray<unknown>> {
     let buffer = initialBuffer;

@@ -1063,6 +1063,22 @@ export class DeleteByRangeApplicationService {
         )
       );
 
+      const recordIdResults = persistedDeletedRecordIds.map((recordId) =>
+        RecordId.create(recordId)
+      );
+      const recordIds: RecordId[] = [];
+      for (const result of recordIdResults) {
+        if (result.isErr()) {
+          return err(
+            domainError.infrastructure({
+              message: 'Invalid persisted record ID returned from repository',
+              details: { error: result.error },
+            })
+          );
+        }
+        recordIds.push(result.value);
+      }
+
       const publishResult = await this.runInSpan(
         context,
         'teable.DeleteByRangeApplicationService.publishDeleteChunkEvents',
@@ -1075,9 +1091,7 @@ export class DeleteByRangeApplicationService {
         () =>
           this.publishDeleteEvents(context, {
             table: plan.table,
-            recordIds: persistedDeletedRecordIds.map((recordId) =>
-              RecordId.create(recordId)._unsafeUnwrap()
-            ),
+            recordIds,
             recordSnapshots: persistedRecordSnapshots,
             orchestration: {
               operationId: operation.operationId,
@@ -1237,13 +1251,23 @@ export class DeleteByRangeApplicationService {
       return err(recordSnapshotsResult.error);
     }
     const recordSnapshots = recordSnapshotsResult.value;
-    const recordIds = recordSnapshots.map((snapshot) =>
-      RecordId.create(snapshot.id)._unsafeUnwrap()
-    );
+    const recordIdResults = recordSnapshots.map((snapshot) => RecordId.create(snapshot.id));
+    const recordIds: RecordId[] = [];
+    for (const result of recordIdResults) {
+      if (result.isErr()) {
+        return err(
+          domainError.infrastructure({
+            message: 'Invalid snapshot record ID',
+            details: { error: result.error },
+          })
+        );
+      }
+      recordIds.push(result.value);
+    }
 
     const publishResult = await this.publishDeleteEvents(context, {
-      table: plan.table,
       recordIds,
+      table: plan.table,
       recordSnapshots,
       orchestration: {
         operationId: context.requestId,

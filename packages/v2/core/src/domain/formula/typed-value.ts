@@ -3,7 +3,7 @@
 import type { CellValueType } from './CellValueType';
 import type { FormulaFieldReference } from './FormulaFieldReference';
 
-export class TypedValue<T = any> {
+export class TypedValue<T = unknown> {
   constructor(
     public value: T,
     public type: CellValueType,
@@ -12,7 +12,7 @@ export class TypedValue<T = any> {
     public isBlank?: boolean
   ) {}
 
-  toPlain(): any {
+  toPlain(): T | null {
     return this.value === false ? null : this.value;
   }
 }
