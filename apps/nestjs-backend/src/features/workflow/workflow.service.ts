@@ -24,6 +24,7 @@ import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
 import { RecordService } from '../record/record.service';
 import { WorkflowAiService } from './workflow-ai.service';
+import { buildWorkflowRunSuccessData } from './workflow-run-state';
 
 type IRecordTriggerType = 'recordCreated' | 'recordUpdated';
 
@@ -842,11 +843,11 @@ export class WorkflowService {
     await this.prismaService.workflowRun.update({
       where: { id: runId },
       data: {
-        status: 'completed',
         startedTime,
-        finishedTime: startedTime,
-        durationMs: 0,
-        output: { skipped: true, reason: 'No workflow runner actions are implemented yet' },
+        ...buildWorkflowRunSuccessData(startedTime, startedTime, {
+          skipped: true,
+          reason: 'No workflow runner actions are implemented yet',
+        }),
       },
     });
   }

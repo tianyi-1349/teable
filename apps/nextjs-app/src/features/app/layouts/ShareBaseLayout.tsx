@@ -21,6 +21,8 @@ import { useSdkLocale } from '../hooks/useSdkLocale';
 import { PublishedAppProvider, PublishedAppRuntime } from '../published-app';
 import { initAxios } from '../utils/init-axios';
 
+const isPublishedAppShellDisabled = process.env.NEXT_PUBLIC_PUBLISHED_APP_SHELL_DISABLED === 'true';
+
 interface IShareBaseLayoutProps {
   children: React.ReactNode;
   tableServerData?: ITableVo[];
@@ -117,21 +119,27 @@ export const ShareBaseLayout: React.FC<IShareBaseLayoutProps> = ({
                       <TableProvider serverData={tableServerData}>
                         <div
                           id="portal"
-                          className="relative flex h-screen w-full items-start"
+                          className="h-screen w-full"
                           onContextMenu={(e) => e.preventDefault()}
                         >
-                          <div className="flex h-screen w-full">
-                            <Sidebar headerLeft={<BaseSidebarHeaderLeft />}>
-                              <Fragment>
-                                <div className="flex h-full flex-col gap-2 divide-y divide-solid overflow-auto py-2">
-                                  <BaseSideBar />
-                                </div>
-                                <div className="grow basis-0" />
-                                <SideBarFooter />
-                              </Fragment>
-                            </Sidebar>
-                            <div className="min-w-80 flex-1">{children}</div>
-                          </div>
+                          {isPublishedAppShellDisabled ? (
+                            <div className="relative flex h-screen w-full items-start">
+                              <div className="flex h-screen w-full">
+                                <Sidebar headerLeft={<BaseSidebarHeaderLeft />}>
+                                  <Fragment>
+                                    <div className="flex h-full flex-col gap-2 divide-y divide-solid overflow-auto py-2">
+                                      <BaseSideBar />
+                                    </div>
+                                    <div className="grow basis-0" />
+                                    <SideBarFooter />
+                                  </Fragment>
+                                </Sidebar>
+                                <div className="min-w-80 flex-1">{children}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            children
+                          )}
                         </div>
                       </TableProvider>
                     </PublishedAppRuntime>

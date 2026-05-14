@@ -36,7 +36,7 @@
     "build": "tsdown --tsconfig tsconfig.build.json",
     "dev": "tsdown --tsconfig tsconfig.build.json --watch",
     "clean": "rimraf ./dist ./coverage ./tsconfig.tsbuildinfo ./tsconfig.build.tsbuildinfo ./.eslintcache",
-    "lint": "eslint . --ext .ts,.js,.mjs,.cjs,.mts,.cts --cache --cache-location ../../.cache/eslint/i18n-keys.eslintcache",
+    "lint": "eslint . --ext .ts,.js,.mjs,.cjs,.mts,.cts --ignore-pattern dist --cache --cache-location ../../.cache/eslint/i18n-keys.eslintcache",
     "typecheck": "tsc --project ./tsconfig.json --noEmit"
   },
   "devDependencies": {

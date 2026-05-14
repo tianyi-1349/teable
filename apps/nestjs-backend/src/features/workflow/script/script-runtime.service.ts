@@ -1,18 +1,15 @@
-import { Injectable } from '@nestjs/common';
-
-interface IScriptContext {
-  baseId: string;
-  input: unknown;
-}
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  IScriptRuntime,
+  scriptRuntimeToken,
+  type IScriptContext,
+} from './script-runtime.interface';
 
 @Injectable()
 export class ScriptRuntimeService {
-  async execute(script: string, context: IScriptContext): Promise<unknown> {
-    void script;
-    void context;
+  constructor(@Inject(scriptRuntimeToken) private readonly scriptRuntime: IScriptRuntime) {}
 
-    throw new Error(
-      'Run Script workflow actions are disabled until a process-isolated sandbox is available'
-    );
+  execute(script: string, context: IScriptContext): Promise<unknown> {
+    return this.scriptRuntime.execute(script, context);
   }
 }

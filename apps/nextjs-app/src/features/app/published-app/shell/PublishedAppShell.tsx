@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { usePublishedApp } from '../context';
 import { DesktopShell } from './DesktopShell';
 import { EmbedShell } from './EmbedShell';
@@ -8,6 +9,15 @@ import type { PublishedAppShellProps } from './types';
 
 export const PublishedAppShell = ({ children }: PublishedAppShellProps) => {
   const { isEmbed, isMobile, isPwaStandalone, isTablet } = usePublishedApp();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <DesktopShell>{children}</DesktopShell>;
+  }
 
   if (isEmbed) {
     return <EmbedShell>{children}</EmbedShell>;

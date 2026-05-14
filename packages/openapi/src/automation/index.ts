@@ -5,6 +5,7 @@ export * from './workflow/deactivate';
 export * from './workflow/delete';
 export * from './workflow/duplicate';
 export * from './workflow/get';
+export * from './workflow/get-capabilities';
 export * from './workflow/get-list';
 export * from './workflow/get-run';
 export * from './workflow/get-run-list';

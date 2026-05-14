@@ -3,6 +3,7 @@ import type {
   IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
   IUpdateWorkflowRo,
+  IWorkflowCapabilitiesVo,
   IWorkflowDetailVo,
   IWorkflowRo,
   IWorkflowRunDetailVo,
@@ -20,24 +21,37 @@ import { EmitControllerEvent } from '../../event-emitter/decorators/emit-control
 import { Events } from '../../event-emitter/events';
 import { ZodValidationPipe } from '../../zod.validation.pipe';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { WorkflowCapabilityService } from './workflow-capability.service';
 import { WorkflowRunnerService } from './workflow-runner.service';
 import { WorkflowService } from './workflow.service';
+
+const automationReadPermission = 'automation|read';
+const automationCreatePermission = 'automation|create';
+const automationUpdatePermission = 'automation|update';
+const workflowIdParam = ':workflowId';
 
 @Controller('api/base/:baseId/workflow')
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
-    private readonly workflowRunnerService: WorkflowRunnerService
+    private readonly workflowRunnerService: WorkflowRunnerService,
+    private readonly workflowCapabilityService: WorkflowCapabilityService
   ) {}
 
   @Get()
-  @Permissions('automation|read')
+  @Permissions(automationReadPermission)
   getWorkflowList(@Param('baseId') baseId: string): Promise<IWorkflowVo[]> {
     return this.workflowService.getWorkflowList(baseId);
   }
 
-  @Get(':workflowId')
-  @Permissions('automation|read')
+  @Get('capabilities')
+  @Permissions(automationReadPermission)
+  getWorkflowCapabilities(): IWorkflowCapabilitiesVo {
+    return this.workflowCapabilityService.getCapabilities();
+  }
+
+  @Get(workflowIdParam)
+  @Permissions(automationReadPermission)
   getWorkflow(
     @Param('baseId') baseId: string,
     @Param('workflowId') workflowId: string
@@ -45,8 +59,8 @@ export class WorkflowController {
     return this.workflowService.getWorkflow(baseId, workflowId);
   }
 
-  @Get(':workflowId/run')
-  @Permissions('automation|read')
+  @Get(`${workflowIdParam}/run`)
+  @Permissions(automationReadPermission)
   getWorkflowRunList(
     @Param('baseId') baseId: string,
     @Param('workflowId') workflowId: string
@@ -54,8 +68,8 @@ export class WorkflowController {
     return this.workflowService.getWorkflowRunList(baseId, workflowId);
   }
 
-  @Get(':workflowId/run/:runId')
-  @Permissions('automation|read')
+  @Get(`${workflowIdParam}/run/:runId`)
+  @Permissions(automationReadPermission)
   getWorkflowRun(
     @Param('baseId') baseId: string,
     @Param('workflowId') workflowId: string,
@@ -64,8 +78,8 @@ export class WorkflowController {
     return this.workflowService.getWorkflowRun(baseId, workflowId, runId);
   }
 
-  @Post(':workflowId/test-run')
-  @Permissions('automation|update')
+  @Post(`${workflowIdParam}/test-run`)
+  @Permissions(automationUpdatePermission)
   async testRunWorkflow(
     @Param('baseId') baseId: string,
     @Param('workflowId') workflowId: string,
@@ -73,12 +87,11 @@ export class WorkflowController {
   ): Promise<IWorkflowRunVo> {
     const run = await this.workflowService.createTestRun(baseId, workflowId, ro.input);
     await this.workflowRunnerService.executeWorkflowRun(run.id);
-    const detail = await this.workflowService.getWorkflowRun(baseId, workflowId, run.id);
-    return detail;
+    return this.workflowService.getWorkflowRun(baseId, workflowId, run.id);
   }
 
   @Post()
-  @Permissions('automation|create')
+  @Permissions(automationCreatePermission)
   @EmitControllerEvent(Events.WORKFLOW_CREATE)
   createWorkflow(
     @Param('baseId') baseId: string,
@@ -88,7 +101,7 @@ export class WorkflowController {
   }
 
   @Post('ai-create-draft')
-  @Permissions('automation|create')
+  @Permissions(automationCreatePermission)
   @EmitControllerEvent(Events.WORKFLOW_CREATE)
   aiCreateWorkflowDraft(
     @Param('baseId') baseId: string,
@@ -97,8 +110,8 @@ export class WorkflowController {
     return this.workflowService.aiCreateWorkflowDraft(baseId, ro);
   }
 
-  @Put(':workflowId')
-  @Permissions('automation|update')
+  @Put(workflowIdParam)
+  @Permissions(automationUpdatePermission)
   @EmitControllerEvent(Events.WORKFLOW_UPDATE)
   updateWorkflow(
     @Param('baseId') baseId: string,
@@ -108,8 +121,8 @@ export class WorkflowController {
     return this.workflowService.updateWorkflow(baseId, workflowId, ro);
   }
 
-  @Post(':workflowId/duplicate')
-  @Permissions('automation|create')
+  @Post(`${workflowIdParam}/duplicate`)
+  @Permissions(automationCreatePermission)
   @EmitControllerEvent(Events.WORKFLOW_CREATE)
   duplicateWorkflow(
     @Param('baseId') baseId: string,
@@ -119,8 +132,8 @@ export class WorkflowController {
     return this.workflowService.duplicateWorkflow(baseId, workflowId, ro);
   }
 
-  @Post(':workflowId/activate')
-  @Permissions('automation|update')
+  @Post(`${workflowIdParam}/activate`)
+  @Permissions(automationUpdatePermission)
   @EmitControllerEvent(Events.WORKFLOW_ACTIVATE)
   activateWorkflow(
     @Param('baseId') baseId: string,
@@ -129,8 +142,8 @@ export class WorkflowController {
     return this.workflowService.activateWorkflow(baseId, workflowId);
   }
 
-  @Post(':workflowId/deactivate')
-  @Permissions('automation|update')
+  @Post(`${workflowIdParam}/deactivate`)
+  @Permissions(automationUpdatePermission)
   @EmitControllerEvent(Events.WORKFLOW_DEACTIVATE)
   deactivateWorkflow(
     @Param('baseId') baseId: string,
@@ -139,7 +152,7 @@ export class WorkflowController {
     return this.workflowService.deactivateWorkflow(baseId, workflowId);
   }
 
-  @Delete(':workflowId')
+  @Delete(workflowIdParam)
   @Permissions('automation|delete')
   @EmitControllerEvent(Events.WORKFLOW_DELETE)
   deleteWorkflow(

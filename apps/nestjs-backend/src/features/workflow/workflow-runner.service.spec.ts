@@ -4,6 +4,10 @@ import { WorkflowRunnerService } from './workflow-runner.service';
 describe('WorkflowRunnerService', () => {
   const runId = 'wrun123';
   const baseId = 'bse123';
+  const recordId = 'rec123';
+  const generatedSummary = 'Generated summary';
+  const disabledScriptRuntimeMessage =
+    'Run Script workflow actions are disabled until a process-isolated sandbox is available';
   const startedTime = new Date('2026-05-11T00:00:00.000Z');
   const prismaService = {
     workflowRun: {
@@ -28,8 +32,11 @@ describe('WorkflowRunnerService', () => {
   const recordService = {
     getRecords: vi.fn(),
   };
-  const permissionService = {
-    validPermissions: vi.fn(),
+  const authorityPolicyService = {
+    assertWorkflowExecute: vi.fn(),
+    assertRecordRead: vi.fn(),
+    assertRecordCreate: vi.fn(),
+    assertRecordUpdate: vi.fn(),
   };
   const clsService = {
     get: vi.fn(),
@@ -45,7 +52,7 @@ describe('WorkflowRunnerService', () => {
       workflowAiService as never,
       recordsService as never,
       recordService as never,
-      permissionService as never,
+      authorityPolicyService as never,
       clsService as never
     );
   });
@@ -53,7 +60,7 @@ describe('WorkflowRunnerService', () => {
   it('completes a run without script actions', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
-      input: { recordId: 'rec123' },
+      input: { recordId },
       workflow: { baseId },
       snapshot: { snapshot: { baseId, nodes: [] } },
     });
@@ -76,7 +83,7 @@ describe('WorkflowRunnerService', () => {
   it('marks run failed when runScript execution is disabled', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
-      input: { recordId: 'rec123' },
+      input: { recordId },
       workflow: { baseId },
       snapshot: {
         snapshot: {
@@ -93,25 +100,20 @@ describe('WorkflowRunnerService', () => {
       },
     });
     prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step123', startedTime });
-    scriptRuntimeService.execute.mockRejectedValue(
-      new Error(
-        'Run Script workflow actions are disabled until a process-isolated sandbox is available'
-      )
-    );
+    scriptRuntimeService.execute.mockRejectedValue(new Error(disabledScriptRuntimeMessage));
 
     await service.executeWorkflowRun(runId);
 
     expect(scriptRuntimeService.execute).toHaveBeenCalledWith('return input;', {
       baseId,
-      input: { recordId: 'rec123' },
+      input: { recordId },
     });
     expect(prismaService.workflowRunStep.update).toHaveBeenCalledWith({
       where: { id: 'step123' },
       data: expect.objectContaining({
         status: 'failed',
         error: {
-          message:
-            'Run Script workflow actions are disabled until a process-isolated sandbox is available',
+          message: disabledScriptRuntimeMessage,
         },
       }),
     });
@@ -120,8 +122,7 @@ describe('WorkflowRunnerService', () => {
       data: expect.objectContaining({
         status: 'failed',
         error: {
-          message:
-            'Run Script workflow actions are disabled until a process-isolated sandbox is available',
+          message: disabledScriptRuntimeMessage,
         },
       }),
     });
@@ -215,7 +216,7 @@ describe('WorkflowRunnerService', () => {
   it('executes aiGenerate actions and records generated text', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
-      input: { recordId: 'rec123' },
+      input: { recordId },
       workflow: { baseId },
       snapshot: {
         snapshot: {
@@ -232,26 +233,76 @@ describe('WorkflowRunnerService', () => {
       },
     });
     prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-ai', startedTime });
-    workflowAiService.generateText.mockResolvedValue('Generated summary');
+    workflowAiService.generateText.mockResolvedValue(generatedSummary);
 
     await service.executeWorkflowRun(runId);
 
     expect(workflowAiService.generateText).toHaveBeenCalledWith(baseId, {
-      prompt: 'Summarize {"recordId":"rec123"}',
+      prompt: `Summarize {"recordId":"${recordId}"}`,
       modelKey: 'gpt',
     });
     expect(prismaService.workflowRunStep.update).toHaveBeenCalledWith({
       where: { id: 'step-ai' },
       data: expect.objectContaining({
         status: 'completed',
-        output: { text: 'Generated summary' },
+        output: { text: generatedSummary },
       }),
     });
     expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
       where: { id: runId },
       data: expect.objectContaining({
         status: 'completed',
-        output: { text: 'Generated summary' },
+        output: { text: generatedSummary },
+      }),
+    });
+  });
+
+  it('executes updateRecords actions with trigger input interpolation', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { tableId: 'tbl123', record: { id: recordId, fields: { name: 'Old' } } },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-update',
+              nodeType: 'action',
+              kind: 'updateRecords',
+              config: {
+                tableId: '{{ input.tableId }}',
+                recordId: '{{ input.record.id }}',
+                fields: { status: 'processed', sourceName: '{{ input.record.fields.name }}' },
+              },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-update', startedTime });
+    recordsService.updateRecord.mockResolvedValue({
+      id: recordId,
+      fields: { status: 'processed' },
+    });
+
+    await service.executeWorkflowRun(runId);
+
+    expect(authorityPolicyService.assertRecordUpdate).toHaveBeenCalledWith('tbl123');
+    expect(recordsService.updateRecord).toHaveBeenCalledWith(
+      'tbl123',
+      recordId,
+      {
+        record: { fields: { status: 'processed', sourceName: 'Old' } },
+      },
+      undefined,
+      'true'
+    );
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { id: recordId, fields: { status: 'processed' } },
       }),
     });
   });

@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { generateWorkflowActionId } from '@teable/core';
 import type {
   IWorkflowDetailVo,
   IWorkflowNode,
@@ -13,6 +12,7 @@ import {
   deactivateWorkflow,
   deleteWorkflow,
   getWorkflow,
+  getWorkflowCapabilities,
   getWorkflowList,
   getWorkflowRun,
   getWorkflowRunList,
@@ -42,22 +42,27 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { useEffect, useMemo, useState } from 'react';
+import { formatJson, getStatusTone } from './lib/runHistory';
+import {
+  appendActionNode,
+  getActiveActionNodeId,
+  getAiGeneratePrompt,
+  getFirstActionNodeId,
+  getRecordTriggerFilterText,
+  getRecordTriggerKind,
+  getRecordTriggerTableId,
+  getScriptPreview,
+  hasSelectedActionNode,
+  removeActionNode,
+  type WorkflowActionKind,
+} from './lib/workflowNodes';
 
-interface IRecordUpdateActionConfig {
-  tableId: string;
-  recordId: string;
-  fields: Record<string, unknown>;
-}
-
-interface IRecordCreateActionConfig {
-  tableId: string;
-  records: Record<string, unknown>[];
-}
-
-interface IRecordQueryActionConfig {
-  tableId: string;
-  filter?: Record<string, unknown>;
-  take?: number;
+interface IWorkflowActionCapabilityMap {
+  [kind: string]: {
+    configurable: boolean;
+    runnable: boolean;
+    reason?: string;
+  };
 }
 
 interface IAutomationPageProps {
@@ -68,163 +73,15 @@ interface IAutomationPageProps {
 }
 
 const workflowListQueryKey = (baseId: string) => ['workflow-list', baseId] as const;
+const workflowCapabilitiesQueryKey = (baseId: string) => ['workflow-capabilities', baseId] as const;
 const workflowRunListQueryKey = (baseId: string, workflowId: string) =>
   ['workflow-run-list', baseId, workflowId] as const;
 const workflowRunDetailQueryKey = (baseId: string, workflowId: string, runId: string) =>
   ['workflow-run-detail', baseId, workflowId, runId] as const;
 
-const getStatusTone = (status: string) => {
-  if (status === 'completed') return 'text-emerald-600';
-  if (status === 'failed') return 'text-destructive';
-  if (status === 'running') return 'text-blue-600';
-  return 'text-muted-foreground';
-};
-
-const getScriptPreview = (workflow?: IWorkflowDetailVo, nodeId?: string) => {
-  const runScriptNode = workflow?.nodes.find(
-    (node) =>
-      node.nodeType === 'action' && node.kind === 'runScript' && (!nodeId || node.id === nodeId)
-  );
-  const config = runScriptNode?.config as { script?: string; code?: string } | undefined;
-  return config?.script ?? config?.code ?? '';
-};
-
-const getAiGeneratePrompt = (workflow?: IWorkflowDetailVo, nodeId?: string) => {
-  const aiGenerateNode = workflow?.nodes.find(
-    (node) =>
-      node.nodeType === 'action' && node.kind === 'aiGenerate' && (!nodeId || node.id === nodeId)
-  );
-  const config = aiGenerateNode?.config as { prompt?: string } | undefined;
-  return config?.prompt ?? '';
-};
-
-const getRecordTriggerTableId = (workflow?: IWorkflowDetailVo) => {
-  const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
-  );
-  const config = recordTriggerNode?.config as { tableId?: string } | undefined;
-  return config?.tableId ?? '';
-};
-
-const getRecordTriggerKind = (workflow?: IWorkflowDetailVo) => {
-  const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
-  );
-  return recordTriggerNode?.kind === 'recordUpdated' ? 'recordUpdated' : 'recordCreated';
-};
-
-const getRecordTriggerFilterText = (workflow?: IWorkflowDetailVo) => {
-  const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
-  );
-  const config = recordTriggerNode?.config as { filter?: unknown } | undefined;
-  return config?.filter ? JSON.stringify(config.filter, null, 2) : '';
-};
-
 const parseOptionalJson = (value: string) => {
   const trimmed = value.trim();
   return trimmed ? JSON.parse(trimmed) : undefined;
-};
-
-const appendActionNode = (
-  workflow: IWorkflowDetailVo,
-  kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-): IWorkflowNode[] => {
-  const actionNodes = workflow.nodes.filter((node) => node.nodeType === 'action');
-  const triggerNode = workflow.nodes.find((node) => node.nodeType === 'trigger');
-  const previousNode = actionNodes[actionNodes.length - 1] ?? triggerNode;
-  const newNodeId = generateWorkflowActionId();
-
-  let config:
-    | IRecordUpdateActionConfig
-    | IRecordCreateActionConfig
-    | IRecordQueryActionConfig
-    | { script: string }
-    | { prompt: string };
-  switch (kind) {
-    case 'aiGenerate':
-      config = { prompt: 'Summarize this automation input: {{ input }}' };
-      break;
-    case 'runScript':
-      config = {
-        script: ['console.log("Automation input", input);', 'return {', '  input,', '};'].join(
-          '\n'
-        ),
-      };
-      break;
-    case 'updateRecords':
-      config = {
-        tableId: '',
-        recordId: '{{ input.record?.id }}',
-        fields: {},
-      };
-      break;
-    case 'createRecords':
-      config = {
-        tableId: '',
-        records: [{}],
-      };
-      break;
-    case 'queryRecords':
-      config = {
-        tableId: '',
-        filter: {},
-        take: 10,
-      };
-      break;
-  }
-
-  const newNode: IWorkflowNode = {
-    id: newNodeId,
-    workflowId: workflow.id,
-    nodeType: 'action',
-    kind,
-    parentNodeId: previousNode?.id,
-    config,
-  };
-
-  return [
-    ...workflow.nodes.map((node) =>
-      node.id === previousNode?.id ? { ...node, nextNodeId: newNodeId } : node
-    ),
-    newNode,
-  ];
-};
-
-const removeActionNode = (workflow: IWorkflowDetailVo, nodeId: string): IWorkflowNode[] => {
-  const nodeToRemove = workflow.nodes.find((node) => node.id === nodeId);
-  if (!nodeToRemove || nodeToRemove.nodeType !== 'action') {
-    return workflow.nodes;
-  }
-
-  return workflow.nodes
-    .filter((node) => node.id !== nodeId)
-    .map((node) => {
-      if (node.id === nodeToRemove.parentNodeId) {
-        return { ...node, nextNodeId: nodeToRemove.nextNodeId };
-      }
-      if (node.id === nodeToRemove.nextNodeId) {
-        return { ...node, parentNodeId: nodeToRemove.parentNodeId };
-      }
-      return node;
-    });
-};
-
-const hasSelectedActionNode = (
-  workflow: IWorkflowDetailVo | undefined,
-  nodeId: string | undefined,
-  kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-) => Boolean(workflow?.nodes.some((node) => node.id === nodeId && node.kind === kind));
-
-const formatJson = (value: unknown): string => {
-  if (value == null) {
-    return 'None';
-  }
-  try {
-    return JSON.stringify(value, null, 2) ?? 'None';
-  } catch {
-    return String(value);
-  }
 };
 
 interface IWorkflowSidebarProps {
@@ -364,12 +221,6 @@ interface IWorkflowDetailProps {
   aiPromptPreview: string;
   aiPromptDraft: string;
   selectedAiNodeId?: string;
-  updateRecordsDraft: IRecordUpdateActionConfig;
-  selectedUpdateRecordsNodeId?: string;
-  createRecordsDraft: IRecordCreateActionConfig;
-  selectedCreateRecordsNodeId?: string;
-  queryRecordsDraft: IRecordQueryActionConfig;
-  selectedQueryRecordsNodeId?: string;
   recordTriggerTableIdPreview: string;
   recordTriggerTableIdDraft: string;
   recordTriggerKindDraft: 'recordCreated' | 'recordUpdated';
@@ -384,6 +235,7 @@ interface IWorkflowDetailProps {
   isSavingRecordTrigger: boolean;
   isAddingAction: boolean;
   isRemovingAction: boolean;
+  actionCapabilities: IWorkflowActionCapabilityMap;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
@@ -400,9 +252,7 @@ interface IWorkflowDetailProps {
   onRecordTriggerTableIdDraftChange: (value: string) => void;
   onRecordTriggerFilterDraftChange: (value: string) => void;
   onSaveRecordTrigger: () => void;
-  onAddAction: (
-    kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-  ) => void;
+  onAddAction: (kind: WorkflowActionKind) => void;
   onRemoveAction: (nodeId: string) => void;
 }
 
@@ -500,13 +350,23 @@ interface IWorkflowDetailHeaderProps {
   isDeactivating: boolean;
   isDeleting: boolean;
   isTesting: boolean;
+  testRunDisabled?: boolean;
+  testRunDisabledReason?: string;
   onToggleActive: () => void;
   onDelete: (workflowId: string) => void;
   onTestRun: (workflowId: string) => void;
 }
 
 const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
-  const { workflow, isActivating, isDeactivating, isDeleting, isTesting } = props;
+  const {
+    workflow,
+    isActivating,
+    isDeactivating,
+    isDeleting,
+    isTesting,
+    testRunDisabled,
+    testRunDisabledReason,
+  } = props;
 
   return (
     <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
@@ -522,7 +382,8 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
           <Button
             size="sm"
             variant="outline"
-            disabled={isTesting}
+            disabled={isTesting || testRunDisabled}
+            title={testRunDisabledReason}
             onClick={() => props.onTestRun(workflow.id)}
           >
             Test run
@@ -574,16 +435,22 @@ const getWorkflowDetailCapabilities = (
   ),
 });
 
-const getFirstActionNodeId = (
+const getTestRunAvailability = (
   workflow: IWorkflowDetailVo | undefined,
-  kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-) => workflow?.nodes.find((node) => node.nodeType === 'action' && node.kind === kind)?.id;
+  actionCapabilities: IWorkflowActionCapabilityMap
+) => {
+  const unrunnableAction = workflow?.nodes.find(
+    (node) => node.nodeType === 'action' && actionCapabilities[node.kind]?.runnable === false
+  );
+  const reason = unrunnableAction ? actionCapabilities[unrunnableAction.kind]?.reason : undefined;
 
-const getActiveActionNodeId = (
-  workflow: IWorkflowDetailVo | undefined,
-  selectedNodeId: string | undefined,
-  kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-) => selectedNodeId ?? getFirstActionNodeId(workflow, kind);
+  return {
+    disabled: Boolean(unrunnableAction),
+    reason: unrunnableAction
+      ? `Action ${unrunnableAction.kind} is not runnable yet${reason ? `: ${reason}` : ''}`
+      : undefined,
+  };
+};
 
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
   const {
@@ -610,6 +477,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     isSavingRecordTrigger,
     isAddingAction,
     isRemovingAction,
+    actionCapabilities,
     onToggleActive,
     onDelete,
     onTestRun,
@@ -638,6 +506,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
       recordTriggerFilter: recordTriggerFilterDraft,
     }
   );
+  const testRunAvailability = getTestRunAvailability(workflow, actionCapabilities);
 
   return (
     <Card className="min-h-0 overflow-hidden">
@@ -647,6 +516,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
         isDeactivating={isDeactivating}
         isDeleting={isDeleting}
         isTesting={isTesting}
+        testRunDisabled={testRunAvailability.disabled}
+        testRunDisabledReason={testRunAvailability.reason}
         onToggleActive={onToggleActive}
         onDelete={onDelete}
         onTestRun={onTestRun}
@@ -701,7 +572,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isAddingAction}
+                  disabled={isAddingAction || !actionCapabilities.runScript?.configurable}
+                  title={actionCapabilities.runScript?.reason}
                   onClick={() => onAddAction('runScript')}
                 >
                   Add Run Script
@@ -709,7 +581,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isAddingAction}
+                  disabled={isAddingAction || !actionCapabilities.aiGenerate?.configurable}
+                  title={actionCapabilities.aiGenerate?.reason}
                   onClick={() => onAddAction('aiGenerate')}
                 >
                   Add AI Generate
@@ -717,7 +590,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isAddingAction}
+                  disabled={isAddingAction || !actionCapabilities.updateRecords?.configurable}
+                  title={actionCapabilities.updateRecords?.reason}
                   onClick={() => onAddAction('updateRecords')}
                 >
                   Add Record Update
@@ -725,7 +599,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isAddingAction}
+                  disabled={isAddingAction || !actionCapabilities.createRecords?.configurable}
+                  title={actionCapabilities.createRecords?.reason}
                   onClick={() => onAddAction('createRecords')}
                 >
                   Add Record Create
@@ -733,7 +608,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isAddingAction}
+                  disabled={isAddingAction || !actionCapabilities.queryRecords?.configurable}
+                  title={actionCapabilities.queryRecords?.reason}
                   onClick={() => onAddAction('queryRecords')}
                 >
                   Add Record Query
@@ -944,9 +820,14 @@ const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistory
 export function AutomationPage(props: IAutomationPageProps = {}) {
   const router = useRouter();
   const routeBaseId = useBaseId();
-  const baseId = props.baseId ?? routeBaseId ?? (router.query.baseId as string | undefined) ?? '';
-  const selectedWorkflowId =
-    props.workflowId ?? (router.query.workflowId as string | undefined) ?? undefined;
+  const baseId = useMemo(
+    () => props.baseId ?? routeBaseId ?? (router.query.baseId as string | undefined) ?? '',
+    [props.baseId, routeBaseId, router.query.baseId]
+  );
+  const selectedWorkflowId = useMemo(
+    () => props.workflowId ?? (router.query.workflowId as string | undefined) ?? undefined,
+    [props.workflowId, router.query.workflowId]
+  );
   const { t } = useTranslation('common');
   const isReadOnlyPreview = useIsReadOnlyPreview();
   const queryClient = useQueryClient();
@@ -962,29 +843,6 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [scriptDraft, setScriptDraft] = useState('');
   const [selectedAiNodeId, setSelectedAiNodeId] = useState<string | undefined>();
   const [aiPromptDraft, setAiPromptDraft] = useState('');
-  const [selectedUpdateRecordsNodeId, setSelectedUpdateRecordsNodeId] = useState<
-    string | undefined
-  >();
-  const [updateRecordsDraft, setUpdateRecordsDraft] = useState<IRecordUpdateActionConfig>({
-    tableId: '',
-    recordId: '{{ input.record?.id }}',
-    fields: {},
-  });
-  const [selectedCreateRecordsNodeId, setSelectedCreateRecordsNodeId] = useState<
-    string | undefined
-  >();
-  const [createRecordsDraft, setCreateRecordsDraft] = useState<IRecordCreateActionConfig>({
-    tableId: '',
-    records: [{}],
-  });
-  const [selectedQueryRecordsNodeId, setSelectedQueryRecordsNodeId] = useState<
-    string | undefined
-  >();
-  const [queryRecordsDraft, setQueryRecordsDraft] = useState<IRecordQueryActionConfig>({
-    tableId: '',
-    filter: {},
-    take: 10,
-  });
   const [recordTriggerTableIdDraft, setRecordTriggerTableIdDraft] = useState('');
   const [recordTriggerKindDraft, setRecordTriggerKindDraft] = useState<
     'recordCreated' | 'recordUpdated'
@@ -997,6 +855,18 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     queryFn: () => getWorkflowList(baseId).then(({ data }) => data),
     enabled: Boolean(baseId) && !isReadOnlyPreview,
   });
+
+  const { data: workflowCapabilities } = useQuery({
+    queryKey: workflowCapabilitiesQueryKey(baseId),
+    queryFn: () => getWorkflowCapabilities(baseId).then(({ data }) => data),
+    enabled: Boolean(baseId) && !isReadOnlyPreview,
+  });
+
+  const actionCapabilities = useMemo<IWorkflowActionCapabilityMap>(() => {
+    return Object.fromEntries(
+      (workflowCapabilities?.actions ?? []).map((capability) => [capability.kind, capability])
+    );
+  }, [workflowCapabilities?.actions]);
 
   useEffect(() => {
     if (selectedWorkflowId) {
@@ -1038,7 +908,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     if (!hasSelectedActionNode(workflow, selectedScriptNodeId, 'runScript')) {
       setSelectedScriptNodeId(firstScriptNodeId);
     }
-  }, [firstScriptNodeId, selectedScriptNodeId, workflow?.nodes]);
+  }, [firstScriptNodeId, selectedScriptNodeId, workflow]);
 
   useEffect(() => {
     setAiPromptDraft(aiPromptPreview);
@@ -1048,7 +918,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     if (!hasSelectedActionNode(workflow, selectedAiNodeId, 'aiGenerate')) {
       setSelectedAiNodeId(firstAiNodeId);
     }
-  }, [firstAiNodeId, selectedAiNodeId, workflow?.nodes]);
+  }, [firstAiNodeId, selectedAiNodeId, workflow]);
 
   useEffect(() => {
     setRecordTriggerTableIdDraft(recordTriggerTableIdPreview);
@@ -1324,9 +1194,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   });
 
   const addActionMutation = useMutation({
-    mutationFn: async (
-      kind: 'runScript' | 'aiGenerate' | 'updateRecords' | 'createRecords' | 'queryRecords'
-    ) => {
+    mutationFn: async (kind: WorkflowActionKind) => {
       if (!workflow) return undefined;
       return updateWorkflow(baseId, workflow.id, { nodes: appendActionNode(workflow, kind) });
     },
@@ -1422,12 +1290,6 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             aiPromptPreview={aiPromptPreview}
             aiPromptDraft={aiPromptDraft}
             selectedAiNodeId={activeAiNodeId}
-            updateRecordsDraft={updateRecordsDraft}
-            selectedUpdateRecordsNodeId={undefined}
-            createRecordsDraft={createRecordsDraft}
-            selectedCreateRecordsNodeId={undefined}
-            queryRecordsDraft={queryRecordsDraft}
-            selectedQueryRecordsNodeId={undefined}
             recordTriggerTableIdPreview={recordTriggerTableIdPreview}
             recordTriggerTableIdDraft={recordTriggerTableIdDraft}
             recordTriggerKindDraft={recordTriggerKindDraft}
@@ -1442,6 +1304,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             isSavingRecordTrigger={saveRecordTriggerMutation.isPending}
             isAddingAction={addActionMutation.isPending}
             isRemovingAction={removeActionMutation.isPending}
+            actionCapabilities={actionCapabilities}
             onToggleActive={handleToggleActive}
             onDelete={(workflowId) => deleteMutation.mutate(workflowId)}
             onTestRun={(workflowId) => testRunMutation.mutate(workflowId)}
