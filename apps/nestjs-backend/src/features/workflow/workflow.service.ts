@@ -23,6 +23,7 @@ import { ClsService } from 'nestjs-cls';
 import { CustomHttpException } from '../../custom.exception';
 import type { IClsStore } from '../../types/cls';
 import { RecordService } from '../record/record.service';
+import { getWorkflowActionCapability } from './actions/action-capability';
 import { WorkflowAiService } from './workflow-ai.service';
 import { buildWorkflowRunSuccessData } from './workflow-run-state';
 
@@ -770,6 +771,11 @@ export class WorkflowService {
   }
 
   private isRunnableAction(kind: string, config: unknown) {
+    const capability = getWorkflowActionCapability(kind);
+    if (!capability?.runnable) {
+      return false;
+    }
+
     const actionConfig = config as IWorkflowActionConfig | null;
     if (kind === 'runScript') {
       return Boolean(actionConfig?.script || actionConfig?.code);

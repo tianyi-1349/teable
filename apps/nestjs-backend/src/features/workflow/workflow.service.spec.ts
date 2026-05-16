@@ -264,8 +264,8 @@ describe('WorkflowService', () => {
           id: 'wa123',
           workflowId,
           nodeType: 'action',
-          kind: 'runScript',
-          config: { script: 'return input;' },
+          kind: 'aiGenerate',
+          config: { prompt: 'Summarize {{ input }}' },
         },
       ],
     });
@@ -392,6 +392,43 @@ describe('WorkflowService', () => {
 
     await expect(service.activateWorkflow(baseId, workflowId)).rejects.toThrow(
       'Workflow action aiGenerate is not runnable'
+    );
+    expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects activation when action capability is marked unrunnable', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Sandboxed script',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'recordCreated',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          config: { script: 'return input;' },
+        },
+      ],
+    });
+
+    await expect(service.activateWorkflow(baseId, workflowId)).rejects.toThrow(
+      'Workflow action runScript is not runnable'
     );
     expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
   });

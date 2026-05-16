@@ -350,6 +350,8 @@ interface IWorkflowDetailHeaderProps {
   isDeactivating: boolean;
   isDeleting: boolean;
   isTesting: boolean;
+  activateDisabled?: boolean;
+  activateDisabledReason?: string;
   testRunDisabled?: boolean;
   testRunDisabledReason?: string;
   onToggleActive: () => void;
@@ -364,6 +366,8 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
     isDeactivating,
     isDeleting,
     isTesting,
+    activateDisabled,
+    activateDisabledReason,
     testRunDisabled,
     testRunDisabledReason,
   } = props;
@@ -391,7 +395,8 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
           <Button
             size="sm"
             variant={workflow.isActive ? 'outline' : 'default'}
-            disabled={isActivating || isDeactivating}
+            disabled={isActivating || isDeactivating || (!workflow.isActive && activateDisabled)}
+            title={!workflow.isActive ? activateDisabledReason : undefined}
             onClick={props.onToggleActive}
           >
             {workflow.isActive ? 'Deactivate' : 'Activate'}
@@ -435,7 +440,7 @@ const getWorkflowDetailCapabilities = (
   ),
 });
 
-const getTestRunAvailability = (
+const getWorkflowRunAvailability = (
   workflow: IWorkflowDetailVo | undefined,
   actionCapabilities: IWorkflowActionCapabilityMap
 ) => {
@@ -506,7 +511,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
       recordTriggerFilter: recordTriggerFilterDraft,
     }
   );
-  const testRunAvailability = getTestRunAvailability(workflow, actionCapabilities);
+  const workflowRunAvailability = getWorkflowRunAvailability(workflow, actionCapabilities);
 
   return (
     <Card className="min-h-0 overflow-hidden">
@@ -516,8 +521,10 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
         isDeactivating={isDeactivating}
         isDeleting={isDeleting}
         isTesting={isTesting}
-        testRunDisabled={testRunAvailability.disabled}
-        testRunDisabledReason={testRunAvailability.reason}
+        activateDisabled={workflowRunAvailability.disabled}
+        activateDisabledReason={workflowRunAvailability.reason}
+        testRunDisabled={workflowRunAvailability.disabled}
+        testRunDisabledReason={workflowRunAvailability.reason}
         onToggleActive={onToggleActive}
         onDelete={onDelete}
         onTestRun={onTestRun}
