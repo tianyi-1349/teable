@@ -18,6 +18,16 @@
 - `packages/db-main-prisma`: Prisma schema, migrations, client generation.
 - `packages/v2/*`: newer runtime/domain packages. These build with `tsdown`, not `tsc` emit.
 
+## Documentation Layers
+
+- Capability-inventory documentation is organized into three layers:
+  1. Formal standards: execution handbooks, prompt templates, acceptance rules.
+  2. Formal outputs: final inventories, summaries, gap lists, task matrices, coverage matrices, presentation materials.
+  3. Historical auxiliary inputs: structure maps, historical drafts, early scan artifacts.
+- When creating or updating capability-inventory docs, declare the document layer first.
+- If the execution method changes, update both `capability-inventory-execution-playbook.md` and `capability-prompts.md` in the same round.
+- If a formal output changes, sync the relevant gap, matrix, index, and roadmap docs before closing the task.
+
 ## Local Dev
 
 - First-time setup follows the root README: `pnpm install` then `make switch-db-mode`.
