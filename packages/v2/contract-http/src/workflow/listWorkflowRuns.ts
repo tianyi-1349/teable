@@ -1,4 +1,4 @@
-import { type IWorkflowRunDetailVo, workflowRunDetailVoSchema } from '@teable/openapi';
+import { type IWorkflowRunVo, workflowRunVoSchema } from '@teable/openapi';
 import { z } from 'zod';
 
 import {
@@ -18,7 +18,7 @@ export const listWorkflowRunsInputSchema = z.object({
 export type IListWorkflowRunsRequestDto = z.input<typeof listWorkflowRunsInputSchema>;
 
 export interface IListWorkflowRunsResponseDataDto {
-  runs: IWorkflowRunDetailVo[];
+  runs: IWorkflowRunVo[];
 }
 
 export type IListWorkflowRunsResponseDto = IApiResponseDto<IListWorkflowRunsResponseDataDto>;
@@ -30,7 +30,7 @@ export type IListWorkflowRunsEndpointResult =
   | { status: HttpErrorStatus; body: IListWorkflowRunsErrorResponseDto };
 
 export const listWorkflowRunsResponseDataSchema = z.object({
-  runs: z.array(workflowRunDetailVoSchema),
+  runs: z.array(workflowRunVoSchema),
 });
 
 export const listWorkflowRunsOkResponseSchema = apiOkResponseDtoSchema(

@@ -1,4 +1,4 @@
-import { type ITemplateVo, templateVoSchema } from '@teable/openapi';
+import { templateVoSchema } from '@teable/openapi';
 import { z } from 'zod';
 
 import {
@@ -16,18 +16,6 @@ export const getTemplateByIdInputSchema = z.object({
 
 export type IGetTemplateByIdRequestDto = z.input<typeof getTemplateByIdInputSchema>;
 
-export interface IGetTemplateByIdResponseDataDto {
-  template: ITemplateVo;
-}
-
-export type IGetTemplateByIdResponseDto = IApiResponseDto<IGetTemplateByIdResponseDataDto>;
-export type IGetTemplateByIdOkResponseDto = IApiOkResponseDto<IGetTemplateByIdResponseDataDto>;
-export type IGetTemplateByIdErrorResponseDto = IApiErrorResponseDto;
-
-export type IGetTemplateByIdEndpointResult =
-  | { status: 200; body: IGetTemplateByIdOkResponseDto }
-  | { status: HttpErrorStatus; body: IGetTemplateByIdErrorResponseDto };
-
 export const getTemplateByIdResponseDataSchema = z.object({
   template: templateVoSchema,
 });
@@ -36,3 +24,12 @@ export const getTemplateByIdOkResponseSchema = apiOkResponseDtoSchema(
   getTemplateByIdResponseDataSchema
 );
 export const getTemplateByIdErrorResponseSchema = apiErrorResponseDtoSchema;
+
+export type IGetTemplateByIdResponseDataDto = z.infer<typeof getTemplateByIdResponseDataSchema>;
+export type IGetTemplateByIdOkResponseDto = z.infer<typeof getTemplateByIdOkResponseSchema>;
+export type IGetTemplateByIdErrorResponseDto = z.infer<typeof getTemplateByIdErrorResponseSchema>;
+export type IGetTemplateByIdResponseDto = IApiResponseDto<IGetTemplateByIdResponseDataDto>;
+
+export type IGetTemplateByIdEndpointResult =
+  | { status: 200; body: IGetTemplateByIdOkResponseDto }
+  | { status: HttpErrorStatus; body: IGetTemplateByIdErrorResponseDto };

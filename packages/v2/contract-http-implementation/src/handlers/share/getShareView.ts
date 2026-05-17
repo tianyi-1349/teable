@@ -1,5 +1,7 @@
-import type { ShareViewGetVo } from '@teable/openapi';
-import type { IGetShareViewEndpointResult } from '@teable/v2-contract-http';
+import type {
+  IGetShareViewEndpointResult,
+  IGetShareViewResponseDataDto,
+} from '@teable/v2-contract-http';
 import {
   getShareViewInputSchema,
   getShareViewResponseDataSchema,
@@ -9,7 +11,7 @@ import { domainError } from '@teable/v2-core';
 
 export const executeGetShareViewEndpoint = async (
   rawInput: unknown,
-  getShareView: (shareId: string) => Promise<ShareViewGetVo>
+  getShareView: (shareId: string) => Promise<IGetShareViewResponseDataDto['shareView']>
 ): Promise<IGetShareViewEndpointResult> => {
   const parsed = getShareViewInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -31,7 +33,7 @@ export const executeGetShareViewEndpoint = async (
       status: 200,
       body: {
         ok: true,
-        data: validated.data,
+        data: validated.data as IGetShareViewResponseDataDto,
       },
     };
   } catch (cause) {

@@ -1,4 +1,4 @@
-import type { IWorkflowRunDetailVo } from '@teable/openapi';
+import type { IWorkflowRunVo } from '@teable/openapi';
 import type { IListWorkflowRunsEndpointResult } from '@teable/v2-contract-http';
 import {
   listWorkflowRunsInputSchema,
@@ -9,7 +9,7 @@ import { domainError } from '@teable/v2-core';
 
 export const executeListWorkflowRunsEndpoint = async (
   rawInput: unknown,
-  listWorkflowRuns: (baseId: string, workflowId: string) => Promise<IWorkflowRunDetailVo[]>
+  listWorkflowRuns: (baseId: string, workflowId: string) => Promise<IWorkflowRunVo[]>
 ): Promise<IListWorkflowRunsEndpointResult> => {
   const parsed = listWorkflowRunsInputSchema.safeParse(rawInput);
   if (!parsed.success) {

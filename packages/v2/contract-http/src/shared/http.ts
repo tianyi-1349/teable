@@ -11,13 +11,14 @@ import {
 } from '@teable/v2-core';
 import { z } from 'zod';
 
+import type { JsonValue } from './json';
 import { jsonValueSchema } from './json';
 
 export interface IHttpErrorDto {
   code: string;
   message: string;
-  tags: ReadonlyArray<(typeof domainErrorTagValues)[number]>;
-  details?: Readonly<Record<string, unknown>>;
+  tags: Array<(typeof domainErrorTagValues)[number]>;
+  details?: Record<string, JsonValue>;
 }
 
 export interface IApiErrorResponseDto {
@@ -52,8 +53,8 @@ export const apiErrorResponseDtoSchema = z.object({
 export const mapDomainErrorToHttpError = (error: DomainError): IHttpErrorDto => ({
   code: error.code,
   message: error.message,
-  tags: error.tags,
-  details: error.details,
+  tags: [...error.tags],
+  details: error.details as Record<string, JsonValue> | undefined,
 });
 
 export const mapDomainErrorToHttpStatus = (error: DomainError): HttpErrorStatus => {

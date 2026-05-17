@@ -1,5 +1,8 @@
-import type { ICopyVo, IRangesRo } from '@teable/openapi';
-import type { ICopyShareViewEndpointResult } from '@teable/v2-contract-http';
+import type { IRangesRo } from '@teable/openapi';
+import type {
+  ICopyShareViewEndpointResult,
+  ICopyShareViewResponseDataDto,
+} from '@teable/v2-contract-http';
 import {
   copyShareViewInputSchema,
   copyShareViewResponseDataSchema,
@@ -9,7 +12,10 @@ import { domainError } from '@teable/v2-core';
 
 export const executeCopyShareViewEndpoint = async (
   rawInput: unknown,
-  copyShareView: (shareId: string, ro: Partial<IRangesRo>) => Promise<ICopyVo>
+  copyShareView: (
+    shareId: string,
+    ro: Partial<IRangesRo>
+  ) => Promise<ICopyShareViewResponseDataDto['copy']>
 ): Promise<ICopyShareViewEndpointResult> => {
   const parsed = copyShareViewInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -33,7 +39,7 @@ export const executeCopyShareViewEndpoint = async (
       status: 200,
       body: {
         ok: true,
-        data: validated.data,
+        data: validated.data as ICopyShareViewResponseDataDto,
       },
     };
   } catch (cause) {

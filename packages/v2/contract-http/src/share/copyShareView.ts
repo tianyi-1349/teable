@@ -1,4 +1,4 @@
-import { type ICopyVo, type IRangesRo, copyVoSchema, rangesRoSchema } from '@teable/openapi';
+import { type IRangesRo, copyVoSchema, rangesRoSchema } from '@teable/openapi';
 import { z } from 'zod';
 
 import {
@@ -18,18 +18,6 @@ export const copyShareViewInputSchema = z
 
 export type ICopyShareViewRequestDto = z.input<typeof copyShareViewInputSchema>;
 
-export interface ICopyShareViewResponseDataDto {
-  copy: ICopyVo;
-}
-
-export type ICopyShareViewResponseDto = IApiResponseDto<ICopyShareViewResponseDataDto>;
-export type ICopyShareViewOkResponseDto = IApiOkResponseDto<ICopyShareViewResponseDataDto>;
-export type ICopyShareViewErrorResponseDto = IApiErrorResponseDto;
-
-export type ICopyShareViewEndpointResult =
-  | { status: 200; body: ICopyShareViewOkResponseDto }
-  | { status: HttpErrorStatus; body: ICopyShareViewErrorResponseDto };
-
 export const copyShareViewResponseDataSchema = z.object({
   copy: copyVoSchema,
 });
@@ -38,3 +26,12 @@ export const copyShareViewOkResponseSchema = apiOkResponseDtoSchema(
   copyShareViewResponseDataSchema
 );
 export const copyShareViewErrorResponseSchema = apiErrorResponseDtoSchema;
+
+export type ICopyShareViewResponseDataDto = z.input<typeof copyShareViewResponseDataSchema>;
+export type ICopyShareViewOkResponseDto = z.input<typeof copyShareViewOkResponseSchema>;
+export type ICopyShareViewErrorResponseDto = z.input<typeof copyShareViewErrorResponseSchema>;
+export type ICopyShareViewResponseDto = IApiResponseDto<ICopyShareViewResponseDataDto>;
+
+export type ICopyShareViewEndpointResult =
+  | { status: 200; body: ICopyShareViewOkResponseDto }
+  | { status: HttpErrorStatus; body: ICopyShareViewErrorResponseDto };

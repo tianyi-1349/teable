@@ -1,6 +1,21 @@
 import { Controller } from '@nestjs/common';
 import { Implement, implement, ORPCError } from '@orpc/nest';
+import type {
+  ICopyVo,
+  ITemplateVo,
+  IWorkflowRunDetailVo,
+  IWorkflowRunVo,
+  ShareViewGetVo,
+} from '@teable/openapi';
+import type {
+  ICopyShareViewOkResponseDto,
+  IGetShareViewOkResponseDto,
+} from '@teable/v2-contract-http';
 import { v2Contract } from '@teable/v2-contract-http';
+import type {
+  ICopyShareViewResponseDataDto,
+  IGetShareViewResponseDataDto,
+} from '@teable/v2-contract-http';
 import {
   executeGetRecordIndexEndpoint,
   executeGetRowCountEndpoint,
@@ -107,6 +122,93 @@ const throwOrpcErrorByStatus = (status: number, message: string): never => {
 const getErrorMessage = (error: { message?: string } | string) => {
   return typeof error === 'string' ? error : error.message ?? 'Unexpected error';
 };
+
+type IRuntimeTarget = 'desktop-web' | 'tablet-web' | 'mobile-web' | 'embed' | 'pwa';
+type IShareContractField = ICopyShareViewResponseDataDto['copy']['header'][number];
+
+const normalizeContractField = <T extends { description?: string | null }>(
+  field: T
+): IShareContractField =>
+  ({
+    ...field,
+    description: field.description ?? undefined,
+  }) as unknown as IShareContractField;
+
+const normalizeRuntimeTargets = (targets: readonly string[]): IRuntimeTarget[] =>
+  targets as IRuntimeTarget[];
+
+const normalizeCopyVo = (copy: ICopyVo): ICopyShareViewResponseDataDto['copy'] => ({
+  ...copy,
+  header: copy.header.map((field) => normalizeContractField(field)),
+});
+
+const normalizeShareView = (
+  shareView: ShareViewGetVo
+): IGetShareViewResponseDataDto['shareView'] => ({
+  ...shareView,
+  fields: shareView.fields.map((field) => normalizeContractField(field)),
+});
+
+const normalizeTemplateVo = (
+  template: Awaited<ReturnType<TemplateOpenApiService['getTemplateDetailById']>>
+): ITemplateVo => ({
+  ...template,
+  name: template.name ?? undefined,
+  categoryId: template.categoryId ?? undefined,
+  isSystem: template.isSystem ?? undefined,
+  featured: template.featured ?? undefined,
+  isPublished: template.isPublished ?? undefined,
+  description: template.description ?? undefined,
+  baseId: template.baseId ?? undefined,
+  snapshot: template.snapshot,
+  cover: template.cover,
+  markdownDescription: template.markdownDescription ?? undefined,
+  publishInfo:
+    template.publishInfo &&
+    typeof template.publishInfo === 'object' &&
+    !Array.isArray(template.publishInfo)
+      ? {
+          nodes: Array.isArray(template.publishInfo.nodes)
+            ? template.publishInfo.nodes.filter((node): node is string => typeof node === 'string')
+            : undefined,
+          includeData:
+            typeof template.publishInfo.includeData === 'boolean'
+              ? template.publishInfo.includeData
+              : undefined,
+          defaultActiveNodeId:
+            template.publishInfo.defaultActiveNodeId == null ||
+            typeof template.publishInfo.defaultActiveNodeId === 'string'
+              ? template.publishInfo.defaultActiveNodeId ?? null
+              : undefined,
+          defaultUrl:
+            typeof template.publishInfo.defaultUrl === 'string'
+              ? template.publishInfo.defaultUrl
+              : undefined,
+        }
+      : undefined,
+  createdBy: template.createdBy ?? null,
+});
+
+const normalizeWorkflowRun = (run: IWorkflowRunVo): IWorkflowRunVo => ({
+  ...run,
+  input: run.input ?? undefined,
+  output: run.output ?? undefined,
+  error: run.error ?? undefined,
+  finishedTime: run.finishedTime ?? undefined,
+  durationMs: run.durationMs ?? undefined,
+});
+
+const normalizeWorkflowRunDetail = (run: IWorkflowRunDetailVo): IWorkflowRunDetailVo => ({
+  ...normalizeWorkflowRun(run),
+  steps: (run.steps ?? []).map((step) => ({
+    ...step,
+    input: step.input ?? undefined,
+    output: step.output ?? undefined,
+    error: step.error ?? undefined,
+    finishedTime: step.finishedTime ?? undefined,
+    durationMs: step.durationMs ?? undefined,
+  })),
+});
 
 @Controller('api/v2')
 export class V2Controller {
@@ -551,7 +653,13 @@ export class V2Controller {
         async ({ input }) => {
           const result = await executeGetPublishedAppRuntimeManifestEndpoint(
             input,
-            this.v2PublishedAppService.getRuntimeManifest.bind(this.v2PublishedAppService)
+            async (shareId) => {
+              const manifest = await this.v2PublishedAppService.getRuntimeManifest(shareId);
+              return {
+                ...manifest,
+                runtimeTargets: normalizeRuntimeTargets(manifest.runtimeTargets),
+              };
+            }
           );
 
           if (result.status === 200) return result.body;
@@ -596,10 +704,10 @@ export class V2Controller {
       copyView: implement(v2Contract.share.copyView).handler(async ({ input }) => {
         const result = await executeCopyShareViewEndpoint(input, async (shareId, query) => {
           const shareInfo = await this.shareAuthService.getShareViewInfo(shareId);
-          return this.shareService.copy(shareInfo, query as never);
+          return normalizeCopyVo(await this.shareService.copy(shareInfo, query as never));
         });
 
-        if (result.status === 200) return result.body;
+        if (result.status === 200) return result.body as ICopyShareViewOkResponseDto;
 
         return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
       }),
@@ -634,10 +742,10 @@ export class V2Controller {
       getView: implement(v2Contract.share.getView).handler(async ({ input }) => {
         const result = await executeGetShareViewEndpoint(input, async (shareId) => {
           const shareInfo = await this.shareAuthService.getShareViewInfo(shareId);
-          return this.shareService.getShareView(shareInfo);
+          return normalizeShareView(await this.shareService.getShareView(shareInfo));
         });
 
-        if (result.status === 200) return result.body;
+        if (result.status === 200) return result.body as IGetShareViewOkResponseDto;
 
         return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
       }),
@@ -798,7 +906,9 @@ export class V2Controller {
     return {
       getById: implement(v2Contract.templates.getById).handler(async ({ input }) => {
         const result = await executeGetTemplateByIdEndpoint(input, (templateId) =>
-          this.templateOpenApiService.getTemplateDetailById(templateId)
+          this.templateOpenApiService
+            .getTemplateDetailById(templateId)
+            .then((template) => normalizeTemplateVo(template))
         );
 
         if (result.status === 200) return result.body;
@@ -825,7 +935,9 @@ export class V2Controller {
       }),
       listPublished: implement(v2Contract.templates.listPublished).handler(async ({ input }) => {
         const result = await executeListPublishedTemplatesEndpoint(input, (query) =>
-          this.templateOpenApiService.getPublishedTemplateList(query)
+          this.templateOpenApiService
+            .getPublishedTemplateList(query)
+            .then((templates) => templates.map((template) => normalizeTemplateVo(template)))
         );
 
         if (result.status === 200) return result.body;
@@ -944,10 +1056,10 @@ export class V2Controller {
         }
       ),
       listRuns: implement(v2Contract.workflows.listRuns).handler(async ({ input }) => {
-        const result = await executeListWorkflowRunsEndpoint(
-          input,
-          this.workflowService.getWorkflowRunList.bind(this.workflowService)
-        );
+        const result = await executeListWorkflowRunsEndpoint(input, async (baseId, workflowId) => {
+          const runs = await this.workflowService.getWorkflowRunList(baseId, workflowId);
+          return runs.map((run) => normalizeWorkflowRun(run));
+        });
 
         if (result.status === 200) return result.body;
 
@@ -969,7 +1081,9 @@ export class V2Controller {
           async (baseId, workflowId, runInput) => {
             const run = await this.workflowService.createTestRun(baseId, workflowId, runInput);
             await this.workflowRunnerService.executeWorkflowRun(run.id);
-            return this.workflowService.getWorkflowRun(baseId, workflowId, run.id);
+            return normalizeWorkflowRunDetail(
+              await this.workflowService.getWorkflowRun(baseId, workflowId, run.id)
+            );
           }
         );
 
