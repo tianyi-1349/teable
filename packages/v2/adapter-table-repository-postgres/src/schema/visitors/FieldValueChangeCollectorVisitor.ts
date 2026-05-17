@@ -15,6 +15,9 @@ import type {
   TableDuplicateFieldSpec,
   TableRemoveFieldSpec,
   TableUpdateViewColumnMetaSpec,
+  TableUpdateViewNameSpec,
+  TableUpdateViewOptionsSpec,
+  TableUpdateViewPropertiesSpec,
   TableUpdateViewQueryDefaultsSpec,
   TableRenameSpec,
   // Common field update specs
@@ -149,6 +152,18 @@ export class FieldValueChangeCollectorVisitor implements ITableSpecVisitor<void>
   }
 
   visitTableUpdateViewColumnMeta(_spec: TableUpdateViewColumnMetaSpec): Result<void, DomainError> {
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewName(_spec: TableUpdateViewNameSpec): Result<void, DomainError> {
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewOptions(_spec: TableUpdateViewOptionsSpec): Result<void, DomainError> {
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewProperties(_spec: TableUpdateViewPropertiesSpec): Result<void, DomainError> {
     return ok(undefined);
   }
 

@@ -28,6 +28,11 @@ export type IGetTableByIdEndpointResult =
   | { status: 200; body: IGetTableByIdOkResponseDto }
   | { status: HttpErrorStatus; body: IGetTableByIdErrorResponseDto };
 
+export const getTableByIdInputSchema = z.object({
+  baseId: z.string(),
+  tableId: z.string(),
+});
+
 export const getTableByIdResponseDataSchema = z.object({
   table: tableDtoSchema,
 });

@@ -18,6 +18,9 @@ import type {
   TableByNameLikeSpec,
   TableByNameSpec,
   TableUpdateViewColumnMetaSpec,
+  TableUpdateViewNameSpec,
+  TableUpdateViewOptionsSpec,
+  TableUpdateViewPropertiesSpec,
   TableUpdateViewQueryDefaultsSpec,
   ITableSpecVisitor,
   DomainError,
@@ -106,6 +109,12 @@ export class TableSchemaUpdateVisitor
 {
   constructor(private readonly params: TableSchemaUpdateVisitorParams) {
     super();
+  }
+
+  visitTableUpdateViewProperties(
+    _spec: TableUpdateViewPropertiesSpec
+  ): Result<ReadonlyArray<TableSchemaStatementBuilder>, DomainError> {
+    return ok([]);
   }
 
   // ============ Search index (GIN trigram) helpers ============
@@ -470,6 +479,20 @@ export class TableSchemaUpdateVisitor
 
   visitTableUpdateViewColumnMeta(
     _: TableUpdateViewColumnMetaSpec
+  ): Result<ReadonlyArray<TableSchemaStatementBuilder>, DomainError> {
+    const statements: ReadonlyArray<TableSchemaStatementBuilder> = [];
+    return this.addCond(statements).map(() => statements);
+  }
+
+  visitTableUpdateViewName(
+    _: TableUpdateViewNameSpec
+  ): Result<ReadonlyArray<TableSchemaStatementBuilder>, DomainError> {
+    const statements: ReadonlyArray<TableSchemaStatementBuilder> = [];
+    return this.addCond(statements).map(() => statements);
+  }
+
+  visitTableUpdateViewOptions(
+    _: TableUpdateViewOptionsSpec
   ): Result<ReadonlyArray<TableSchemaStatementBuilder>, DomainError> {
     const statements: ReadonlyArray<TableSchemaStatementBuilder> = [];
     return this.addCond(statements).map(() => statements);
