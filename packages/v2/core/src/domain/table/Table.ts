@@ -75,6 +75,7 @@ import { TableMutator, type TableUpdateResult } from './TableMutator';
 import type { TableName } from './TableName';
 import type { View } from './views/View';
 import { ViewColumnMeta, type ViewColumnMetaEntry } from './views/ViewColumnMeta';
+import { copyViewState } from './views/copyViewState';
 import type { ViewId } from './views/ViewId';
 import { CloneViewVisitor } from './views/visitors/CloneViewVisitor';
 
@@ -1279,16 +1280,12 @@ export class Table extends AggregateRoot<TableId> {
       const cloneResult = view.accept(new CloneViewVisitor());
       if (cloneResult.isErr()) return err(cloneResult.error);
 
-      const clone = cloneResult.value;
-      const setResult = clone.setColumnMeta(nextMetaResult.value);
-      if (setResult.isErr()) return err(setResult.error);
-
       const queryDefaultsResult = view.queryDefaults();
       if (queryDefaultsResult.isErr()) return err(queryDefaultsResult.error);
-      const setQueryResult = clone.setQueryDefaults(queryDefaultsResult.value);
-      if (setQueryResult.isErr()) return err(setQueryResult.error);
-
-      return ok(clone);
+      return copyViewState(view, cloneResult.value, {
+        columnMeta: nextMetaResult.value,
+        queryDefaults: queryDefaultsResult.value,
+      });
     });
 
     return clones.reduce<Result<ReadonlyArray<View>, DomainError>>(
@@ -1316,16 +1313,12 @@ export class Table extends AggregateRoot<TableId> {
       const cloneResult = view.accept(new CloneViewVisitor());
       if (cloneResult.isErr()) return err(cloneResult.error);
 
-      const clone = cloneResult.value;
-      const setResult = clone.setColumnMeta(nextMetaResult.value);
-      if (setResult.isErr()) return err(setResult.error);
-
       const queryDefaultsResult = view.queryDefaults();
       if (queryDefaultsResult.isErr()) return err(queryDefaultsResult.error);
-      const setQueryResult = clone.setQueryDefaults(queryDefaultsResult.value);
-      if (setQueryResult.isErr()) return err(setQueryResult.error);
-
-      return ok(clone);
+      return copyViewState(view, cloneResult.value, {
+        columnMeta: nextMetaResult.value,
+        queryDefaults: queryDefaultsResult.value,
+      });
     });
 
     return clones.reduce<Result<ReadonlyArray<View>, DomainError>>(

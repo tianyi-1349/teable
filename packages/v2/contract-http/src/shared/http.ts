@@ -11,6 +11,8 @@ import {
 } from '@teable/v2-core';
 import { z } from 'zod';
 
+import { jsonValueSchema } from './json';
+
 export interface IHttpErrorDto {
   code: string;
   message: string;
@@ -43,7 +45,7 @@ export const apiErrorResponseDtoSchema = z.object({
     code: z.string(),
     message: z.string(),
     tags: z.array(z.enum(domainErrorTagValues)),
-    details: z.record(z.string(), z.unknown()).optional(),
+    details: z.record(z.string(), jsonValueSchema).optional(),
   }),
 });
 

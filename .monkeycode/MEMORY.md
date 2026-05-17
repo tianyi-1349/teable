@@ -31,6 +31,23 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[修复与提交前必须先满足全局性一致性稳定性]
+- Date: 2026-05-17
+- Context: 用户要求在本地仓库全部重新检测后，只有在全面修复且完全准确的前提下才进入提交
+- Instructions:
+  - 对准备提交的改动先做全局性检查，确认上下游链路和相邻模块一起收口
+  - 对准备提交的改动先做一致性检查，确认命名、契约、实现边界和导出面统一
+  - 对准备提交的改动先做稳定性检查，确认关键 typecheck、测试和运行门禁已经验证通过
+  - 在上述三项约束满足前，不进入提交阶段
+
+[能力缺口修复需优先满足全局性、一致性、稳定性]
+- Date: 2026-05-15
+- Context: 用户要求基于 `capability-gap-list.md` 从全局性、一致性、稳定性三个前提条件出发推进能力缺口修复
+- Instructions:
+  - 修复能力缺口时优先选择能提升全仓库统一性的改动，而不是局部补丁
+  - 同一能力涉及前端、后端、契约、数据层时，应按统一链路收口并校验命名和边界一致性
+  - 优先推进稳定可验证的修复包，避免在单次任务中引入大范围不可控重构
+
 [应用模式页面必须按跨端自适应架构设计]
 - Date: 2026-05-12
 - Context: 用户补充应用模式能力对齐飞书多维表格时的核心架构要求
@@ -152,8 +169,9 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Category: 代码结构
 - Instructions:
   - `apps/nextjs-app/tsconfig.json` 中 `@overridable/WorkFlowPanel` 直接映射到 `./features/app/automation/workflow-panel/WorkFlowPanel`
-  - 当前仓库中 `AutomationPage` 定义在 `apps/nextjs-app/src/features/app/automation/Pages.tsx`，是无参占位页，不提供 `AutomationPageApi` 或 `onRegisterApi`
-  - 如果后续恢复真实 automation 运行时，需先补齐 `Pages.tsx` 的真实实现或重新接回兼容接口，再增强 `WorkFlowPanelRef`
+  - 当前仓库中 `AutomationPage` 定义在 `apps/nextjs-app/src/features/app/automation/Pages.tsx`，已是实际 workflow 页面实现，并由 `apps/nextjs-app/src/features/app/base-node/WorkflowPage.tsx` 直接渲染
+  - `apps/nextjs-app/src/features/app/automation/workflow-panel/WorkFlowPanel.tsx` 已暴露 `getWorkflow`、`checkCanActive`、`activeWorkflow` 等实际运行时方法
+  - 后续增强 `WorkFlowPanelRef` 时应基于现有真实页面与运行时方法扩展，避免回退到占位页假设
 
 [前端 typecheck 可能被跨包断链阻塞]
 - Date: 2026-05-06
@@ -178,8 +196,8 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Context: Agent 在继续推进 `WorkFlowPanel` 接近真实运行时时发现
 - Category: 代码结构
 - Instructions:
-  - 当前仓库前端存在 `createWorkflow` 接口和 workflow 路由入口，但 `apps/nextjs-app/src/features/app/automation/Pages.tsx` 仍是企业版占位页，不存在真实 workflow 编辑运行时组件
-  - 在没有真实 automation 编辑器实现前，`WorkFlowPanel` 最合理的职责是承载 workflow 上下文、入口动作和右侧 `app-mode` 配置，而不是伪造不存在的 `AutomationPageApi`
+  - 当前仓库前端已存在真实 workflow 页面入口与运行时方法，`WorkFlowPanel` 既承载 workflow 上下文，也承载实际查询与激活动作
+  - `WorkFlowPanel` 仍适合作为 workflow 上下文、入口动作和右侧 `app-mode` 配置的统一工作区，并继续避免引入脱离现有页面模型的额外伪接口
   - 当从按钮字段配置进入 workflow 面板时，优先展示 `workflowId`、`baseId`、触发字段等上下文，帮助用户把 automation 配置与 app-mode 治理放在同一工作区理解
 
 [用户要求连续执行直到修复完成]
@@ -188,6 +206,33 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 对已识别的问题持续执行修复、验证和收口，直到全部处理完成
   - 中间不必重复询问用户是否继续，除非遇到真实阻塞或冲突
+
+[v2-contract-http 跨包类型依赖需要显式补 path 与 DOM iterable]
+- Date: 2026-05-16
+- Context: Agent 在补齐 `packages/v2/contract-http` 与 `packages/v2/contract-http-implementation` 的 Aggregation/Search、Undo/Redo 公开层并恢复包级 typecheck 时发现
+- Category: 构建方法
+- Instructions:
+  - 当 `packages/v2/contract-http` 或 `packages/v2/contract-http-implementation` 直接引用 `@teable/openapi` 源码类型时，需要在各自 `tsconfig.json` 的 `paths` 中显式补 `@teable/openapi: ["../../openapi/src"]`
+  - 同时需要把 `../../openapi/src` 加入 `include`，否则包级 `typecheck` 在 `moduleResolution: bundler` 下会把 `@teable/openapi` 解析成缺失依赖
+  - 这两个包的 `compilerOptions.lib` 需要包含 `dom.iterable`，否则在编译 `packages/openapi/src/utils/sse.ts` 时会丢失 `Headers.entries()` 的类型定义
+  - 当新增跨包源码类型依赖时，除了 `package.json` 依赖声明，还要同步检查 `tsconfig` 的 `paths`、`include` 与标准库声明是否完整
+
+[generic v2 router 对高层域使用显式 Nest adapter 边界]
+- Date: 2026-05-16
+- Context: Agent 在统一 `packages/v2/contract-http-implementation/src/router.ts` 的边界表达时发现
+- Category: 代码结构
+- Instructions:
+  - `createV2OrpcRouter` 当前对 comment、share、publishedApps、settings、templates、workflows 保留显式 Nest adapter 边界，这些域的真实执行主链路仍由 Nest `api/v2` 承载
+  - `tables`、`views`、`bases` 等通用可执行域应优先接入 shared router，避免 contract 已公开但 generic router 缺失入口
+  - 对 Nest-only 域的报错实现应统一通过 helper 表达，避免在 `router.ts` 中散落重复的 `throw new ORPCError('INTERNAL_SERVER_ERROR', ...)` 片段
+
+[缺口清单修复任务需连续执行直至矩阵收口]
+- Date: 2026-05-15
+- Context: 用户要求把缺口清单生成的“修复任务矩阵”剩余任务继续执行，中间不必停留询问，直到本任务全部完成
+- Instructions:
+  - 按修复任务矩阵剩余项连续推进代码、验证和文档同步，不在中途停下来确认
+  - 优先选择高核心域的最小稳定切口逐步收口，例如 comment、share、workflow、published
+  - 每完成一批代码改动后立即运行类型校验并同步矩阵、缺口清单和覆盖文档
 
 [用户要求按 SDD 模式继续全量执行]
 - Date: 2026-05-07
@@ -220,7 +265,39 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Context: Agent 在对照 Teable 官方自动化文档评估本仓库实现时发现
 - Category: 代码结构
 - Instructions:
-  - 当前开源仓库保留 workflow 资源类型、base node 集成、automation 权限、按钮字段 workflow 关联和少量 OpenAPI 客户端，但 `apps/nextjs-app/src/features/app/automation/Pages.tsx` 仍是企业版占位页
-  - `@overridable/WorkFlowPanel` 当前映射到本地占位实现，未暴露真实 `getWorkflow`、`checkCanActive`、`activeWorkflow` 等运行时能力
+  - 当前开源仓库已具备 workflow 页面入口、`WorkFlowPanel` 本地实现和 `getWorkflow`、`checkCanActive`、`activeWorkflow` 等运行时方法，前端不再属于纯占位页状态
   - Prisma 当前 schema 不包含可用 Workflow model；旧 `automation_workflow*` 表在后续迁移中被删除，后续迁移只兼容检测可能存在的企业版 `workflow` 表
-  - 若要补齐官方自动化能力，需要新增或接回真实 workflow 存储、触发器、动作、测试、发布、运行历史和执行器，而不是只增强现有占位 UI
+  - 若要进一步补齐官方自动化能力，重点仍在统一 workflow 存储、触发器、动作、测试、发布、运行历史和执行器，而不是只追加前端表层交互
+
+[本轮能力缺口修复需连续执行直至全部完成]
+- Date: 2026-05-15
+- Context: 用户要求把剩余任务全部执行，中间不必停下来询问，直至全部完成为止
+- Instructions:
+  - 对当前能力缺口收敛任务持续执行，优先自行拆解并直接落地可验证改动
+  - 在没有真实阻塞、冲突或缺失前置条件时，持续推进代码、文档、校验和状态同步，不中途征求是否继续
+  - 完成每一轮收口后，应同步更新缺口文档、任务矩阵和相关索引，避免状态漂移
+
+[仓库能力盘点采用单主模型收口与单复核模型校边界]
+- Date: 2026-05-16
+- Context: 用户要求后续继续盘点仓库功能能力明细时采用更稳定的一主一复核方案，并形成具体可执行细节
+- Instructions:
+  - 正式盘点主稿统一由 `GPT-5.5` 负责，保证全局口径、一致性和稳定性
+  - `DeepSeek v4pro` 只用于复核边界项和高不确定域，不再做三模型全量并行盘点
+  - 盘点执行需形成可落地工程文档，明确输入、输出、步骤、验证和准出标准
+
+[能力盘点文档必须先声明分层并同步标准与输出]
+- Date: 2026-05-16
+- Context: 用户要求继续执行直到全部任务完成，Agent 在收口盘点文档体系时固化
+- Category: 代码模式
+- Instructions:
+  - 能力盘点相关文档必须先声明所属层级：正式标准、正式输出、历史辅助输入
+  - 若执行方式发生变化，需同轮同步更新 `capability-inventory-execution-playbook.md` 与 `capability-prompts.md`
+  - 若正式输出发生变化，需同步更新缺口清单、任务矩阵、覆盖矩阵、索引和相关路线图文档
+
+[一致性与稳定性修复按 SDD 连续执行直至全部完成]
+- Date: 2026-05-16
+- Context: 用户要求从全局一致性与稳定性角度，把 5 个修复点按 SDD 模式连续执行，直到全部完成修复
+- Instructions:
+  - 对 `v2.controller.ts` 类型安全、generic router 边界表达、workflow 知识沉淀、Aggregation/Search v2 公开层、Undo/Redo v2 公开契约层按统一工程任务连续推进
+  - 执行过程中同时维护代码、文档、记忆和验证结果，不停留在方案讨论
+  - 每完成一个修复包后立即同步相关正式输出，避免代码事实与盘点文档再次漂移

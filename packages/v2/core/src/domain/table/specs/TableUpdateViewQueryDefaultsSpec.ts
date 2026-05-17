@@ -4,6 +4,7 @@ import type { Result } from 'neverthrow';
 import type { DomainError } from '../../shared/DomainError';
 import { MutateOnlySpec } from '../../shared/specification/MutateOnlySpec';
 import { Table } from '../Table';
+import { copyViewState } from '../views/copyViewState';
 import type { View } from '../views/View';
 import type { ViewId } from '../views/ViewId';
 import type { ViewQueryDefaults } from '../views/ViewQueryDefaults';
@@ -55,23 +56,14 @@ export class TableUpdateViewQueryDefaultsSpec<
         return err(cloneResult.error);
       }
 
-      const clone = cloneResult.value;
-      const columnMetaResult = view.columnMeta();
-      if (columnMetaResult.isErr()) {
-        return err(columnMetaResult.error);
+      const copyResult = copyViewState(view, cloneResult.value, {
+        queryDefaults: nextQueryDefaults,
+      });
+      if (copyResult.isErr()) {
+        return err(copyResult.error);
       }
 
-      const setColumnMetaResult = clone.setColumnMeta(columnMetaResult.value);
-      if (setColumnMetaResult.isErr()) {
-        return err(setColumnMetaResult.error);
-      }
-
-      const setQueryDefaultsResult = clone.setQueryDefaults(nextQueryDefaults);
-      if (setQueryDefaultsResult.isErr()) {
-        return err(setQueryDefaultsResult.error);
-      }
-
-      nextViews.push(clone);
+      nextViews.push(copyResult.value);
     }
 
     const nextTableResult = Table.rehydrate({

@@ -3,12 +3,17 @@ import { ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 import { z } from 'zod';
 
+import { jsonValueSchema } from '../shared/json';
+
 export const tableRecordDtoSchema = z.object({
   id: z.string(),
-  fields: z.record(z.string(), z.unknown()),
+  fields: z.record(z.string(), jsonValueSchema),
 });
 
-export type ITableRecordDto = z.infer<typeof tableRecordDtoSchema>;
+export interface ITableRecordDto {
+  id: string;
+  fields: Record<string, unknown>;
+}
 
 export const mapTableRecordToDto = (
   record: TableRecordReadModel

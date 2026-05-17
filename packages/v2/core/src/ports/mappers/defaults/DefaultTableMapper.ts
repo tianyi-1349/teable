@@ -87,6 +87,7 @@ import { KanbanView } from '../../../domain/table/views/types/KanbanView';
 import { PluginView } from '../../../domain/table/views/types/PluginView';
 import type { View } from '../../../domain/table/views/View';
 import { ViewColumnMeta } from '../../../domain/table/views/ViewColumnMeta';
+import { copyViewState } from '../../../domain/table/views/copyViewState';
 import { ViewId } from '../../../domain/table/views/ViewId';
 import { ViewName } from '../../../domain/table/views/ViewName';
 import { ViewQueryDefaults } from '../../../domain/table/views/ViewQueryDefaults';
@@ -846,6 +847,10 @@ class ViewToPersistenceVisitor implements IViewVisitor<ITableViewPersistenceDTO>
         id: view.id().toString(),
         name: view.name().toString(),
         type,
+        description: view.description(),
+        ...(view.order() !== undefined ? { order: view.order() } : {}),
+        ...(view.isLocked() !== undefined ? { isLocked: view.isLocked() } : {}),
+        ...(view.shareMeta() !== undefined ? { shareMeta: view.shareMeta() } : {}),
         columnMeta: columnMeta.toDto(),
         query: queryDefaults.toDto(),
         ...(view.options() !== undefined ? { options: view.options() } : {}),
@@ -1388,12 +1393,17 @@ export class DefaultTableMapper implements ITableMapper {
 
         return viewResult.andThen((view) =>
           ViewColumnMeta.rehydrate(dto.columnMeta).andThen((columnMeta) =>
-            view
-              .setColumnMeta(columnMeta)
-              .andThen(() => ViewQueryDefaults.rehydrate(dto.query ?? {}))
-              .andThen((queryDefaults) => view.setQueryDefaults(queryDefaults))
-              .andThen(() => view.setOptions(dto.options))
-              .map(() => view)
+            ViewQueryDefaults.rehydrate(dto.query ?? {}).andThen((queryDefaults) =>
+              copyViewState(view, view, {
+                columnMeta,
+                queryDefaults,
+                options: dto.options,
+                description: dto.description,
+                order: dto.order,
+                isLocked: dto.isLocked,
+                shareMeta: dto.shareMeta,
+              })
+            )
           )
         );
       })

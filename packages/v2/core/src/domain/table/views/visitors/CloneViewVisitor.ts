@@ -49,8 +49,6 @@ export class CloneViewVisitor implements IViewVisitor<View> {
     view: View,
     factory: (params: { id: ViewId; name: ViewName }) => Result<View, DomainError>
   ): Result<View, DomainError> {
-    return factory({ id: view.id(), name: view.name() }).andThen((clone) =>
-      clone.setOptions(view.options()).map(() => clone)
-    );
+    return factory({ id: view.id(), name: view.name() });
   }
 }

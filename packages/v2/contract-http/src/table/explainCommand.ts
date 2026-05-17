@@ -14,6 +14,7 @@ import {
   type IApiErrorResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
+import { jsonValueSchema } from '../shared/json';
 
 // Input schemas for explain endpoints
 export const explainCreateFieldInputSchema = createFieldInputSchema.extend({
@@ -46,7 +47,7 @@ export const explainDeleteTableInputSchema = deleteTableInputSchema.extend({
 
 export const explainCreateRecordInputSchema = z.object({
   tableId: z.string(),
-  fields: z.record(z.string(), z.unknown()),
+  fields: z.record(z.string(), jsonValueSchema),
   analyze: z.boolean().optional().default(false),
   includeSql: z.boolean().optional().default(true),
   includeGraph: z.boolean().optional().default(false),
@@ -56,7 +57,7 @@ export const explainCreateRecordInputSchema = z.object({
 export const explainUpdateRecordInputSchema = z.object({
   tableId: z.string(),
   recordId: z.string(),
-  fields: z.record(z.string(), z.unknown()),
+  fields: z.record(z.string(), jsonValueSchema),
   analyze: z.boolean().optional().default(false),
   includeSql: z.boolean().optional().default(true),
   includeGraph: z.boolean().optional().default(false),
@@ -132,7 +133,7 @@ const explainJsonOutputSchema = z.object({
   Plan: explainPlanNodeSchema,
   'Planning Time': z.number().optional(),
   'Execution Time': z.number().optional(),
-  Triggers: z.array(z.unknown()).optional(),
+  Triggers: z.array(jsonValueSchema).optional(),
 });
 
 const explainOutputSchema = z.object({
@@ -200,7 +201,7 @@ const computedUpdateReasonSchema = z.object({
 const sqlExplainInfoSchema = z.object({
   stepDescription: z.string(),
   sql: z.string(),
-  parameters: z.array(z.unknown()),
+  parameters: z.array(jsonValueSchema),
   explainAnalyze: explainAnalyzeOutputSchema.nullable(),
   explainOnly: explainOutputSchema.nullable(),
   explainError: z.string().nullable().optional(),
@@ -295,7 +296,7 @@ const computedUpdateLockStatementSchema = z.object({
   batchId: z.string().optional(),
   key: z.string(),
   sql: z.string(),
-  parameters: z.array(z.unknown()),
+  parameters: z.array(jsonValueSchema),
 });
 
 const computedUpdateLockInfoSchema = z.object({
@@ -329,7 +330,7 @@ const linkRecordLocksInfoSchema = z
       })
     ),
     sql: z.string().optional(),
-    parameters: z.array(z.unknown()).optional(),
+    parameters: z.array(jsonValueSchema).optional(),
   })
   .nullable()
   .optional();

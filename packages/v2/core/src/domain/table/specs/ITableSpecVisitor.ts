@@ -63,6 +63,9 @@ import type { TableUpdateFieldHasErrorSpec } from './TableUpdateFieldHasErrorSpe
 import type { TableUpdateFieldNameSpec } from './TableUpdateFieldNameSpec';
 import type { TableUpdateFieldTypeSpec } from './TableUpdateFieldTypeSpec';
 import type { TableUpdateViewColumnMetaSpec } from './TableUpdateViewColumnMetaSpec';
+import type { TableUpdateViewNameSpec } from './TableUpdateViewNameSpec';
+import type { TableUpdateViewOptionsSpec } from './TableUpdateViewOptionsSpec';
+import type { TableUpdateViewPropertiesSpec } from './TableUpdateViewPropertiesSpec';
 import type { TableUpdateViewQueryDefaultsSpec } from './TableUpdateViewQueryDefaultsSpec';
 
 export interface ITableSpecVisitor<TResult = unknown> extends ISpecVisitor {
@@ -73,6 +76,9 @@ export interface ITableSpecVisitor<TResult = unknown> extends ISpecVisitor {
   visitTableDuplicateField(spec: TableDuplicateFieldSpec): Result<TResult, DomainError>;
   visitTableRemoveField(spec: TableRemoveFieldSpec): Result<TResult, DomainError>;
   visitTableUpdateViewColumnMeta(spec: TableUpdateViewColumnMetaSpec): Result<TResult, DomainError>;
+  visitTableUpdateViewName(spec: TableUpdateViewNameSpec): Result<TResult, DomainError>;
+  visitTableUpdateViewOptions(spec: TableUpdateViewOptionsSpec): Result<TResult, DomainError>;
+  visitTableUpdateViewProperties(spec: TableUpdateViewPropertiesSpec): Result<TResult, DomainError>;
   visitTableUpdateViewQueryDefaults(
     spec: TableUpdateViewQueryDefaultsSpec
   ): Result<TResult, DomainError>;
