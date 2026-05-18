@@ -73,9 +73,9 @@ import { TableBuilder } from './TableBuilder';
 import type { TableId } from './TableId';
 import { TableMutator, type TableUpdateResult } from './TableMutator';
 import type { TableName } from './TableName';
+import { copyViewState } from './views/copyViewState';
 import type { View } from './views/View';
 import { ViewColumnMeta, type ViewColumnMetaEntry } from './views/ViewColumnMeta';
-import { copyViewState } from './views/copyViewState';
 import type { ViewId } from './views/ViewId';
 import { CloneViewVisitor } from './views/visitors/CloneViewVisitor';
 
