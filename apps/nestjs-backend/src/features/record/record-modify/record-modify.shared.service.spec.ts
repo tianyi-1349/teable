@@ -52,10 +52,12 @@ describe('RecordModifySharedService', () => {
       },
     };
 
+    const missingSourceIdField = 'Source ID 2';
+
     try {
       getEffectFieldInstances(
         table,
-        [{ Name: 'Task A', 'Source ID 2': 'source-1' }],
+        [{ Name: 'Task A', [missingSourceIdField]: 'source-1' }],
         FieldKeyType.Name
       );
       expect.unreachable('Expected getEffectFieldInstances to throw');
@@ -64,10 +66,12 @@ describe('RecordModifySharedService', () => {
 
       const httpError = error as CustomHttpException;
       expect(httpError.code).toBe(HttpErrorCode.NOT_FOUND);
-      expect(httpError.message).toBe('Field "Source ID 2" does not exist in this table');
+      expect(httpError.message).toBe(
+        `Field "${missingSourceIdField}" does not exist in this table`
+      );
       expect(httpError.data).toMatchObject({
         fieldKeyType: FieldKeyType.Name,
-        missedFields: ['Source ID 2'],
+        missedFields: [missingSourceIdField],
         availableFieldKeys: ['Name', 'Status'],
       });
     }

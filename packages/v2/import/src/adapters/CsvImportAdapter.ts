@@ -1,20 +1,17 @@
-import Papa from 'papaparse';
-import { err, ok } from 'neverthrow';
-import type { Result } from 'neverthrow';
-
-// Add TextDecoder type reference for Node.js
-type TextDecoderType = typeof globalThis.TextDecoder extends new (...args: any[]) => infer T
-  ? T
-  : never;
-
 import {
   domainError,
   type DomainError,
-  type IImportSourceAdapter,
   type IImportOptions,
   type IImportParseResult,
   type IImportSource,
+  type IImportSourceAdapter,
 } from '@teable/v2-core';
+import { err, ok } from 'neverthrow';
+import type { Result } from 'neverthrow';
+import Papa from 'papaparse';
+
+// Add TextDecoder type reference for Node.js
+type TextDecoderType = InstanceType<typeof globalThis.TextDecoder>;
 
 /**
  * CSV Import Adapter

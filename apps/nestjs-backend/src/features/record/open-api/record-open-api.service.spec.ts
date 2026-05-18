@@ -1,7 +1,6 @@
-import { CellValueType, DbFieldType, FieldType, FieldKeyType } from '@teable/core';
-import { HttpErrorCode } from '@teable/core';
+import { CellValueType, DbFieldType, FieldType, FieldKeyType, HttpErrorCode } from '@teable/core';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { CustomHttpException } from '../../../custom.exception';
+import type { CustomHttpException } from '../../../custom.exception';
 import { Events } from '../../../event-emitter/events';
 import { RecordOpenApiService } from './record-open-api.service';
 
