@@ -46,8 +46,8 @@ import { ClsService } from 'nestjs-cls';
 import { EventEmitterService } from '../src/event-emitter/event-emitter.service';
 import { Events } from '../src/event-emitter/events';
 import { AttachmentsService } from '../src/features/attachments/attachments.service';
-import { IntegrityV2Service } from '../src/features/integrity/integrity-v2.service';
 import { replaceStringByMap } from '../src/features/base/utils';
+import { IntegrityV2Service } from '../src/features/integrity/integrity-v2.service';
 import type { IClsStore } from '../src/types/cls';
 import { x_20 } from './data-helpers/20x';
 import { x_20_link, x_20_link_from_lookups } from './data-helpers/20x-link';
@@ -992,7 +992,10 @@ describe('OpenAPI BaseController for base import (e2e)', () => {
       const importedTable = await getTable(importedCanaryBaseId, importedTableMeta.id, {
         includeContent: true,
       });
-      const importedHoursField = importedTable.fields?.find((field) => field.name === 'Hours')!;
+      const importedHoursField = importedTable.fields?.find((field) => field.name === 'Hours');
+      if (!importedHoursField) {
+        throw new Error('Imported Hours field is missing');
+      }
 
       const importedRecords = await getRecords(importedTableMeta.id, {
         fieldKeyType: FieldKeyType.Id,

@@ -32,7 +32,7 @@ const notAllowedOperationI18nKey = 'httpErrors.permission.notAllowedOperation';
  * Permissions that must never be granted via share links,
  * even when allowEdit is enabled with a logged-in user.
  */
-const SHARE_EXCLUDED_PERMISSIONS = new Set<Action>([
+const shareExcludedPermissions = new Set<Action>([
   'view|share',
   'space|invite_email',
   'base|invite_email',
@@ -634,7 +634,7 @@ export class PermissionService {
     // When allowEdit is enabled and user is logged in, grant editor-level permissions
     // excluding invite/share/privacy-sensitive actions
     if (baseShare.allowEdit && !this.isAnonymous()) {
-      return getPermissions(Role.Editor).filter((p) => !SHARE_EXCLUDED_PERMISSIONS.has(p));
+      return getPermissions(Role.Editor).filter((p) => !shareExcludedPermissions.has(p));
     }
 
     // Otherwise return template permissions (read-only), with record|copy if allowCopy is enabled

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-identical-functions, sonarjs/no-duplicate-string */
 import { FieldType, Relationship } from '@teable/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

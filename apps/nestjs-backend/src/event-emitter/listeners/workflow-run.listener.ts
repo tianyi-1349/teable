@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WorkflowService } from '../../features/workflow/workflow.service';
 import { WorkflowRunnerService } from '../../features/workflow/workflow-runner.service';
-import type { ButtonClickEvent, RecordCreateEvent, RecordUpdateEvent } from '../events';
-import { Events } from '../events';
+import { WorkflowService } from '../../features/workflow/workflow.service';
+import { ButtonClickEvent, RecordCreateEvent, RecordUpdateEvent, Events } from '../events';
 
 @Injectable()
 export class WorkflowRunListener {

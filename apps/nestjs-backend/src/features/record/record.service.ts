@@ -2139,10 +2139,12 @@ export class RecordService {
             if (field.cellValueType === CellValueType.Boolean) {
               return false;
             }
-            if (isSearchAllFields) {
-              if (field.cellValueType === CellValueType.Number && isNaN(Number(search[0]))) {
-                return false;
-              }
+            if (
+              isSearchAllFields &&
+              field.cellValueType === CellValueType.Number &&
+              isNaN(Number(search[0]))
+            ) {
+              return false;
             }
             return true;
           })

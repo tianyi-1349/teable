@@ -30,6 +30,7 @@ import { RedisPubSub } from './sharedb-redis.pubsub';
 
 const v2ProjectionOpSourcePrefix = '@@v2-projection:';
 const v2ProjectionSubmitSource = '@@v2-projection';
+const recordUpdatePermission = 'record|update';
 
 const hasClientStream = (
   agent: unknown
@@ -257,7 +258,7 @@ export class ShareDbService extends ShareDBClass {
       if (custom.baseShareId) {
         await this.ensureBaseShareAuthenticated(custom.baseShareId, custom.cookie);
         await this.permissionService.validBaseSharePermissions(custom.baseShareId, tableId, [
-          'record|update',
+          recordUpdatePermission,
         ]);
         return;
       }
@@ -271,7 +272,7 @@ export class ShareDbService extends ShareDBClass {
             },
           });
         }
-        await this.permissionService.validTemplatePermissions(tableId, ['record|update']);
+        await this.permissionService.validTemplatePermissions(tableId, [recordUpdatePermission]);
         return;
       }
 
@@ -279,7 +280,7 @@ export class ShareDbService extends ShareDBClass {
         throw new CustomHttpException('Unauthorized', HttpErrorCode.UNAUTHORIZED);
       }
 
-      await this.permissionService.validPermissions(tableId, ['record|update']);
+      await this.permissionService.validPermissions(tableId, [recordUpdatePermission]);
     });
   }
 

@@ -315,8 +315,7 @@ export class GraphService {
     tableId2DbTableName: Record<string, string>;
     fieldId2TableId: Record<string, string>;
   }) {
-    const { fieldId, directedGraph, allFieldIds, fieldMap, tableId2DbTableName, fieldId2TableId } =
-      params;
+    const { fieldId, directedGraph, fieldMap, tableId2DbTableName, fieldId2TableId } = params;
 
     // 1) Dedupe edges and hide link -> lookup edge for display
     const edgeSeen = new Set<string>();

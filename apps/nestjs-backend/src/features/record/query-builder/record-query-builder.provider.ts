@@ -21,12 +21,11 @@ export const RecordQueryDialectProvider: Provider = {
   provide: RECORD_QUERY_DIALECT_SYMBOL,
   useFactory: (knex: Knex): IRecordQueryDialectProvider => {
     const driverClient = getDriverName(knex);
-    switch (driverClient) {
-      case DriverClient.Pg:
-        return new PgRecordQueryDialect(knex);
-      default:
-        throw new Error(`Unsupported database driver: ${driverClient}`);
+    if (driverClient === DriverClient.Pg) {
+      return new PgRecordQueryDialect(knex);
     }
+
+    throw new Error(`Unsupported database driver: ${driverClient}`);
   },
   inject: ['CUSTOM_KNEX'],
 };

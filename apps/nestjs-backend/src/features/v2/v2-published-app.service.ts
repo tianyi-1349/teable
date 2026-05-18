@@ -3,7 +3,7 @@ import { BaseNodeResourceType } from '@teable/openapi';
 import { BaseNodeService } from '../base-node/base-node.service';
 import { BaseShareAuthService } from '../base-share/base-share-auth.service';
 
-type PublishedRuntimeNode = {
+type IPublishedRuntimeNode = {
   nodeId: string;
   resourceId: string;
   resourceType: string;
@@ -15,7 +15,7 @@ type PublishedRuntimeNode = {
   renderable: boolean;
 };
 
-type PublishedNavigationItem = {
+type IPublishedNavigationItem = {
   nodeId: string;
   resourceId: string;
   resourceType: string;
@@ -24,7 +24,7 @@ type PublishedNavigationItem = {
   kind: 'node' | 'group';
   renderable: boolean;
   url?: string;
-  children: PublishedNavigationItem[];
+  children: IPublishedNavigationItem[];
 };
 
 const renderableResourceTypes = new Set<string>([
@@ -193,13 +193,13 @@ export class V2PublishedAppService {
   }
 
   private toNavigationItem(
-    node: PublishedRuntimeNode,
-    manifest: { baseId: string; shareId?: string; nodes: PublishedRuntimeNode[] },
-    nodeMap: Map<string, PublishedRuntimeNode>
-  ): PublishedNavigationItem {
+    node: IPublishedRuntimeNode,
+    manifest: { baseId: string; shareId?: string; nodes: IPublishedRuntimeNode[] },
+    nodeMap: Map<string, IPublishedRuntimeNode>
+  ): IPublishedNavigationItem {
     const children = node.children
       .map((childId) => nodeMap.get(childId))
-      .filter((child): child is PublishedRuntimeNode => Boolean(child))
+      .filter((child): child is IPublishedRuntimeNode => Boolean(child))
       .filter((child) => child.visibleInNav)
       .map((child) => this.toNavigationItem(child, manifest, nodeMap));
 
@@ -218,14 +218,14 @@ export class V2PublishedAppService {
     };
   }
 
-  private flattenNavigationItems(items: PublishedNavigationItem[]): PublishedNavigationItem[] {
+  private flattenNavigationItems(items: IPublishedNavigationItem[]): IPublishedNavigationItem[] {
     return items.flatMap((item) => [item, ...this.flattenNavigationItems(item.children)]);
   }
 
   private getPublishedNodeUrl(
     baseId: string,
     shareId: string | undefined,
-    node: PublishedRuntimeNode | null
+    node: IPublishedRuntimeNode | null
   ) {
     if (!node) {
       return undefined;

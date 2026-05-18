@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CellValueType, FieldType, HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import { TableIndex } from '@teable/openapi';
@@ -14,8 +14,6 @@ import { IDbProvider } from '../../db-provider/db.provider.interface';
 import type { IClsStore } from '../../types/cls';
 import type { IFieldInstance } from '../field/model/factory';
 import { createFieldInstanceByRaw } from '../field/model/factory';
-
-const unSupportTableIndex = 'Unsupport table index type';
 
 @Injectable()
 export class TableIndexService {

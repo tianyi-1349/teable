@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { INestApplication } from '@nestjs/common';
 import { FieldKeyType, FieldType, Relationship, getActionTriggerChannel } from '@teable/core';
@@ -18,6 +19,7 @@ interface IActionTrigger {
 }
 
 const amountTextFieldName = 'Amount Text';
+const v2HeaderName = 'x-teable-v2';
 
 let fieldIdCounter = 0;
 
@@ -212,7 +214,7 @@ describe('V2 action trigger field conversion (e2e)', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(response.headers['x-teable-v2']).toBe('true');
+        expect(response.headers[v2HeaderName]).toBe('true');
       },
     });
 

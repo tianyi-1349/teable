@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import type {
   FieldCore,
   IAttachmentCellValueRo,

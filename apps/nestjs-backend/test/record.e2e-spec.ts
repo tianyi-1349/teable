@@ -10,6 +10,7 @@ import {
   Relationship,
 } from '@teable/core';
 import { axios, buttonClick, buttonReset, updateRecords, type ITableFullVo } from '@teable/openapi';
+import { X_TEABLE_V2_HEADER } from '../src/features/canary/interceptors/v2-indicator.interceptor';
 import {
   convertField,
   createField,
@@ -27,7 +28,8 @@ import {
   updateRecord,
   updateRecordByApi,
 } from './utils/init-app';
-import { X_TEABLE_V2_HEADER } from '../src/features/canary/interceptors/v2-indicator.interceptor';
+
+const canaryHeader = 'x-canary';
 
 describe('OpenAPI RecordController (e2e)', () => {
   let app: INestApplication;
@@ -1360,7 +1362,7 @@ describe('OpenAPI RecordController (e2e)', () => {
       const updateRecordsV1 = async (tableId: string, body: Record<string, unknown>) => {
         return await axios.patch(`/table/${tableId}/record`, body, {
           headers: {
-            'x-canary': 'false',
+            [canaryHeader]: 'false',
           },
         });
       };

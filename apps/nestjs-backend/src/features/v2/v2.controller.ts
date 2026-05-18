@@ -7,12 +7,10 @@ import type {
   IWorkflowRunVo,
   ShareViewGetVo,
 } from '@teable/openapi';
+import { v2Contract } from '@teable/v2-contract-http';
 import type {
   ICopyShareViewOkResponseDto,
   IGetShareViewOkResponseDto,
-} from '@teable/v2-contract-http';
-import { v2Contract } from '@teable/v2-contract-http';
-import type {
   ICopyShareViewResponseDataDto,
   IGetShareViewResponseDataDto,
 } from '@teable/v2-contract-http';
@@ -82,19 +80,19 @@ import {
   executeCopyShareViewEndpoint,
   executeFormSubmitShareViewEndpoint,
 } from '@teable/v2-contract-http-implementation/handlers';
-import { CommentOpenApiService } from '../comment/comment-open-api.service';
+import { v2CoreTokens } from '@teable/v2-core';
+import type { ICommandBus, IQueryBus } from '@teable/v2-core' with { 'resolution-mode': 'import' };
 import { AggregationOpenApiService } from '../aggregation/open-api/aggregation-open-api.service';
+import { CommentOpenApiService } from '../comment/comment-open-api.service';
+import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
 import { ShareAuthService } from '../share/share-auth.service';
 import { ShareService } from '../share/share.service';
-import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
 import { TemplateOpenApiService } from '../template/template-open-api.service';
 import { TemplatePermalinkService } from '../template/template-permalink.service';
 import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
 import { WorkflowCapabilityService } from '../workflow/workflow-capability.service';
 import { WorkflowRunnerService } from '../workflow/workflow-runner.service';
 import { WorkflowService } from '../workflow/workflow.service';
-import { v2CoreTokens } from '@teable/v2-core';
-import type { ICommandBus, IQueryBus } from '@teable/v2-core' with { 'resolution-mode': 'import' };
 import { V2ContainerService } from './v2-container.service';
 import { V2ExecutionContextFactory } from './v2-execution-context.factory';
 import { V2PublishedAppService } from './v2-published-app.service';
@@ -149,6 +147,7 @@ const normalizeShareView = (
   fields: shareView.fields.map((field) => normalizeContractField(field)),
 });
 
+/* eslint-disable sonarjs/cognitive-complexity */
 const normalizeTemplateVo = (
   template: Awaited<ReturnType<TemplateOpenApiService['getTemplateDetailById']>>
 ): ITemplateVo => ({
@@ -188,6 +187,7 @@ const normalizeTemplateVo = (
       : undefined,
   createdBy: template.createdBy ?? null,
 });
+/* eslint-enable sonarjs/cognitive-complexity */
 
 const normalizeWorkflowRun = (run: IWorkflowRunVo): IWorkflowRunVo => ({
   ...run,

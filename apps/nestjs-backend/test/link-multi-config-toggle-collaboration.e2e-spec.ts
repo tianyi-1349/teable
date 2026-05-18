@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { INestApplication } from '@nestjs/common';
-import type { IFieldRo, IFieldVo } from '@teable/core';
+import type { IFieldRo } from '@teable/core';
 import { FieldType, Relationship } from '@teable/core';
 import type { ITableFullVo, IRecord } from '@teable/openapi';
 import type { Doc, Connection } from 'sharedb/lib/client';

@@ -2,7 +2,7 @@
 import { BaseQueryColumnType } from '@teable/openapi';
 import type { IQueryAggregation, IBaseQuerySelect, IBaseQueryGroupBy } from '@teable/openapi';
 import type { Knex } from 'knex';
-import { cloneDeep, isEmpty } from 'lodash';
+import { cloneDeep } from 'lodash';
 import type { IDbProvider } from '../../../../db-provider/db.provider.interface';
 import { isUserOrLink } from '../../../../utils/is-user-or-link';
 import type { IFieldInstance } from '../../../field/model/factory';

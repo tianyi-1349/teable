@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/cognitive-complexity */
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { FieldCore, FormulaFieldCore, TableDomain } from '@teable/core';
+import type { FormulaFieldCore, TableDomain } from '@teable/core';
 import { FieldType, IdPrefix, RecordOpBuilder, Tables } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import type { Knex } from 'knex';

@@ -948,7 +948,7 @@ export class FieldCteVisitor implements IFieldVisitor<ICteResult> {
     }
   }
 
-  private getBlockedLinkFieldIds(currentLinkFieldId: string): ReadonlySet<string> | undefined {
+  private getBlockedLinkFieldIds(_currentLinkFieldId: string): ReadonlySet<string> | undefined {
     if (!this.linkCteGenerationStack.size) {
       return undefined;
     }
@@ -1353,10 +1353,6 @@ export class FieldCteVisitor implements IFieldVisitor<ICteResult> {
         foreignTable,
         foreignAliasUsed,
         selectVisitor
-      );
-      const normalizedExpression = this.coerceConditionalLookupTargetExpression(
-        rawExpression,
-        targetField
       );
       const formattingVisitor = new FieldFormattingVisitor(rawExpression, this.dialect);
       const formattedExpression = targetField.accept(formattingVisitor);

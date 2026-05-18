@@ -4,7 +4,6 @@ import type {
   IButtonFieldCellValue,
   IButtonFieldOptions,
   IConditionalLookupOptions,
-  IConditionalRollupFieldOptions,
   IFieldRo,
   IFieldVo,
   ILinkFieldOptions,

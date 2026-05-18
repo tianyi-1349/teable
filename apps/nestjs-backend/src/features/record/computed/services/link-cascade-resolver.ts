@@ -160,7 +160,7 @@ export class LinkCascadeResolver {
 
   private flattenSeeds(
     explicitSeeds: IExplicitLinkSeed[],
-    allTableSeeds: IAllTableLinkSeed[]
+    _allTableSeeds: IAllTableLinkSeed[]
   ): Array<{ tableId: string; recordId: string }> {
     const rows: Array<{ tableId: string; recordId: string }> = [];
     explicitSeeds.forEach((s) =>

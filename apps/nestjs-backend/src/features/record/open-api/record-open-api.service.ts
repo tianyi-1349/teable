@@ -35,6 +35,7 @@ import type { IClsStore } from '../../../types/cls';
 import { retryOnDeadlock } from '../../../utils/retry-decorator';
 import { AttachmentsService } from '../../attachments/attachments.service';
 import { getPublicFullStorageUrl } from '../../attachments/plugins/utils';
+import type { ICellContext } from '../../calculation/utils/changes';
 import { FieldService } from '../../field/field.service';
 import { createFieldInstanceByRaw } from '../../field/model/factory';
 import { TableDomainQueryService } from '../../table-domain';
@@ -47,7 +48,7 @@ import type { IUpdateRecordsInternalRo } from '../type';
 
 export interface IUpdateRecordsResult {
   records: IRecord[];
-  cellContexts: import('../../calculation/utils/changes').ICellContext[];
+  cellContexts: ICellContext[];
 }
 
 @Injectable()

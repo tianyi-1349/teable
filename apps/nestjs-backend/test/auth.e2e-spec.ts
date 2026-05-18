@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { DriverClient, generateAccountId, HttpErrorCode } from '@teable/core';
+import { generateAccountId, HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import type {
   CreateAccessTokenVo,

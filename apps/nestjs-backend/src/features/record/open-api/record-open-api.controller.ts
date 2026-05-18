@@ -24,7 +24,6 @@ import {
   deleteRecordsQuerySchema,
   getRecordHistoryQuerySchema,
   updateRecordsRoSchema,
-  recordInsertOrderRoSchema,
   recordGetCollaboratorsRoSchema,
   formSubmitRoSchema,
   optionalRecordOrderSchema,
@@ -403,8 +402,7 @@ export class RecordOpenApiController {
     @Param('recordId') recordId: string,
     @Param('fieldId') fieldId: string
   ): Promise<IButtonClickVo> {
-    const result = await this.recordOpenApiService.buttonClick(tableId, recordId, fieldId);
-    return result;
+    return await this.recordOpenApiService.buttonClick(tableId, recordId, fieldId);
   }
 
   @Permissions('record|update')

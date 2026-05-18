@@ -1,4 +1,5 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import type * as OpenTelemetryApi from '@opentelemetry/api';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -9,13 +10,17 @@ import {
   X_TEABLE_V2_REASON_HEADER,
 } from './v2-indicator.interceptor';
 
+const teableV2EnabledAttribute = 'teable.v2.enabled';
+const teableV2ReasonAttribute = 'teable.v2.reason';
+const teableV2FeatureAttribute = 'teable.v2.feature';
+
 const { getActiveSpan, sentryScope } = vi.hoisted(() => ({
   getActiveSpan: vi.fn(),
   sentryScope: { setTag: vi.fn() },
 }));
 
 vi.mock('@opentelemetry/api', async () => {
-  const actual = await vi.importActual<typeof import('@opentelemetry/api')>('@opentelemetry/api');
+  const actual = await vi.importActual<typeof OpenTelemetryApi>('@opentelemetry/api');
   return {
     ...actual,
     trace: {
@@ -70,9 +75,9 @@ describe('V2IndicatorInterceptor', () => {
     expect(response.setHeader).toHaveBeenCalledWith(X_TEABLE_V2_FEATURE_HEADER, 'createRecord');
     expect(setAttributes).toHaveBeenCalledWith({
       [TEABLE_REQUEST_ATTRIBUTION]: 'v2',
-      'teable.v2.enabled': true,
-      'teable.v2.reason': 'canary',
-      'teable.v2.feature': 'createRecord',
+      [teableV2EnabledAttribute]: true,
+      [teableV2ReasonAttribute]: 'canary',
+      [teableV2FeatureAttribute]: 'createRecord',
     });
     expect(sentryScope.setTag).toHaveBeenCalledWith(TEABLE_REQUEST_ATTRIBUTION, 'v2');
   });
