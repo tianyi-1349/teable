@@ -31,6 +31,7 @@
     "fix-all-files": "eslint . --ext .ts,.js,.mjs,.cjs,.mts,.cts --fix"
   },
   "dependencies": {
+    "@teable/openapi": "workspace:*",
     "@teable/v2-contract-http": "workspace:*",
     "@teable/v2-contract-http-implementation": "workspace:*",
     "@teable/v2-contract-http-openapi": "workspace:*",

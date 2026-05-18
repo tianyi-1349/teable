@@ -20,6 +20,7 @@
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/openapi": ["../../openapi/src"],
       "@teable/v2-contract-http-openapi": ["../contract-http-openapi/src"],
       "@teable/v2-contract-http-implementation": ["../contract-http-implementation/src"],
       "@teable/v2-contract-http": ["../contract-http/src"],
@@ -77,6 +78,7 @@
   ],
   "include": [
     "src",
+    "../../openapi/src",
     "../contract-http-openapi/src",
     "../contract-http-implementation/src",
     "../contract-http/src",
