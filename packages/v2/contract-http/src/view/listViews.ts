@@ -10,8 +10,8 @@ import {
   type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
-import { mapViewToDto } from '../table/dto';
 import { sequenceResults } from '../shared/neverthrow';
+import { mapViewToDto } from '../table/dto';
 import { type IViewDto, viewDtoSchema } from './dto';
 
 export type IListViewsRequestDto = IListViewsQueryInput;

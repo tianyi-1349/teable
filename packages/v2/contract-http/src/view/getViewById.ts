@@ -1,4 +1,5 @@
 import type { DomainError, GetViewByIdResult } from '@teable/v2-core';
+import { getViewByIdInputSchema as getViewByIdQueryInputSchema } from '@teable/v2-core';
 import { type Result } from 'neverthrow';
 import { z } from 'zod';
 
@@ -12,7 +13,6 @@ import {
 } from '../shared/http';
 import { mapViewToDto } from '../table/dto';
 import { type IViewDto, viewDtoSchema } from './dto';
-import { getViewByIdInputSchema as getViewByIdQueryInputSchema } from '@teable/v2-core';
 
 export const getViewByIdInputSchema = getViewByIdQueryInputSchema;
 

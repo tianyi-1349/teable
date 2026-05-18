@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { getRecordsRoSchema } from '@teable/openapi';
+import { z } from 'zod';
 
 import {
   apiErrorResponseDtoSchema,

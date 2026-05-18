@@ -1,12 +1,10 @@
-import { type IRangesRo, copyVoSchema, rangesRoSchema } from '@teable/openapi';
+import { copyVoSchema, rangesRoSchema } from '@teable/openapi';
 import { z } from 'zod';
 
 import {
   apiErrorResponseDtoSchema,
   apiOkResponseDtoSchema,
   type HttpErrorStatus,
-  type IApiErrorResponseDto,
-  type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
 

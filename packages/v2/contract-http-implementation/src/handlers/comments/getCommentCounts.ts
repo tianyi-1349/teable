@@ -1,8 +1,8 @@
+import type { IGetRecordsRo } from '@teable/openapi';
 import type {
   IGetCommentRecordCountEndpointResult,
   IGetCommentTableCountEndpointResult,
 } from '@teable/v2-contract-http';
-import type { IGetRecordsRo } from '@teable/openapi';
 import {
   getCommentRecordCountInputSchema,
   getCommentTableCountInputSchema,

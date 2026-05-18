@@ -5,8 +5,6 @@ import {
   apiErrorResponseDtoSchema,
   apiOkResponseDtoSchema,
   type HttpErrorStatus,
-  type IApiErrorResponseDto,
-  type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
 

@@ -10,7 +10,6 @@ import type { Result } from 'neverthrow';
 import { z } from 'zod';
 
 import { domainEventDtoSchema, mapDomainEventToDto } from '../shared/domainEvent';
-import { type JsonValue, jsonValueSchema } from '../shared/json';
 import {
   apiErrorResponseDtoSchema,
   apiOkResponseDtoSchema,
@@ -19,6 +18,7 @@ import {
   type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
+import { type JsonValue, jsonValueSchema } from '../shared/json';
 import type { ITableDto } from './dto';
 import { mapTableToDto, tableDtoSchema } from './dto';
 
