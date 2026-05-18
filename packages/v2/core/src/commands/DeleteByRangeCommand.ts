@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { domainError, type DomainError } from '../domain/shared/DomainError';
 import { TableId } from '../domain/table/TableId';
 import { ViewId } from '../domain/table/views/ViewId';
-import { recordFilterSchema, type RecordFilter } from '../queries/RecordFilterDto';
 import type { RecordSortValue } from '../queries/ListTableRecordsQuery';
+import { recordFilterSchema, type RecordFilter } from '../queries/RecordFilterDto';
 import { RecordSearch, recordSearchInputSchema } from '../queries/RecordSearch';
 import {
   flexibleRangesSchema,

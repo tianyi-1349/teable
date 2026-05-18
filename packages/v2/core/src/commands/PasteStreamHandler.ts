@@ -2,12 +2,13 @@ import { inject, injectable } from '@teable/v2-di';
 import { ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
-import type { PasteStreamEvent, PasteStreamApplicationService } from './PasteHandler';
 import type { DomainError } from '../domain/shared/DomainError';
-import type { IExecutionContext } from '../ports/ExecutionContext';
-import { TraceSpan } from '../ports/TraceSpan';
+import { IExecutionContext } from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
+import { TraceSpan } from '../ports/TraceSpan';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
+import type { PasteStreamEvent } from './PasteHandler';
+import { PasteStreamApplicationService } from './PasteHandler';
 import { PasteStreamCommand } from './PasteStreamCommand';
 
 export type PasteStreamResult = AsyncIterable<PasteStreamEvent>;
