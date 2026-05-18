@@ -1,5 +1,6 @@
 import { useTranslation } from 'next-i18next';
 import type { FC } from 'react';
+import { getFriendlyErrorMessage } from '@/lib/get-friendly-error-message';
 import { IllustrationPage } from './IllustrationPage';
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
 export const ErrorPage: FC<Props> = (props) => {
   const { error, errorId, message, statusCode } = props;
   const { t } = useTranslation('common');
+  const displayMessage = message ? getFriendlyErrorMessage(new Error(message), t) : undefined;
+  const displayErrorMessage = error ? getFriendlyErrorMessage(error, t) : undefined;
 
   return (
     <div className="relative">
@@ -31,7 +34,7 @@ export const ErrorPage: FC<Props> = (props) => {
         </div>
         <div className="flex gap-2">
           <span className="text-muted-foreground">Message: </span>
-          <span className="text-foreground">{message}</span>
+          <span className="text-foreground">{displayMessage}</span>
         </div>
         <div className="flex gap-2">
           <span className="text-muted-foreground">Error id: </span>
@@ -39,7 +42,7 @@ export const ErrorPage: FC<Props> = (props) => {
         </div>
         <div className="flex gap-2">
           <span className="text-muted-foreground">ErrorMessage: </span>
-          <span className="text-foreground">{error?.message}</span>
+          <span className="text-foreground">{displayErrorMessage}</span>
         </div>
       </div>
     </div>

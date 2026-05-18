@@ -10,6 +10,7 @@ import type {
 import { Button, Progress } from '@teable/ui-lib/shadcn';
 import { useTranslation } from 'next-i18next';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { getReadableAiConfigErrorMessage } from './error-message';
 import type { IModelTestResult } from './LlmproviderManage';
 import { generateModelKeyList, parseModelKey } from './utils';
 
@@ -158,11 +159,11 @@ export const BatchTestModels = ({
       } catch (error) {
         return {
           status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getReadableAiConfigErrorMessage(error, t),
         };
       }
     },
-    [onTest]
+    [onTest, t]
   );
 
   const testImageModel = useCallback(
@@ -232,11 +233,11 @@ export const BatchTestModels = ({
         return {
           status: 'failed',
           isImageModel: true,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getReadableAiConfigErrorMessage(error, t),
         };
       }
     },
-    [onTest]
+    [onTest, t]
   );
 
   const handleBatchTest = useCallback(async () => {

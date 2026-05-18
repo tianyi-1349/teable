@@ -22,6 +22,7 @@ import { trackSignUpConversion } from '@/components/google-ads';
 import { useCutDown } from '@/features/app/hooks/useCutDown';
 import { useEnv } from '@/features/app/hooks/useEnv';
 import { usePublicSettingQuery } from '@/features/app/hooks/useSetting';
+import { getFriendlyErrorMessage } from '@/lib/get-friendly-error-message';
 import { authConfig } from '../../i18n/auth.config';
 import { SendVerificationButton } from './SendVerificationButton';
 import TurnstileWidget from './TurnstileWidget';
@@ -115,7 +116,7 @@ export const SignForm: FC<ISignForm> = (props) => {
               setCountdown(signupVerificationSendCodeMailRate);
             }
           } else {
-            setError(error.message);
+            setError(getFriendlyErrorMessage(error, t));
           }
           break;
         case HttpErrorCode.CONFLICT:
@@ -131,11 +132,11 @@ export const SignForm: FC<ISignForm> = (props) => {
           if (error.data && typeof error.data === 'object' && 'minutes' in error.data) {
             setError(t('auth:signError.tooManyRequests', { minutes: error.data.minutes }));
           } else {
-            setError(error.message);
+            setError(getFriendlyErrorMessage(error, t));
           }
           break;
         default:
-          setError(error.message);
+          setError(getFriendlyErrorMessage(error, t));
       }
       // Reset turnstile token on any error to force re-verification
       setTurnstileToken(undefined);
@@ -196,7 +197,7 @@ export const SignForm: FC<ISignForm> = (props) => {
         setError(t('auth:signupError.sendMailRateLimit', { seconds: error.data.seconds }));
         return;
       }
-      setError(error.message);
+      setError(getFriendlyErrorMessage(error, t));
     },
     meta: {
       preventGlobalError: true,

@@ -23,6 +23,7 @@ import { useTranslation } from 'next-i18next';
 import { useEffect, useState } from 'react';
 import { useCutDown } from '@/features/app/hooks/useCutDown';
 import { usePublicSettingQuery } from '@/features/app/hooks/useSetting';
+import { getFriendlyErrorMessage } from '@/lib/get-friendly-error-message';
 
 export function ChangeEmailDialog({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation('common');
@@ -83,7 +84,7 @@ export function ChangeEmailDialog({ children }: { children: React.ReactNode }) {
           );
           return;
         } else {
-          setError(error.message);
+          setError(getFriendlyErrorMessage(error, t));
         }
       },
     });
@@ -109,7 +110,7 @@ export function ChangeEmailDialog({ children }: { children: React.ReactNode }) {
       if (error.code === HttpErrorCode.INVALID_CAPTCHA) {
         setError(t('settings.account.changeEmail.error.invalidCode'));
       } else {
-        setError(error.message);
+        setError(getFriendlyErrorMessage(error, t));
       }
     },
   });

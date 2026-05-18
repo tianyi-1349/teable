@@ -42,6 +42,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useIsCloud } from '@/features/app/hooks/useIsCloud';
 import { LLM_PROVIDERS } from './constant';
+import { getReadableAiConfigErrorMessage } from './error-message';
 
 const CUSTOM_MODEL_DOC_URL = 'https://help.teable.ai/en/basic/ai/custom-model';
 
@@ -552,11 +553,11 @@ export const LLMProviderForm = ({
       } catch (error) {
         return {
           status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getReadableAiConfigErrorMessage(error, t),
         };
       }
     },
-    [onTest]
+    [onTest, t]
   );
 
   // Test a single image model
@@ -628,11 +629,11 @@ export const LLMProviderForm = ({
         return {
           status: 'failed',
           isImageModel: true,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getReadableAiConfigErrorMessage(error, t),
         };
       }
     },
-    [onTest]
+    [onTest, t]
   );
 
   // Full capability test for all models
