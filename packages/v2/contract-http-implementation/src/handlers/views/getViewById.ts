@@ -5,9 +5,13 @@ import {
   mapDomainErrorToHttpStatus,
   mapGetViewByIdResultToDto,
 } from '@teable/v2-contract-http';
-import { domainError } from '@teable/v2-core';
-import { GetViewByIdQuery } from '@teable/v2-core';
-import type { GetViewByIdResult, IExecutionContext, IQueryBus } from '@teable/v2-core';
+import {
+  domainError,
+  GetViewByIdQuery,
+  type GetViewByIdResult,
+  type IExecutionContext,
+  type IQueryBus,
+} from '@teable/v2-core';
 
 export const executeGetViewByIdEndpoint = async (
   context: IExecutionContext,

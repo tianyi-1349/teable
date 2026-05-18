@@ -15,6 +15,13 @@ import type { Table } from '../../domain/table/Table';
  * - After resolution, only field IDs are used in domain/repository layers
  */
 export class FieldKeyResolverService {
+  private static isDbFieldNameResult(value: unknown): value is {
+    isErr?: () => boolean;
+    value?: { value?: () => { isErr?: () => boolean; value?: string } };
+  } {
+    return typeof value === 'object' && value !== null;
+  }
+
   private static buildFieldNotFoundError(
     fieldKeyType: FieldKeyType,
     fieldKey: string,
@@ -139,7 +146,11 @@ export class FieldKeyResolverService {
    * @returns The field key (id, name, or dbFieldName)
    */
   static getFieldKey(
-    field: { id(): { toString(): string }; name(): { toString(): string }; dbFieldName(): any },
+    field: {
+      id(): { toString(): string };
+      name(): { toString(): string };
+      dbFieldName(): unknown;
+    },
     fieldKeyType: FieldKeyType
   ): string {
     const fieldId = field.id().toString();
@@ -149,10 +160,16 @@ export class FieldKeyResolverService {
         return field.name().toString();
       case FieldKeyType.DbFieldName: {
         const dbFieldNameResult = field.dbFieldName();
-        if (dbFieldNameResult.isErr && dbFieldNameResult.isErr()) {
+        if (
+          this.isDbFieldNameResult(dbFieldNameResult) &&
+          dbFieldNameResult.isErr &&
+          dbFieldNameResult.isErr()
+        ) {
           return field.name().toString();
         }
-        const valueResult = dbFieldNameResult.value?.value?.();
+        const valueResult = this.isDbFieldNameResult(dbFieldNameResult)
+          ? dbFieldNameResult.value?.value?.()
+          : undefined;
         if (valueResult?.isErr && valueResult.isErr()) {
           return field.name().toString();
         }

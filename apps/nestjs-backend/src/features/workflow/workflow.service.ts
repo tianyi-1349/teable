@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   generateWorkflowActionId,
   generateWorkflowId,
@@ -8,7 +9,6 @@ import {
   type IFilter,
 } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
-import { Prisma } from '@prisma/client';
 import type {
   IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
@@ -40,9 +40,10 @@ type IWorkflowActionConfig = {
   prompt?: string;
 };
 
-const WORKFLOW_NOT_FOUND_LOCALIZATION = {
+const workflowNotFoundLocalization = {
   i18nKey: 'httpErrors.baseNode.notFound',
 } as const;
+const workflowNotFoundMessage = 'Workflow not found';
 
 @Injectable()
 export class WorkflowService {
@@ -141,8 +142,8 @@ export class WorkflowService {
         },
       })
       .catch(() => {
-        throw new CustomHttpException('Workflow not found', HttpErrorCode.NOT_FOUND, {
-          localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
+        throw new CustomHttpException(workflowNotFoundMessage, HttpErrorCode.NOT_FOUND, {
+          localization: workflowNotFoundLocalization,
         });
       });
 
@@ -184,7 +185,7 @@ export class WorkflowService {
       })
       .catch(() => {
         throw new CustomHttpException('Workflow run not found', HttpErrorCode.NOT_FOUND, {
-          localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
+          localization: workflowNotFoundLocalization,
         });
       });
   }
@@ -342,7 +343,7 @@ export class WorkflowService {
     try {
       const jsonText = text
         .replace(/^```(?:json)?/i, '')
-        .replace(/```$/i, '')
+        .replace(/```$/, '')
         .trim();
       const parsed = JSON.parse(jsonText) as Partial<typeof fallback>;
       const name =
@@ -407,8 +408,8 @@ export class WorkflowService {
         select: { id: true },
       })
       .catch(() => {
-        throw new CustomHttpException('Workflow not found', HttpErrorCode.NOT_FOUND, {
-          localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
+        throw new CustomHttpException(workflowNotFoundMessage, HttpErrorCode.NOT_FOUND, {
+          localization: workflowNotFoundLocalization,
         });
       });
 
@@ -470,8 +471,8 @@ export class WorkflowService {
       select: { id: true },
     });
     if (!workflow) {
-      throw new CustomHttpException('Workflow not found', HttpErrorCode.NOT_FOUND, {
-        localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
+      throw new CustomHttpException(workflowNotFoundMessage, HttpErrorCode.NOT_FOUND, {
+        localization: workflowNotFoundLocalization,
       });
     }
 
@@ -587,7 +588,7 @@ export class WorkflowService {
       })
       .catch(() => {
         throw new CustomHttpException('Workflow not found or inactive', HttpErrorCode.NOT_FOUND, {
-          localization: WORKFLOW_NOT_FOUND_LOCALIZATION,
+          localization: workflowNotFoundLocalization,
         });
       });
 

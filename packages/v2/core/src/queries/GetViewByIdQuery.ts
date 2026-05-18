@@ -2,8 +2,10 @@ import { err } from 'neverthrow';
 import type { Result } from 'neverthrow';
 import { z } from 'zod';
 
+import type { BaseId } from '../domain/base/BaseId';
 import type { DomainError } from '../domain/shared/DomainError';
 import { domainError } from '../domain/shared/DomainError';
+import type { TableId } from '../domain/table/TableId';
 import { ViewId } from '../domain/table/views/ViewId';
 import { GetTableByIdQuery, getTableByIdInputSchema } from './GetTableByIdQuery';
 
@@ -15,8 +17,8 @@ export type IGetViewByIdQueryInput = z.input<typeof getViewByIdInputSchema>;
 
 export class GetViewByIdQuery extends GetTableByIdQuery {
   private constructor(
-    baseId: import('../domain/base/BaseId').BaseId,
-    tableId: import('../domain/table/TableId').TableId,
+    baseId: BaseId,
+    tableId: TableId,
     readonly viewId: ViewId
   ) {
     super(baseId, tableId);
