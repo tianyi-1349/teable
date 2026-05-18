@@ -16,6 +16,14 @@ import {
 } from '../PgSqlHelpers';
 import { Pg16TypeValidationStrategy, PgLegacyTypeValidationStrategy } from '../strategies';
 
+const JSONB_SQL = 'jsonb';
+const EMPTY_JSON_ARRAY_SQL = "'[]'::jsonb";
+const PG_INPUT_IS_VALID_SQL = 'pg_input_is_valid';
+const TEABLE_TRY_CAST_VALID_SQL = 'teable_try_cast_valid';
+const COLUMN_SQL = 'col';
+const PG16_STRATEGY_TEST = 'should work with Pg16TypeValidationStrategy';
+const PG_LEGACY_STRATEGY_TEST = 'should work with PgLegacyTypeValidationStrategy';
+
 describe('PgSqlHelpers', () => {
   describe('escapeSqlLiteral', () => {
     it('should escape single quotes', () => {
@@ -59,50 +67,50 @@ describe('PgSqlHelpers', () => {
     it('should generate SQL for jsonb conversion', () => {
       const result = safeJsonb('my_column');
       expect(result).toContain('pg_typeof');
-      expect(result).toContain('jsonb');
+      expect(result).toContain(JSONB_SQL);
       expect(result).toContain('my_column');
     });
   });
 
   describe('safeJsonbWithStrategy', () => {
-    it('should work with Pg16TypeValidationStrategy', () => {
+    it(PG16_STRATEGY_TEST, () => {
       const strategy = new Pg16TypeValidationStrategy();
-      const result = safeJsonbWithStrategy('col', strategy);
-      expect(result).toContain('pg_input_is_valid');
-      expect(result).toContain('jsonb');
+      const result = safeJsonbWithStrategy(COLUMN_SQL, strategy);
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
+      expect(result).toContain(JSONB_SQL);
     });
 
-    it('should work with PgLegacyTypeValidationStrategy', () => {
+    it(PG_LEGACY_STRATEGY_TEST, () => {
       const strategy = new PgLegacyTypeValidationStrategy();
-      const result = safeJsonbWithStrategy('col', strategy);
-      expect(result).toContain('teable_try_cast_valid');
-      expect(result).toContain('jsonb');
+      const result = safeJsonbWithStrategy(COLUMN_SQL, strategy);
+      expect(result).toContain(TEABLE_TRY_CAST_VALID_SQL);
+      expect(result).toContain(JSONB_SQL);
     });
   });
 
   describe('normalizeToJsonArray (deprecated)', () => {
     it('should generate SQL for normalizing to JSON array', () => {
       const result = normalizeToJsonArray('my_column');
-      expect(result).toContain('jsonb');
-      expect(result).toContain('pg_input_is_valid');
+      expect(result).toContain(JSONB_SQL);
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
       expect(result).toContain('my_column');
-      expect(result).toContain("'[]'::jsonb");
+      expect(result).toContain(EMPTY_JSON_ARRAY_SQL);
     });
   });
 
   describe('normalizeToJsonArrayWithStrategy', () => {
-    it('should work with Pg16TypeValidationStrategy', () => {
+    it(PG16_STRATEGY_TEST, () => {
       const strategy = new Pg16TypeValidationStrategy();
-      const result = normalizeToJsonArrayWithStrategy('col', strategy);
-      expect(result).toContain('pg_input_is_valid');
-      expect(result).toContain("'[]'::jsonb");
+      const result = normalizeToJsonArrayWithStrategy(COLUMN_SQL, strategy);
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
+      expect(result).toContain(EMPTY_JSON_ARRAY_SQL);
     });
 
-    it('should work with PgLegacyTypeValidationStrategy', () => {
+    it(PG_LEGACY_STRATEGY_TEST, () => {
       const strategy = new PgLegacyTypeValidationStrategy();
-      const result = normalizeToJsonArrayWithStrategy('col', strategy);
-      expect(result).toContain('teable_try_cast_valid');
-      expect(result).toContain("'[]'::jsonb");
+      const result = normalizeToJsonArrayWithStrategy(COLUMN_SQL, strategy);
+      expect(result).toContain(TEABLE_TRY_CAST_VALID_SQL);
+      expect(result).toContain(EMPTY_JSON_ARRAY_SQL);
     });
   });
 
@@ -127,18 +135,18 @@ describe('PgSqlHelpers', () => {
   });
 
   describe('extractFirstJsonScalarTextWithStrategy', () => {
-    it('should work with Pg16TypeValidationStrategy', () => {
+    it(PG16_STRATEGY_TEST, () => {
       const strategy = new Pg16TypeValidationStrategy();
-      const result = extractFirstJsonScalarTextWithStrategy('col', strategy);
+      const result = extractFirstJsonScalarTextWithStrategy(COLUMN_SQL, strategy);
       expect(result).toContain('-> 0');
-      expect(result).toContain('pg_input_is_valid');
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
     });
 
-    it('should work with PgLegacyTypeValidationStrategy', () => {
+    it(PG_LEGACY_STRATEGY_TEST, () => {
       const strategy = new PgLegacyTypeValidationStrategy();
-      const result = extractFirstJsonScalarTextWithStrategy('col', strategy);
+      const result = extractFirstJsonScalarTextWithStrategy(COLUMN_SQL, strategy);
       expect(result).toContain('-> 0');
-      expect(result).toContain('teable_try_cast_valid');
+      expect(result).toContain(TEABLE_TRY_CAST_VALID_SQL);
     });
   });
 
@@ -160,7 +168,7 @@ describe('PgSqlHelpers', () => {
     it('should generate SQL for stringifying JSON array', () => {
       const result = stringifyJsonArray('my_column');
       expect(result).toContain('string_agg');
-      expect(result).toContain('pg_input_is_valid');
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
     });
 
     it('should use custom separator', () => {
@@ -170,23 +178,23 @@ describe('PgSqlHelpers', () => {
   });
 
   describe('stringifyJsonArrayWithStrategy', () => {
-    it('should work with Pg16TypeValidationStrategy', () => {
+    it(PG16_STRATEGY_TEST, () => {
       const strategy = new Pg16TypeValidationStrategy();
-      const result = stringifyJsonArrayWithStrategy('col', strategy);
+      const result = stringifyJsonArrayWithStrategy(COLUMN_SQL, strategy);
       expect(result).toContain('string_agg');
-      expect(result).toContain('pg_input_is_valid');
+      expect(result).toContain(PG_INPUT_IS_VALID_SQL);
     });
 
-    it('should work with PgLegacyTypeValidationStrategy', () => {
+    it(PG_LEGACY_STRATEGY_TEST, () => {
       const strategy = new PgLegacyTypeValidationStrategy();
-      const result = stringifyJsonArrayWithStrategy('col', strategy);
+      const result = stringifyJsonArrayWithStrategy(COLUMN_SQL, strategy);
       expect(result).toContain('string_agg');
-      expect(result).toContain('teable_try_cast_valid');
+      expect(result).toContain(TEABLE_TRY_CAST_VALID_SQL);
     });
 
     it('should use custom separator with strategy', () => {
       const strategy = new Pg16TypeValidationStrategy();
-      const result = stringifyJsonArrayWithStrategy('col', strategy, ' - ');
+      const result = stringifyJsonArrayWithStrategy(COLUMN_SQL, strategy, ' - ');
       expect(result).toContain("' - '");
     });
   });
