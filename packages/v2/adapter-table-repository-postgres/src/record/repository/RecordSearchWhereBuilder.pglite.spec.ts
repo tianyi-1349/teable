@@ -36,6 +36,7 @@ class PGliteDialect implements Dialect {
           };
         },
         streamQuery: async function* () {
+          yield* [];
           throw new Error('PGlite does not support streaming');
         },
       }),

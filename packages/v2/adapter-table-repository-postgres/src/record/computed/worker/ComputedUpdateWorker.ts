@@ -27,6 +27,7 @@ import type { Result } from 'neverthrow';
 import { v2RecordRepositoryPostgresTokens } from '../../di/tokens';
 import type { ComputedFieldBackfillService } from '../ComputedFieldBackfillService';
 import type { ComputedFieldUpdater, StepChangeData } from '../ComputedFieldUpdater';
+import { isComputedUpdateLockUnavailable } from '../ComputedUpdateLock';
 import type {
   ComputedSeedGroup,
   ComputedUpdatePlan,
@@ -34,7 +35,6 @@ import type {
 } from '../ComputedUpdatePlanner';
 import { splitSeedGroupsForPlan } from '../ComputedUpdatePlanner';
 import { createComputedUpdateRun } from '../ComputedUpdateRun';
-import { isComputedUpdateLockUnavailable } from '../ComputedUpdateLock';
 import { toErrorLogFields } from '../errorLog';
 import type {
   ComputedBeforeImageRecordDto,

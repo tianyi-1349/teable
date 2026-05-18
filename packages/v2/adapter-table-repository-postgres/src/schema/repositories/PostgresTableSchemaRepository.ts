@@ -39,12 +39,12 @@ import {
   executeTableSchemaStatements,
   resolvePostgresDbOrTx,
 } from '../../shared/db';
+import { isNotNullViolation, isUniqueViolation } from '../../shared/errors';
+import { toQualifiedIdentifierLiteral } from '../../shared/sqlIdentifiers';
 import {
   ensureUndoCaptureInfrastructure,
   invalidateUndoCaptureTableCache,
 } from '../../shared/undoCapture';
-import { isNotNullViolation, isUniqueViolation } from '../../shared/errors';
-import { toQualifiedIdentifierLiteral } from '../../shared/sqlIdentifiers';
 import { v2PostgresDdlTokens } from '../di/tokens';
 import { detectCircularDependency } from '../helpers/detectCircularDependency';
 import {

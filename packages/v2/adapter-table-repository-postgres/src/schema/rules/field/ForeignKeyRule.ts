@@ -1,7 +1,7 @@
 import { domainError, type DomainError, type Field } from '@teable/v2-core';
+import { sql } from 'kysely';
 import { err, ok, safeTry } from 'neverthrow';
 import type { Result } from 'neverthrow';
-import { sql } from 'kysely';
 
 import type { SchemaRuleContext } from '../context/SchemaRuleContext';
 import type {

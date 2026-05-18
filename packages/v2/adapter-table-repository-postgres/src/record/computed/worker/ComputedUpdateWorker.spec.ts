@@ -5,8 +5,8 @@ import { describe, it, expect, vi } from 'vitest';
 
 import type { ComputedFieldBackfillService } from '../ComputedFieldBackfillService';
 import type { ComputedFieldUpdater } from '../ComputedFieldUpdater';
-import type { ComputedUpdatePlanner } from '../ComputedUpdatePlanner';
 import { COMPUTED_UPDATE_LOCK_UNAVAILABLE_CODE } from '../ComputedUpdateLock';
+import type { ComputedUpdatePlanner } from '../ComputedUpdatePlanner';
 import type { ComputedUpdateOutboxItem } from '../outbox/ComputedUpdateOutboxPayload';
 import {
   defaultComputedUpdateOutboxConfig,

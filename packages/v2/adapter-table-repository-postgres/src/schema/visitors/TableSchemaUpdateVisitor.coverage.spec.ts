@@ -16,13 +16,13 @@ import {
 import { ok } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
 
-import { TableSchemaUpdateVisitor } from './TableSchemaUpdateVisitor';
 import {
   createBtnField,
   createTestDb,
   createTextField,
   createValidFieldId,
 } from './__tests__/helpers';
+import { TableSchemaUpdateVisitor } from './TableSchemaUpdateVisitor';
 
 const db = createTestDb();
 const SCHEMA = 'bseTableSchemaTest';

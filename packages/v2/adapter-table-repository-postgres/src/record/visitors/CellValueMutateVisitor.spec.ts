@@ -10,8 +10,8 @@ import {
 import { err, ok } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
 
-import { MAX_FILLED_LINK_VALUE_ITEMS } from '../buildFilledLinkValueExpression';
 import { createTestDb } from '../../schema/visitors/__tests__/helpers/createTestDb';
+import { MAX_FILLED_LINK_VALUE_ITEMS } from '../buildFilledLinkValueExpression';
 import { CellValueMutateVisitor } from './CellValueMutateVisitor';
 
 const normalizeSql = (sql: string) => sql.replace(/\s+/g, ' ').trim();

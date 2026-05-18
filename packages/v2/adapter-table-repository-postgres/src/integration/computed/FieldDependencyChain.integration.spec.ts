@@ -12,8 +12,6 @@
  * Each scenario validates that when a base field changes, all dependent fields
  * are correctly identified in the dependency graph.
  */
-import { v2RecordRepositoryPostgresTokens } from '@teable/v2-adapter-table-repository-postgres';
-import type { FieldDependencyGraph } from '@teable/v2-adapter-table-repository-postgres';
 import { createV2NodeTestContainer } from '@teable/v2-container-node-test';
 import {
   ActorId,
@@ -27,6 +25,8 @@ import {
   type Table,
 } from '@teable/v2-core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { FieldDependencyGraph } from '@teable/v2-adapter-table-repository-postgres';
+import { v2RecordRepositoryPostgresTokens } from '@teable/v2-adapter-table-repository-postgres';
 
 import { getV2NodeTestContainer, setV2NodeTestContainer } from '../testkit/v2NodeTestContainer';
 

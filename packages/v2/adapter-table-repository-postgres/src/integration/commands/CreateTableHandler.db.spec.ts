@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { v2PostgresDbTokens } from '@teable/v2-adapter-db-postgres-pg';
-import {
-  createSchemaChecker,
-  PostgresSchemaIntrospector,
-} from '@teable/v2-adapter-table-repository-postgres';
 import { createV2NodeTestContainer } from '@teable/v2-container-node-test';
 import {
   ActorId,
@@ -16,6 +12,10 @@ import type { V1TeableDatabase } from '@teable/v2-postgres-schema';
 import { createAllFieldTypesFields } from '@teable/v2-table-templates';
 import type { Kysely } from 'kysely';
 import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  createSchemaChecker,
+  PostgresSchemaIntrospector,
+} from '@teable/v2-adapter-table-repository-postgres';
 
 import { getV2NodeTestContainer, setV2NodeTestContainer } from '../testkit/v2NodeTestContainer';
 

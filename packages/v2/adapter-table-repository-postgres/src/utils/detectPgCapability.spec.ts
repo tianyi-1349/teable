@@ -22,6 +22,7 @@ const createTestDb = (executeQuery: (query: CompiledQuery) => Promise<QueryResul
             return {
               executeQuery,
               async *streamQuery() {
+                yield* [];
                 throw new Error('streamQuery should not be used in detectPgCapability tests');
               },
             };

@@ -7,6 +7,7 @@
 import {
   BaseId,
   DbFieldName,
+  type Field,
   FieldId,
   FieldName,
   type LinkField,
@@ -29,7 +30,6 @@ import {
   TimeZone,
   createNumberField,
 } from '@teable/v2-core';
-import type { Field } from '@teable/v2-core';
 import { describe, expect, it } from 'vitest';
 
 import {

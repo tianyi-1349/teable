@@ -32,10 +32,10 @@ import {
   FieldType,
   ok,
   SetLinkValueSpec as SetLinkValueSpecClass,
+  AndSpec,
+  NotSpec,
+  OrSpec,
 } from '@teable/v2-core';
-import { AndSpec } from '@teable/v2-core';
-import { NotSpec } from '@teable/v2-core';
-import { OrSpec } from '@teable/v2-core';
 import type { CompiledQuery, Kysely } from 'kysely';
 import { sql } from 'kysely';
 import { err, safeTry } from 'neverthrow';

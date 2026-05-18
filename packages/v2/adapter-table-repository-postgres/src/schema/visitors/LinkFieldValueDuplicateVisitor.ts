@@ -42,7 +42,7 @@ export class LinkFieldValueDuplicateVisitor {
   }
 
   generateStatements(): Result<ReadonlyArray<CompiledQuery>, DomainError> {
-    const { sourceField, newField } = this.ctx;
+    const { sourceField } = this.ctx;
     const relationship = sourceField.relationship().toString();
 
     // Determine if this is a junction table or FK column scenario
