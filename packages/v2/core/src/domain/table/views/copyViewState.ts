@@ -2,9 +2,9 @@ import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
 import type { DomainError } from '../../shared/DomainError';
+import type { View } from './View';
 import type { ViewColumnMeta } from './ViewColumnMeta';
 import type { ViewQueryDefaults } from './ViewQueryDefaults';
-import type { View } from './View';
 
 type ViewStateOverrides = {
   columnMeta?: ViewColumnMeta;

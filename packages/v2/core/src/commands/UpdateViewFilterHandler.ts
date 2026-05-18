@@ -9,7 +9,7 @@ import type { IDomainEvent } from '../domain/shared/DomainEvent';
 import { TableUpdateViewQueryDefaultsSpec } from '../domain/table/specs/TableUpdateViewQueryDefaultsSpec';
 import type { Table } from '../domain/table/Table';
 import { ViewQueryDefaults } from '../domain/table/views/ViewQueryDefaults';
-import * as ExecutionContextPort from '../ports/ExecutionContext';
+import type * as ExecutionContextPort from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
 import { UpdateViewFilterCommand } from './UpdateViewFilterCommand';

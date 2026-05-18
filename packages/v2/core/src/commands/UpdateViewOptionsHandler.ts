@@ -1,5 +1,5 @@
-import { ViewType as V1ViewType, validateOptionsType } from '@teable/core';
-import type { IViewOptions } from '@teable/core';
+import { validateOptionsType } from '@teable/core';
+import type { IViewOptions, ViewType as V1ViewType } from '@teable/core';
 import { inject, injectable } from '@teable/v2-di';
 import { err, ok, safeTry } from 'neverthrow';
 import type { Result } from 'neverthrow';
@@ -11,7 +11,7 @@ import { domainError } from '../domain/shared/DomainError';
 import type { IDomainEvent } from '../domain/shared/DomainEvent';
 import { TableUpdateViewOptionsSpec } from '../domain/table/specs/TableUpdateViewOptionsSpec';
 import type { Table } from '../domain/table/Table';
-import * as ExecutionContextPort from '../ports/ExecutionContext';
+import type * as ExecutionContextPort from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
 import { UpdateViewOptionsCommand } from './UpdateViewOptionsCommand';

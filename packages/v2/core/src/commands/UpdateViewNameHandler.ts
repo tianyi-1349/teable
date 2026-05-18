@@ -7,7 +7,7 @@ import type { DomainError } from '../domain/shared/DomainError';
 import type { IDomainEvent } from '../domain/shared/DomainEvent';
 import { TableUpdateViewNameSpec } from '../domain/table/specs/TableUpdateViewNameSpec';
 import type { Table } from '../domain/table/Table';
-import * as ExecutionContextPort from '../ports/ExecutionContext';
+import type * as ExecutionContextPort from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
 import { UpdateViewNameCommand } from './UpdateViewNameCommand';

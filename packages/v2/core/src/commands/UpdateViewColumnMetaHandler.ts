@@ -12,7 +12,7 @@ import { TableUpdateViewColumnMetaSpec } from '../domain/table/specs/TableUpdate
 import type { Table } from '../domain/table/Table';
 import { ViewColumnMeta } from '../domain/table/views/ViewColumnMeta';
 import { ViewType } from '../domain/table/views/ViewType';
-import * as ExecutionContextPort from '../ports/ExecutionContext';
+import type * as ExecutionContextPort from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
 import { UpdateViewColumnMetaCommand } from './UpdateViewColumnMetaCommand';
