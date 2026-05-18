@@ -9,7 +9,7 @@ import type { Kysely } from 'kysely';
 import { V2ContainerService } from './v2-container.service';
 import { V2_FIELD_DELETE_COMPAT_CONTEXT_KEY } from './v2-field-delete-compat.constants';
 import type { IV2FieldDeleteCompatContext } from './v2-field-delete-compat.constants';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 import { V2ViewCompatService } from './v2-view-compat.service';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -101,7 +101,7 @@ export class V2FieldDeletedCompatProjection implements IEventHandler<FieldDelete
   }
 }
 
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 @Injectable()
 export class V2FieldDeleteCompatService implements IV2ProjectionRegistrar {
   private readonly logger = new Logger(V2FieldDeleteCompatService.name);

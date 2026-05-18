@@ -10,7 +10,7 @@ export const V2_PROJECTION_REGISTRAR_METADATA = 'v2:projection-registrar';
  * Marks a Nest provider as a V2 projection registrar that should be discovered
  * during application bootstrap and wired into the shared V2 tsyringe container.
  */
-export const V2ProjectionRegistrar = (): ClassDecorator =>
+export const v2ProjectionRegistrar = (): ClassDecorator =>
   SetMetadata(V2_PROJECTION_REGISTRAR_METADATA, true);
 
 export interface IV2ProjectionRegistrar {

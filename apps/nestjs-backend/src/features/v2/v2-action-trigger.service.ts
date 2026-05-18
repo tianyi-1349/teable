@@ -20,7 +20,7 @@ import {
 import type { IExecutionContext, IEventHandler, DomainError, Result } from '@teable/v2-core';
 import type { DependencyContainer } from '@teable/v2-di';
 import { ShareDbService } from '../../share-db/share-db.service';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 
 export interface IActionTriggerData {
   actionKey: ITableActionKey;
@@ -414,7 +414,7 @@ class V2TableActionTriggerRequestedProjection
  * Service that registers V2 action trigger projections with the V2 container.
  * These projections emit ShareDB presence events for V1 frontend compatibility.
  */
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 @Injectable()
 export class V2ActionTriggerService implements IV2ProjectionRegistrar {
   private readonly logger = new Logger(V2ActionTriggerService.name);

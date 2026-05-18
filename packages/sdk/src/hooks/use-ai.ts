@@ -1,6 +1,49 @@
 import { aiGenerateStream } from '@teable/openapi';
 import { useCallback, useState, useRef } from 'react';
+import { useTranslation } from '../context/app/i18n';
+import type { ILocaleFunction } from '../context/app/i18n';
 import { useBaseId } from './use-base-id';
+
+const getFriendlyAiErrorMessage = (error: unknown, t: ILocaleFunction): string => {
+  if (!(error instanceof Error) || !error.message) {
+    return String(t('httpErrors.ai.generateFailed'));
+  }
+
+  const normalizedMessage = error.message.toLowerCase();
+
+  if (
+    normalizedMessage.includes('stream_read_error') ||
+    normalizedMessage.includes('stream read error') ||
+    normalizedMessage.includes('upstream_error') ||
+    normalizedMessage.includes('execution failed')
+  ) {
+    return String(t('httpErrors.networkError'));
+  }
+
+  if (normalizedMessage.includes('abort')) {
+    return String(t('httpErrors.ai.generateStopped'));
+  }
+
+  return error.message;
+};
+
+const getResponseErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const errorPayload = (await response.json()) as { message?: string; code?: string };
+
+    if (typeof errorPayload.message === 'string' && errorPayload.message) {
+      return errorPayload.message;
+    }
+
+    if (typeof errorPayload.code === 'string' && errorPayload.code) {
+      return errorPayload.code;
+    }
+  } catch {
+    // Fall back to a generic message when the response body is not JSON.
+  }
+
+  return `HTTP error! status: ${response.status}`;
+};
 
 interface IUseAIStreamOptions {
   timeout?: number; // unit: ms
@@ -8,6 +51,7 @@ interface IUseAIStreamOptions {
 
 export const useAIStream = (options?: IUseAIStreamOptions) => {
   const { timeout = 30000 } = options || {};
+  const { t } = useTranslation();
   const baseId = useBaseId();
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
@@ -27,7 +71,7 @@ export const useAIStream = (options?: IUseAIStreamOptions) => {
         const result = await aiGenerateStream(baseId!, { prompt }, controllerRef.current.signal);
 
         if (!result.ok) {
-          throw new Error(`HTTP error! status: ${result.status}`);
+          throw new Error(await getResponseErrorMessage(result));
         }
 
         const reader = result.body?.getReader();
@@ -46,7 +90,7 @@ export const useAIStream = (options?: IUseAIStreamOptions) => {
           setText((prev) => prev + chunk);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = getFriendlyAiErrorMessage(error, t);
         setError(errorMessage);
         console.error('Error streaming AI response:', error);
       } finally {
@@ -54,7 +98,7 @@ export const useAIStream = (options?: IUseAIStreamOptions) => {
         setLoading(false);
       }
     },
-    [baseId, timeout]
+    [baseId, t, timeout]
   );
 
   const stop = useCallback(() => {

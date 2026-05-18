@@ -87,7 +87,12 @@ module.exports = {
     '@typescript-eslint/no-empty-function': ['error', { allow: ['private-constructors'] }],
     '@typescript-eslint/no-unused-vars': [
       'warn',
-      { argsIgnorePattern: '^_', ignoreRestSiblings: true },
+      {
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        varsIgnorePattern: '^_',
+      },
     ],
     '@typescript-eslint/consistent-type-exports': 'error',
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],

@@ -1,3 +1,4 @@
+/* eslint-disable import/order */
 import { oc } from '@orpc/contract';
 import type { AnyContractRouter } from '@orpc/contract';
 import {
@@ -34,6 +35,77 @@ import {
 
 import { createBaseOkResponseSchema } from './base/createBase';
 import { listBasesOkResponseSchema } from './base/listBases';
+import {
+  commentSubscribeInputSchema,
+  commentSubscribeMutationOkResponseSchema,
+  getCommentSubscribeOkResponseSchema,
+} from './comment/commentSubscribe';
+import {
+  getCommentByIdInputSchema,
+  getCommentByIdOkResponseSchema,
+} from './comment/getCommentById';
+import {
+  getCommentRecordCountInputSchema,
+  getCommentRecordCountOkResponseSchema,
+  getCommentTableCountInputSchema,
+  getCommentTableCountOkResponseSchema,
+} from './comment/getCommentCounts';
+import { listCommentsInputSchema, listCommentsOkResponseSchema } from './comment/listComments';
+import {
+  getPublishedAppNavigationModelInputSchema,
+  getPublishedAppNavigationModelOkResponseSchema,
+} from './published-app/getNavigationModel';
+import {
+  getPublishedAppNodeRuntimeInputSchema,
+  getPublishedAppNodeRuntimeOkResponseSchema,
+} from './published-app/getNodeRuntime';
+import {
+  getPublishedAppRuntimeManifestInputSchema,
+  getPublishedAppRuntimeManifestOkResponseSchema,
+} from './published-app/getRuntimeManifest';
+import {
+  getPublicSettingInputSchema,
+  getPublicSettingOkResponseSchema,
+} from './setting/getPublicSetting';
+import { getSettingInputSchema, getSettingOkResponseSchema } from './setting/getSetting';
+import {
+  buttonClickShareViewInputSchema,
+  buttonClickShareViewOkResponseSchema,
+} from './share/buttonClickShareView';
+import { copyShareViewInputSchema, copyShareViewOkResponseSchema } from './share/copyShareView';
+import {
+  formSubmitShareViewInputSchema,
+  formSubmitShareViewOkResponseSchema,
+} from './share/formSubmitShareView';
+import { getShareViewInputSchema, getShareViewOkResponseSchema } from './share/getShareView';
+import {
+  getShareViewAggregationsInputSchema,
+  getShareViewAggregationsOkResponseSchema,
+} from './share/getShareViewAggregations';
+import {
+  getShareViewCalendarDailyCollectionInputSchema,
+  getShareViewCalendarDailyCollectionOkResponseSchema,
+} from './share/getShareViewCalendarDailyCollection';
+import {
+  getShareViewCollaboratorsInputSchema,
+  getShareViewCollaboratorsOkResponseSchema,
+} from './share/getShareViewCollaborators';
+import {
+  getShareViewGroupPointsInputSchema,
+  getShareViewGroupPointsOkResponseSchema,
+} from './share/getShareViewGroupPoints';
+import {
+  getShareViewLinkRecordsInputSchema,
+  getShareViewLinkRecordsOkResponseSchema,
+} from './share/getShareViewLinkRecords';
+import {
+  getShareViewRecordsInputSchema,
+  getShareViewRecordsOkResponseSchema,
+} from './share/getShareViewRecords';
+import {
+  getShareViewRowCountInputSchema,
+  getShareViewRowCountOkResponseSchema,
+} from './share/getShareViewRowCount';
 import { clearOkResponseSchema } from './table/clear';
 import { createFieldOkResponseSchema } from './table/createField';
 import { createRecordOkResponseSchema } from './table/createRecord';
@@ -125,72 +197,6 @@ import {
   updateWorkflowOkResponseSchema,
 } from './workflow/updateWorkflow';
 import {
-  commentSubscribeInputSchema,
-  commentSubscribeMutationOkResponseSchema,
-  getCommentSubscribeOkResponseSchema,
-} from './comment/commentSubscribe';
-import {
-  getCommentByIdInputSchema,
-  getCommentByIdOkResponseSchema,
-} from './comment/getCommentById';
-import {
-  getCommentRecordCountInputSchema,
-  getCommentRecordCountOkResponseSchema,
-  getCommentTableCountInputSchema,
-  getCommentTableCountOkResponseSchema,
-} from './comment/getCommentCounts';
-import { listCommentsInputSchema, listCommentsOkResponseSchema } from './comment/listComments';
-import {
-  getPublishedAppNavigationModelInputSchema,
-  getPublishedAppNavigationModelOkResponseSchema,
-} from './published-app/getNavigationModel';
-import {
-  getPublishedAppNodeRuntimeInputSchema,
-  getPublishedAppNodeRuntimeOkResponseSchema,
-} from './published-app/getNodeRuntime';
-import {
-  getPublishedAppRuntimeManifestInputSchema,
-  getPublishedAppRuntimeManifestOkResponseSchema,
-} from './published-app/getRuntimeManifest';
-import {
-  buttonClickShareViewInputSchema,
-  buttonClickShareViewOkResponseSchema,
-} from './share/buttonClickShareView';
-import { copyShareViewInputSchema, copyShareViewOkResponseSchema } from './share/copyShareView';
-import {
-  formSubmitShareViewInputSchema,
-  formSubmitShareViewOkResponseSchema,
-} from './share/formSubmitShareView';
-import {
-  getShareViewAggregationsInputSchema,
-  getShareViewAggregationsOkResponseSchema,
-} from './share/getShareViewAggregations';
-import {
-  getShareViewCalendarDailyCollectionInputSchema,
-  getShareViewCalendarDailyCollectionOkResponseSchema,
-} from './share/getShareViewCalendarDailyCollection';
-import {
-  getShareViewCollaboratorsInputSchema,
-  getShareViewCollaboratorsOkResponseSchema,
-} from './share/getShareViewCollaborators';
-import { getShareViewInputSchema, getShareViewOkResponseSchema } from './share/getShareView';
-import {
-  getShareViewGroupPointsInputSchema,
-  getShareViewGroupPointsOkResponseSchema,
-} from './share/getShareViewGroupPoints';
-import {
-  getShareViewLinkRecordsInputSchema,
-  getShareViewLinkRecordsOkResponseSchema,
-} from './share/getShareViewLinkRecords';
-import {
-  getShareViewRecordsInputSchema,
-  getShareViewRecordsOkResponseSchema,
-} from './share/getShareViewRecords';
-import {
-  getShareViewRowCountInputSchema,
-  getShareViewRowCountOkResponseSchema,
-} from './share/getShareViewRowCount';
-import {
   getShareViewSearchCountInputSchema,
   getShareViewSearchCountOkResponseSchema,
 } from './share/getShareViewSearchCount';
@@ -198,11 +204,6 @@ import {
   getShareViewSearchIndexInputSchema,
   getShareViewSearchIndexOkResponseSchema,
 } from './share/getShareViewSearchIndex';
-import {
-  getPublicSettingInputSchema,
-  getPublicSettingOkResponseSchema,
-} from './setting/getPublicSetting';
-import { getSettingInputSchema, getSettingOkResponseSchema } from './setting/getSetting';
 import {
   getTemplateByIdInputSchema,
   getTemplateByIdOkResponseSchema,
@@ -247,6 +248,7 @@ const TABLES_CREATE_RECORDS_PATH = '/tables/createRecords';
 const TABLES_DELETE_RECORDS_PATH = '/tables/deleteRecords';
 const TABLES_DELETE_FIELD_PATH = '/tables/deleteField';
 const TABLES_DELETE_PATH = '/tables/delete';
+const PUBLISHED_APPS_TAG = 'published-apps';
 const TABLES_EXPLAIN_CREATE_FIELD_PATH = '/tables/explainCreateField';
 const TABLES_EXPLAIN_CREATE_RECORD_PATH = '/tables/explainCreateRecord';
 const TABLES_EXPLAIN_UPDATE_FIELD_PATH = '/tables/explainUpdateField';
@@ -969,7 +971,7 @@ export const v2Contract = {
         path: PUBLISHED_APPS_GET_NAVIGATION_MODEL_PATH,
         successStatus: 200,
         summary: 'Get published app navigation model',
-        tags: ['published-apps'],
+        tags: [PUBLISHED_APPS_TAG],
       })
       .input(getPublishedAppNavigationModelInputSchema)
       .output(getPublishedAppNavigationModelOkResponseSchema),
@@ -979,7 +981,7 @@ export const v2Contract = {
         path: PUBLISHED_APPS_GET_NODE_RUNTIME_PATH,
         successStatus: 200,
         summary: 'Get published app node runtime',
-        tags: ['published-apps'],
+        tags: [PUBLISHED_APPS_TAG],
       })
       .input(getPublishedAppNodeRuntimeInputSchema)
       .output(getPublishedAppNodeRuntimeOkResponseSchema),
@@ -989,7 +991,7 @@ export const v2Contract = {
         path: PUBLISHED_APPS_GET_RUNTIME_MANIFEST_PATH,
         successStatus: 200,
         summary: 'Get published app runtime manifest',
-        tags: ['published-apps'],
+        tags: [PUBLISHED_APPS_TAG],
       })
       .input(getPublishedAppRuntimeManifestInputSchema)
       .output(getPublishedAppRuntimeManifestOkResponseSchema),

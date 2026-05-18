@@ -20,7 +20,7 @@ import type { Kysely } from 'kysely';
 import { nanoid } from 'nanoid';
 import type { IDeleteRecordsPayload } from '../undo-redo/operations/delete-records.operation';
 import { V2ContainerService } from '../v2/v2-container.service';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from '../v2/v2-projection-registrar';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from '../v2/v2-projection-registrar';
 import { V2RecordTrashService } from './v2-record-trash.service';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -232,7 +232,7 @@ export class V2TableRestoredProjection implements IEventHandler<TableRestored> {
   }
 }
 
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 @Injectable()
 export class V2TableTrashService implements IV2ProjectionRegistrar {
   private readonly logger = new Logger(V2TableTrashService.name);

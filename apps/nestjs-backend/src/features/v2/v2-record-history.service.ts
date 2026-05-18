@@ -35,7 +35,7 @@ import { EventEmitterService } from '../../event-emitter/event-emitter.service';
 import { Events } from '../../event-emitter/events';
 import type { IClsStore } from '../../types/cls';
 import { V2ContainerService } from './v2-container.service';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 
 const SELECT_FIELD_TYPE_SET = new Set([CoreFieldType.SingleSelect, CoreFieldType.MultipleSelect]);
 
@@ -443,7 +443,7 @@ export class V2RecordsBatchUpdatedHistoryProjection implements IEventHandler<Rec
  * Service that registers V2 record history projections with the V2 container.
  * These projections write record history to the database when records are updated.
  */
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 @Injectable()
 export class V2RecordHistoryService implements IV2ProjectionRegistrar {
   private readonly logger = new Logger(V2RecordHistoryService.name);

@@ -17,7 +17,7 @@ import { PerformanceCacheService } from '../../performance-cache';
 import { generateBaseNodeListCacheKey } from '../../performance-cache/generate-keys';
 import { ShareDbService } from '../../share-db/share-db.service';
 import { presenceHandler } from '../base-node/helper';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 
 @ProjectionHandler(TableCreated)
 @ProjectionHandler(TableTrashed)
@@ -52,7 +52,7 @@ export class V2TableBaseNodeProjection
   }
 }
 
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 @Injectable()
 export class V2BaseNodeCompatService implements IV2ProjectionRegistrar {
   private readonly logger = new Logger(V2BaseNodeCompatService.name);

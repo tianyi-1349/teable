@@ -1,6 +1,7 @@
 import { ORPCError, implement } from '@orpc/server';
 import type { IExplainService } from '@teable/v2-command-explain';
 import { v2CommandExplainTokens } from '@teable/v2-command-explain';
+/* eslint-disable import/order */
 import type {
   IExplainCreateFieldInput,
   IExplainCreateRecordInput,
@@ -10,6 +11,11 @@ import type {
   IExplainUpdateFieldInput,
   IExplainUpdateRecordInput,
   IHandlerResolver,
+  IUpdateViewColumnMetaEndpointResult,
+  IUpdateViewFilterEndpointResult,
+  IUpdateViewGroupEndpointResult,
+  IUpdateViewPropertyEndpointResult,
+  IUpdateViewSortEndpointResult,
 } from '@teable/v2-contract-http';
 import { v2Contract } from '@teable/v2-contract-http';
 import {
@@ -66,48 +72,6 @@ import { executeUpdateRecordEndpoint } from './handlers/tables/updateRecord';
 import { executeUpdateRecordsEndpoint } from './handlers/tables/updateRecords';
 import { executeGetViewByIdEndpoint } from './handlers/views/getViewById';
 import { executeListViewsEndpoint } from './handlers/views/listViews';
-import {
-  executeCommentSubscribeEndpoint,
-  executeCommentUnsubscribeEndpoint,
-  executeGetCommentSubscribeEndpoint,
-} from './handlers/comments/commentSubscribe';
-import { executeGetCommentByIdEndpoint } from './handlers/comments/getCommentById';
-import {
-  executeGetCommentRecordCountEndpoint,
-  executeGetCommentTableCountEndpoint,
-} from './handlers/comments/getCommentCounts';
-import { executeListCommentsEndpoint } from './handlers/comments/listComments';
-import { executeGetPublishedAppNavigationModelEndpoint } from './handlers/published-app/getNavigationModel';
-import { executeGetPublishedAppNodeRuntimeEndpoint } from './handlers/published-app/getNodeRuntime';
-import { executeGetPublishedAppRuntimeManifestEndpoint } from './handlers/published-app/getRuntimeManifest';
-import { executeGetShareViewAggregationsEndpoint } from './handlers/share/getShareViewAggregations';
-import { executeGetShareViewCalendarDailyCollectionEndpoint } from './handlers/share/getShareViewCalendarDailyCollection';
-import { executeGetShareViewCollaboratorsEndpoint } from './handlers/share/getShareViewCollaborators';
-import { executeGetShareViewEndpoint } from './handlers/share/getShareView';
-import { executeGetShareViewGroupPointsEndpoint } from './handlers/share/getShareViewGroupPoints';
-import { executeGetShareViewLinkRecordsEndpoint } from './handlers/share/getShareViewLinkRecords';
-import { executeGetShareViewRecordsEndpoint } from './handlers/share/getShareViewRecords';
-import { executeGetShareViewRowCountEndpoint } from './handlers/share/getShareViewRowCount';
-import { executeGetShareViewSearchCountEndpoint } from './handlers/share/getShareViewSearchCount';
-import { executeGetShareViewSearchIndexEndpoint } from './handlers/share/getShareViewSearchIndex';
-import { executeGetPublicSettingEndpoint } from './handlers/setting/getPublicSetting';
-import { executeGetSettingEndpoint } from './handlers/setting/getSetting';
-import { executeGetTemplateByIdEndpoint } from './handlers/template/getTemplateById';
-import { executeGetTemplatePermalinkEndpoint } from './handlers/template/getTemplatePermalink';
-import { executeIncrementTemplateVisitEndpoint } from './handlers/template/incrementTemplateVisit';
-import { executeListPublishedTemplatesEndpoint } from './handlers/template/listPublishedTemplates';
-import { executeActivateWorkflowEndpoint } from './handlers/workflows/activateWorkflow';
-import { executeCreateWorkflowEndpoint } from './handlers/workflows/createWorkflow';
-import { executeDeactivateWorkflowEndpoint } from './handlers/workflows/deactivateWorkflow';
-import { executeDeleteWorkflowEndpoint } from './handlers/workflows/deleteWorkflow';
-import { executeDuplicateWorkflowEndpoint } from './handlers/workflows/duplicateWorkflow';
-import { executeGetWorkflowByIdEndpoint } from './handlers/workflows/getWorkflowById';
-import { executeGetWorkflowCapabilitiesEndpoint } from './handlers/workflows/getWorkflowCapabilities';
-import { executeGetWorkflowRunEndpoint } from './handlers/workflows/getWorkflowRun';
-import { executeListWorkflowsEndpoint } from './handlers/workflows/listWorkflows';
-import { executeListWorkflowRunsEndpoint } from './handlers/workflows/listWorkflowRuns';
-import { executeTestRunWorkflowEndpoint } from './handlers/workflows/testRunWorkflow';
-import { executeUpdateWorkflowEndpoint } from './handlers/workflows/updateWorkflow';
 import { executeUpdateViewColumnMetaCommandEndpoint } from './handlers/views/updateViewColumnMetaCommand';
 import { executeUpdateViewDescriptionCommandEndpoint } from './handlers/views/updateViewDescriptionCommand';
 import { executeUpdateViewFilterCommandEndpoint } from './handlers/views/updateViewFilterCommand';
@@ -126,6 +90,12 @@ export interface IV2OrpcRouterOptions {
 
 type OrpcHandlerOptions = { input: unknown };
 type OrpcTypedHandlerOptions<TInput> = { input: TInput };
+type ViewMutationEndpointResult =
+  | IUpdateViewColumnMetaEndpointResult
+  | IUpdateViewFilterEndpointResult
+  | IUpdateViewGroupEndpointResult
+  | IUpdateViewPropertyEndpointResult
+  | IUpdateViewSortEndpointResult;
 
 export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
   let defaultContainerPromise: Promise<IHandlerResolver> | undefined;
@@ -685,7 +655,7 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
-  const executeViewMutation = async <TResult extends { status: number; body: any }>(
+  const executeViewMutation = async <TResult extends ViewMutationEndpointResult>(
     input: unknown,
     executor: (
       executionContext: IExecutionContext,
