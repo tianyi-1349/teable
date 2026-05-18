@@ -5,15 +5,14 @@ import { BaseId } from '../../domain/base/BaseId';
 import { ActorId } from '../../domain/shared/ActorId';
 import { domainError } from '../../domain/shared/DomainError';
 import { FieldName } from '../../domain/table/fields/FieldName';
-import { RecordId } from '../../domain/table/records/RecordId';
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
 import { NoopLogger } from '../../ports/defaults/NoopLogger';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { MemoryTableRepository } from '../../ports/memory/MemoryTableRepository';
-import type { ITableRepository } from '../../ports/TableRepository';
 import type { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
+import type { ITableRepository } from '../../ports/TableRepository';
 import { GetRecordByIdHandler } from '../GetRecordByIdHandler';
 import { GetRecordByIdQuery } from '../GetRecordByIdQuery';
 
@@ -34,10 +33,14 @@ const buildTable = (baseIdSeed: string, tableIdSeed: string, name: string) => {
   return builder.build()._unsafeUnwrap();
 };
 
-const createMockRecordQueryRepo = (findOneResult: any): ITableRecordQueryRepository => ({
+const createMockRecordQueryRepo = (
+  findOneResult: Result<TableRecordReadModel | null, DomainError>
+): ITableRecordQueryRepository => ({
   find: async () => ok({ records: [], total: 0 }),
   findOne: async () => findOneResult,
-  async *findStream() {},
+  async *findStream() {
+    yield* [];
+  },
 });
 
 describe('GetRecordByIdHandler', () => {

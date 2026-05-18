@@ -15,11 +15,11 @@ import {
 import { SetSingleLineTextValueSpec } from '../../domain/table/records/specs/values/SetSingleLineTextValueSpec';
 import { SetUserValueByIdentifierSpec } from '../../domain/table/records/specs/values/SetUserValueByIdentifierSpec';
 import { SetUserValueSpec } from '../../domain/table/records/specs/values/SetUserValueSpec';
+import type { TableRecord } from '../../domain/table/records/TableRecord';
 import { CellValue } from '../../domain/table/records/values/CellValue';
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
-import type { TableRecord } from '../../domain/table/records/TableRecord';
 import type {
   AttachmentLookupRecord,
   IAttachmentLookupService,

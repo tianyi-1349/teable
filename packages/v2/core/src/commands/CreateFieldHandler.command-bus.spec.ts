@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, expect, it } from 'vitest';
 import {
   ActorId,
   CreateFieldCommand,
@@ -24,7 +25,6 @@ import {
   type UserField,
   type ITableRepository,
 } from '@teable/v2-core';
-import { describe, expect, it } from 'vitest';
 
 import { getV2NodeUnitTestContainer } from '../testkit/v2NodeUnitTestContainer';
 

@@ -23,16 +23,16 @@ import type { IEventBus } from '../ports/EventBus';
 import type { IExecutionContext, IUnitOfWorkTransaction } from '../ports/ExecutionContext';
 import type { IFindOptions } from '../ports/RepositoryQuery';
 import type {
+  ITableRecordQueryRepository,
+  ITableRecordQueryResult,
+} from '../ports/TableRecordQueryRepository';
+import type { TableRecordReadModel } from '../ports/TableRecordReadModel';
+import type {
   BatchRecordMutationResult,
   ITableRecordRepository,
   RecordMutationResult,
   UpdateManyStreamResult,
 } from '../ports/TableRecordRepository';
-import type {
-  ITableRecordQueryRepository,
-  ITableRecordQueryResult,
-} from '../ports/TableRecordQueryRepository';
-import type { TableRecordReadModel } from '../ports/TableRecordReadModel';
 import type { ITableRepository } from '../ports/TableRepository';
 import type { IUnitOfWork, UnitOfWorkOperation } from '../ports/UnitOfWork';
 import { ApplyRecordOrdersCommand } from './ApplyRecordOrdersCommand';
@@ -167,7 +167,7 @@ class FakeTableRecordQueryRepository implements ITableRecordQueryRepository {
   }
 
   async *findStream(): AsyncIterable<Result<TableRecordReadModel, DomainError>> {
-    return;
+    yield* [];
   }
 }
 

@@ -13,12 +13,12 @@ import type { TableRecord } from '../../domain/table/records/TableRecord';
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
-import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
+import type { IExecutionContext } from '../../ports/ExecutionContext';
 import type {
   ITableRecordQueryRepository,
   ITableRecordQueryResult,
 } from '../../ports/TableRecordQueryRepository';
-import type { IExecutionContext } from '../../ports/ExecutionContext';
+import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
 import { composeRecordConditionSpecs, ensureRecordIdsWithinScope } from './recordWriteScope';
 
 const createContext = (): IExecutionContext => {
@@ -62,7 +62,7 @@ class FakeTableRecordQueryRepository implements ITableRecordQueryRepository {
   }
 
   async *findStream() {
-    return;
+    yield* [];
   }
 }
 

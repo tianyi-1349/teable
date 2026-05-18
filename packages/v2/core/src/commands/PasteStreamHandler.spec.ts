@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { IExecutionContext } from '../ports/ExecutionContext';
+import type { PasteStreamApplicationService, PasteStreamEvent } from './PasteHandler';
 import { PasteStreamCommand } from './PasteStreamCommand';
 import { PasteStreamHandler } from './PasteStreamHandler';
-import type { PasteStreamApplicationService, PasteStreamEvent } from './PasteHandler';
 
 describe('PasteStreamHandler', () => {
   const tableId = `tbl${'a'.repeat(16)}`;
