@@ -2,11 +2,13 @@ import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
 
+import { BaseId } from '../../domain/base/BaseId';
 import { ActorId } from '../../domain/shared/ActorId';
 import { domainError, type DomainError } from '../../domain/shared/DomainError';
-import { BaseId } from '../../domain/base/BaseId';
 import { FieldId } from '../../domain/table/fields/FieldId';
 import { FieldName } from '../../domain/table/fields/FieldName';
+import { CellValueMultiplicity } from '../../domain/table/fields/types/CellValueMultiplicity';
+import { CellValueType } from '../../domain/table/fields/types/CellValueType';
 import { FormulaExpression } from '../../domain/table/fields/types/FormulaExpression';
 import { FormulaField } from '../../domain/table/fields/types/FormulaField';
 import { NumberField } from '../../domain/table/fields/types/NumberField';
@@ -14,8 +16,6 @@ import { SingleLineTextField } from '../../domain/table/fields/types/SingleLineT
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
-import { CellValueMultiplicity } from '../../domain/table/fields/types/CellValueMultiplicity';
-import { CellValueType } from '../../domain/table/fields/types/CellValueType';
 import { GridView } from '../../domain/table/views/types/GridView';
 import { ViewColumnMeta } from '../../domain/table/views/ViewColumnMeta';
 import { ViewId } from '../../domain/table/views/ViewId';
@@ -119,7 +119,7 @@ class FakeTableRecordQueryRepository implements ITableRecordQueryRepository {
   }
 
   async *findStream(): AsyncIterable<Result<TableRecordReadModel, DomainError>> {
-    throw new Error('Not used in test');
+    yield* [];
   }
 }
 

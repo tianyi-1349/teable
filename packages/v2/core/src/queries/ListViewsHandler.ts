@@ -7,8 +7,8 @@ import type { DomainError } from '../domain/shared/DomainError';
 import type { View } from '../domain/table/views/View';
 import type { IExecutionContext } from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
-import { QueryHandler, type IQueryHandler } from './QueryHandler';
 import { ListViewsQuery } from './ListViewsQuery';
+import { QueryHandler, type IQueryHandler } from './QueryHandler';
 
 export class ListViewsResult {
   private constructor(readonly views: ReadonlyArray<View>) {}
