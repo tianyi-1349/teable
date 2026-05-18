@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { handlePgPoolError, shouldIgnorePgPoolError } from './createDb';

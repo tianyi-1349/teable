@@ -5,8 +5,6 @@
  * These helpers will need to be connected once the endpoint is added.
  */
 
-import type { SharedTestContext } from '../shared/globalTestContext';
-
 /**
  * Update a field in a table.
  *
@@ -14,6 +12,7 @@ import type { SharedTestContext } from '../shared/globalTestContext';
  */
 import { updateFieldOkResponseSchema } from '@teable/v2-contract-http';
 import type { IUpdateFieldCommandInput } from '@teable/v2-core';
+import type { SharedTestContext } from '../shared/globalTestContext';
 
 export const updateField = async (ctx: SharedTestContext, payload: IUpdateFieldCommandInput) => {
   // NOTE: The updateField HTTP endpoint is not yet implemented in v2-contract-http.

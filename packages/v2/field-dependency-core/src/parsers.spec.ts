@@ -11,6 +11,9 @@ import {
   readString,
 } from './parsers';
 
+const LOOKUP_FIELD_ID = 'fld1';
+const RETURNS_NULL_FOR_NULL_INPUT = 'returns null for null input';
+
 describe('parsers', () => {
   describe('parseJson', () => {
     it('parses valid JSON', () => {
@@ -136,7 +139,7 @@ describe('parsers', () => {
     it('parses valid link options', () => {
       const raw = JSON.stringify({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         symmetricFieldId: 'fld2',
         relationship: 'manyOne',
       });
@@ -145,13 +148,13 @@ describe('parsers', () => {
       const value = result._unsafeUnwrap();
       expect(value).toEqual({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         symmetricFieldId: 'fld2',
         relationship: 'manyOne',
       });
     });
 
-    it('returns null for null input', () => {
+    it(RETURNS_NULL_FOR_NULL_INPUT, () => {
       const result = parseLinkOptions(null);
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBeNull();
@@ -160,21 +163,21 @@ describe('parsers', () => {
     it('handles minimal required fields', () => {
       const raw = JSON.stringify({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
       });
       const result = parseLinkOptions(raw);
       expect(result.isOk()).toBe(true);
       const value = result._unsafeUnwrap();
       expect(value).toEqual({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
       });
     });
 
     it('preserves the one-way flag when present', () => {
       const raw = JSON.stringify({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         relationship: 'oneMany',
         isOneWay: true,
       });
@@ -182,14 +185,14 @@ describe('parsers', () => {
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         relationship: 'oneMany',
         isOneWay: true,
       });
     });
 
     it('returns error for missing foreignTableId', () => {
-      const raw = JSON.stringify({ lookupFieldId: 'fld1' });
+      const raw = JSON.stringify({ lookupFieldId: LOOKUP_FIELD_ID });
       const result = parseLinkOptions(raw);
       expect(result.isErr()).toBe(true);
     });
@@ -200,18 +203,18 @@ describe('parsers', () => {
       const raw = JSON.stringify({
         linkFieldId: 'fldLink',
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
       });
       const result = parseLookupOptions(raw);
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual({
         linkFieldId: 'fldLink',
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
       });
     });
 
-    it('returns null for null input', () => {
+    it(RETURNS_NULL_FOR_NULL_INPUT, () => {
       const result = parseLookupOptions(null);
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBeNull();
@@ -228,7 +231,7 @@ describe('parsers', () => {
     it('parses v1 format (filter at top level)', () => {
       const raw = JSON.stringify({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         filter: {
           conjunction: 'and',
           filterSet: [{ fieldId: 'fld2', operator: 'is', value: 'test' }],
@@ -239,7 +242,7 @@ describe('parsers', () => {
       const value = result._unsafeUnwrap();
       expect(value).toEqual({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         conditionFieldIds: ['fld2'],
         filterDto: expect.any(Object),
       });
@@ -248,7 +251,7 @@ describe('parsers', () => {
     it('parses v2 format (filter in condition)', () => {
       const raw = JSON.stringify({
         foreignTableId: 'tbl1',
-        lookupFieldId: 'fld1',
+        lookupFieldId: LOOKUP_FIELD_ID,
         condition: {
           filter: {
             conjunction: 'and',
@@ -269,7 +272,7 @@ describe('parsers', () => {
       expect(result._unsafeUnwrap()).toBeNull();
     });
 
-    it('returns null for null input', () => {
+    it(RETURNS_NULL_FOR_NULL_INPUT, () => {
       const result = parseConditionalFieldOptions(null);
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBeNull();

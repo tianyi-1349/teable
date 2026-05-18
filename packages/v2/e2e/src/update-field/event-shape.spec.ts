@@ -79,7 +79,9 @@ describe('update-field: event shape', () => {
     try {
       await ctx.drainOutbox();
       await ctx.deleteTable(tableId);
-    } catch {}
+    } catch {
+      return undefined;
+    }
     tableId = undefined;
   });
 
