@@ -3,7 +3,6 @@ import type Keyv from 'keyv';
 import { ok } from 'neverthrow';
 
 import type {
-  DomainError,
   IUndoRedoStore,
   UndoEntry,
   UndoRedoListOptions,

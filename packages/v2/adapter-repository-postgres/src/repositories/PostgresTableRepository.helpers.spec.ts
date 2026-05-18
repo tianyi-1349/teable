@@ -12,6 +12,40 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { PostgresTableRepository } from './PostgresTableRepository';
 
+type TableIdentifierLike = {
+  value(): string;
+};
+
+type TestablePostgresTableRepository = PostgresTableRepository & {
+  normalizeSelectOptions(raw: Record<string, unknown>): {
+    choices: Array<{ id: string; name: string; color?: string }>;
+    defaultValue?: string;
+    preventAutoNewOptions?: boolean;
+  };
+  resolveSortColumn(key: { toString(): string }): 'name' | 'id' | 'created_time';
+  parseViewSort(raw: string | null): {
+    sort?: Array<{ fieldId: string; order: 'asc' | 'desc' }>;
+    manualSort?: boolean;
+  };
+  parseViewGroup(raw: string | null): Array<{ fieldId: string; order: 'asc' | 'desc' }> | undefined;
+  parseJsonValue(raw: unknown): unknown;
+  mapV1FilterToV2(filter: unknown): unknown;
+  deserializeFieldDto(row: Record<string, unknown>): Record<string, unknown>;
+  deserializeViewDto(row: Record<string, unknown>): {
+    _unsafeUnwrap(): Record<string, unknown>;
+    isErr(): boolean;
+  };
+  buildFieldVersionChanges(
+    fieldIds: string[],
+    latestVersions: Map<string, number>
+  ): Array<{ fieldId: string; oldVersion: number; newVersion: number }>;
+  buildViewVersionChanges(
+    viewIds: string[],
+    latestVersions: Map<string, number>
+  ): Array<{ viewId: string; oldVersion: number; newVersion: number }>;
+  applyDbMeta(table: Table, meta: Record<string, unknown>): { isOk(): boolean; isErr(): boolean };
+};
+
 const createRepository = () =>
   new PostgresTableRepository(
     {} as never,
@@ -20,6 +54,10 @@ const createRepository = () =>
       toDTO: vi.fn(),
     } as never
   );
+
+const asTestableRepository = (
+  repository: PostgresTableRepository
+): TestablePostgresTableRepository => repository as unknown as TestablePostgresTableRepository;
 
 const createMappedTable = () =>
   Table.builder()
@@ -31,7 +69,7 @@ const createMappedTable = () =>
 
 describe('PostgresTableRepository helpers', () => {
   it('normalizes legacy select options and resolves sort columns', () => {
-    const repo = createRepository() as any;
+    const repo = asTestableRepository(createRepository());
 
     const legacy = repo.normalizeSelectOptions({ options: ['Todo', 'Done'] });
     expect(legacy.choices).toHaveLength(2);
@@ -53,7 +91,7 @@ describe('PostgresTableRepository helpers', () => {
   });
 
   it('parses and normalizes view query fragments', () => {
-    const repo = createRepository() as any;
+    const repo = asTestableRepository(createRepository());
 
     expect(
       repo.parseViewSort(
@@ -73,7 +111,7 @@ describe('PostgresTableRepository helpers', () => {
   });
 
   it('maps legacy and v2 filters into normalized v2 nodes', () => {
-    const repo = createRepository() as any;
+    const repo = asTestableRepository(createRepository());
 
     expect(
       repo.mapV1FilterToV2({
@@ -139,7 +177,7 @@ describe('PostgresTableRepository helpers', () => {
   });
 
   it('deserializes field and view DTOs across specialized branches', () => {
-    const repo = createRepository() as any;
+    const repo = asTestableRepository(createRepository());
 
     expect(
       repo.deserializeFieldDto({
@@ -273,7 +311,7 @@ describe('PostgresTableRepository helpers', () => {
   });
 
   it('computes version changes and applies db metadata to tables', () => {
-    const repo = createRepository() as any;
+    const repo = asTestableRepository(createRepository());
 
     expect(
       repo.buildFieldVersionChanges(
@@ -321,13 +359,13 @@ describe('PostgresTableRepository helpers', () => {
     expect(
       table
         .dbTableName()
-        .andThen((value: any) => value.value())
+        .andThen((value: TableIdentifierLike) => value.value())
         ._unsafeUnwrap()
     ).toBe(`${table.baseId().toString()}.${table.id().toString()}`);
     expect(
       field
         .dbFieldName()
-        .andThen((value: any) => value.value())
+        .andThen((value: TableIdentifierLike) => value.value())
         ._unsafeUnwrap()
     ).toBe('name_col');
 
