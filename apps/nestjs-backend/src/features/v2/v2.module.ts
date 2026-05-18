@@ -8,8 +8,8 @@ import { AggregationOpenApiModule } from '../aggregation/open-api/aggregation-op
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
 import { BaseNodeModule } from '../base-node/base-node.module';
 import { BaseShareModule } from '../base-share/base-share.module';
-import { ShareModule } from '../share/share.module';
 import { SettingOpenApiModule } from '../setting/open-api/setting-open-api.module';
+import { ShareModule } from '../share/share.module';
 import { TemplateOpenApiModule } from '../template/template-open-api.module';
 import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
 import { UndoRedoStackModule } from '../undo-redo/stack/undo-redo-stack.module';

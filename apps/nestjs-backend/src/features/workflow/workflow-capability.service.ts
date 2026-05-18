@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { IWorkflowActionCapability } from './actions/action-definition';
 import { getWorkflowActionCapabilities } from './actions/action-capability';
+import type { IWorkflowActionCapability } from './actions/action-definition';
 
 @Injectable()
 export class WorkflowCapabilityService {

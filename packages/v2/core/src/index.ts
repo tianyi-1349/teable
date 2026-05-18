@@ -141,7 +141,6 @@ export * from './commands/PasteStreamHandler';
 export * from './commands/ClearCommand';
 export * from './commands/ClearStreamCommand';
 export * from './commands/ClearHandler';
-export * from './commands/ClearStreamHandler';
 export * from './commands/DeleteByRangeCommand';
 export * from './commands/DeleteByRangeHandler';
 export * from './commands/DeleteByRangeStreamCommand';

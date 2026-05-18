@@ -4,7 +4,7 @@ import { AuthorityMatrixModule } from '../authority-matrix/authority-matrix.modu
 import { RecordModule } from '../record/record.module';
 import { ScriptRuntimeModule } from './script/script-runtime.module';
 import { WorkflowAiProvider } from './workflow-ai.provider';
-import { WORKFLOW_AI_PROVIDER, WorkflowAiService } from './workflow-ai.service';
+import { workflowAiProviderToken, WorkflowAiService } from './workflow-ai.service';
 import { WorkflowCapabilityService } from './workflow-capability.service';
 import { WorkflowRunnerService } from './workflow-runner.service';
 import { WorkflowController } from './workflow.controller';
@@ -15,7 +15,7 @@ import { WorkflowService } from './workflow.service';
   controllers: [WorkflowController],
   providers: [
     WorkflowAiProvider,
-    { provide: WORKFLOW_AI_PROVIDER, useExisting: WorkflowAiProvider },
+    { provide: workflowAiProviderToken, useExisting: WorkflowAiProvider },
     WorkflowAiService,
     WorkflowCapabilityService,
     WorkflowService,

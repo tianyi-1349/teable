@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { WorkflowService } from './workflow.service';
 
