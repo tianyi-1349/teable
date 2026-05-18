@@ -134,6 +134,6 @@ describe('TableUpdateFieldConstraintsSpec', () => {
     const visitor = {
       visitTableUpdateFieldConstraints: () => ok(undefined),
     };
-    spec.accept(visitor as any)._unsafeUnwrap();
+    spec.accept(visitor as never)._unsafeUnwrap();
   });
 });
