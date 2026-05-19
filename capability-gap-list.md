@@ -55,6 +55,7 @@
 - 当前剩余缺口聚焦于 share / published / plugin 等更高层产品能力，以及 comment / share / published / template / setting / workflow 在 generic router 侧仍需显式依赖 Nest adapter 的边界统一。
 - 当前处理补充
   - 已通过 `v1-v2-coverage-matrix.md`、`workflow-domain-governance-roadmap.md`、`share-published-governance-roadmap.md`、`ports-adapters-adoption-roadmap.md` 把剩余迁移工作转成持续执行的路线图，不再停留在抽象缺口描述。
+  - 当前轮次已完成 `packages/v2` 入口导出面收敛，`*.ts/*.tsx/*.mts/*.cts` 范围内 `export * from` 已清零，并通过 `pnpm -r --filter "./packages/v2/**" typecheck` 全量验证。
 - 缺口本质
   - 架构演进方向明确，但核心业务域尚未形成统一的新架构闭环。
 - 影响
@@ -335,3 +336,17 @@
 1. 主仓内可通过代码、文档、索引和路线图直接收口的事项已经完成
 2. 剩余差异当前已经转入专项路线图、仓库边界说明或持续治理机制
 3. 后续如果代码事实再次变化，应以 `capability-gap-task-matrix.md` 为状态主表重新开启对应专项盘点
+
+## 11. P1/P2 阶段状态补充（2026-05-19）
+
+当前任务口径下，P1/P2 阶段已经完成“本轮可直接收口”事项，并进入持续治理执行态。
+
+对应正式输出：
+
+1. `.monkeycode/docs/p1-p2-phase-readiness-2026-05-19.md`
+
+状态解释：
+
+1. 当前阶段重点从“继续扩张一次性改造”切换为“按事实变更触发专项治理”。
+2. 路线图、边界说明和维护机制已经形成闭环。
+3. 后续差异按执行手册和维护机制持续回写。

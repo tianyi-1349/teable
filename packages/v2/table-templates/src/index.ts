@@ -63,8 +63,6 @@ import {
   simpleTableTemplate,
   todoTemplate,
 } from './templates';
-import type { TableTemplateDefinition } from './types';
-
 export const tableTemplates = [
   simpleTableTemplate,
   allBaseFieldsTemplate,
@@ -80,5 +78,7 @@ export const tableTemplates = [
 
 export type TableTemplateKey = (typeof tableTemplates)[number]['key'];
 
-export const getTableTemplate = (key: TableTemplateKey): TableTemplateDefinition | undefined =>
+export const getTableTemplate = (
+  key: TableTemplateKey
+): import('./types').TableTemplateDefinition | undefined =>
   tableTemplates.find((template) => template.key === key);

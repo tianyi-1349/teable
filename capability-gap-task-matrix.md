@@ -138,6 +138,20 @@
 
 当前矩阵中的正式缺口项已经完成本轮收口。
 
+### 6.1 P1/P2 阶段收口更新（2026-05-19）
+
+当前 P1/P2 任务已经完成“本轮可直接收口”的全部事项，并进入持续治理执行态。
+
+对应正式输出：
+
+1. `.monkeycode/docs/p1-p2-phase-readiness-2026-05-19.md`
+
+执行口径：
+
+1. P1/P2 任务在本轮以内的可落地事项已完成。
+2. 剩余治理项按路线图、边界说明和维护机制进行触发式推进。
+3. 状态主表继续由本矩阵维护，发生代码事实变化后再开启专项盘点。
+
 当前状态可以概括为：
 
 1. 主仓内可直接通过代码、文档、索引和路线图收口的事项已经完成
@@ -196,3 +210,14 @@
 1. `pnpm --filter @teable/v2-contract-http typecheck`
 2. `pnpm --filter @teable/v2-contract-http-implementation typecheck`
 3. `pnpm --filter @teable/backend typecheck`
+
+### 7.1 V2 导出面收敛补充（2026-05-19）
+
+当前轮次已完成 `packages/v2` 入口导出面的统一收敛：
+
+1. `packages/v2` 下 `*.ts/*.tsx/*.mts/*.cts` 已清零 `export * from`（grep 结果为 `No files found`）
+2. `adapter-table-repository-postgres` 的 `di` 导出缺口已补齐，包含 `createTypeValidationStrategy` 与 `IV2RecordRepositoryPostgresConfig` 对外导出
+3. 高价值受影响包链路（`v2-contract-http`、`v2-contract-http-implementation`、`v2-devtools`、`v2-adapter-table-repository-postgres`）均已通过包级 typecheck
+4. 已补跑 `pnpm -r --filter "./packages/v2/**" typecheck`，38 个 v2 workspace 包全部通过
+
+这使当前阶段的 v2 导出面一致性从“局部收敛”提升到“全包可验证收敛”，并为后续阶段治理提供稳定基线。

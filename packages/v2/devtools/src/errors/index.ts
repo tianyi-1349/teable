@@ -1,1 +1,1 @@
-export * from './CliError';
+export { CliError, ValidationError, SecurityError } from './CliError';

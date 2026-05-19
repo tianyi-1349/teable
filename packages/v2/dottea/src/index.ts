@@ -150,4 +150,8 @@ export class DotTeaParser implements IDotTeaParser {
   }
 }
 
-export * from './normalizer';
+export {
+  normalizeFieldOptions,
+  normalizeField,
+  extractFieldReferences,
+} from './normalizer/DotTeaFieldNormalizer';

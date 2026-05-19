@@ -1,20 +1,58 @@
 // Interface and types
-export * from './ITableRecordQueryBuilder';
+export type {
+  IQueryBuilderDeps,
+  ITableRecordQueryBuilder,
+  QB,
+  DynamicDB,
+  SystemColumn,
+  OrderByColumn,
+} from './ITableRecordQueryBuilder';
 
 // Shared utilities
-export * from './FieldOutputColumnVisitor';
+export type { FieldOutputColumn } from './FieldOutputColumnVisitor';
+export { FieldOutputColumnVisitor } from './FieldOutputColumnVisitor';
 
 // Query builder manager (strategy pattern)
-export * from './TableRecordQueryBuilderManager';
+export type { QueryMode, IQueryBuilderManagerOptions } from './TableRecordQueryBuilderManager';
+export { TableRecordQueryBuilderManager } from './TableRecordQueryBuilderManager';
 
 // Computed query builder (LATERAL joins, formula computation)
-export * from './computed';
+export {
+  COMPUTED_TABLE_ALIAS,
+  ComputedTableRecordQueryBuilder,
+} from './computed/ComputedTableRecordQueryBuilder';
+export type {
+  IDirtyFilterConfig,
+  IComputedQueryBuilderOptions,
+} from './computed/ComputedTableRecordQueryBuilder';
+export { ComputedFieldSelectExpressionVisitor } from './computed/ComputedFieldSelectExpressionVisitor';
+export type {
+  LinkOrderBy,
+  LateralColumnType,
+  ILateralContext,
+  ComputedFieldSelectExpressionVisitorOptions,
+} from './computed/ComputedFieldSelectExpressionVisitor';
 
 // Stored query builder (direct column reads, pre-stored values)
-export * from './stored';
+export { StoredFieldSelectVisitor } from './stored/StoredFieldSelectVisitor';
+export { StoredTableRecordQueryBuilder } from './stored/StoredTableRecordQueryBuilder';
+export type { IStoredQueryBuilderOptions } from './stored/StoredTableRecordQueryBuilder';
 
 // Insert query builder
-export * from './insert';
+export {
+  RecordInsertBuilder,
+  type CompiledSqlStatement,
+  type RecordInsertSqlResult,
+  type RecordInsertDataResult,
+  type RecordInsertBuilderContext,
+  type LinkedRecordLockInfo,
+  type InsertExclusivityConstraint,
+  type UserFieldColumn,
+} from './insert';
 
 // Update query builder
-export * from './update';
+export {
+  RecordUpdateBuilder,
+  type RecordUpdateSqlResult,
+  type RecordUpdateBuilderContext,
+} from './update';

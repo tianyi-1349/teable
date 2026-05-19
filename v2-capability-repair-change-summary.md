@@ -137,6 +137,11 @@
 
 当前三项均已通过。
 
+本轮新增导出面验证：
+
+4. `packages/v2` 下 `*.ts/*.tsx/*.mts/*.cts` 已清零 `export * from`（grep 结果 `No files found`）
+5. `pnpm -r --filter "./packages/v2/**" typecheck` 全量通过（38 个 v2 workspace 包）
+
 补充验证结论：
 
 1. `packages/v2/contract-http-implementation/src/handlers` 中已无 `Promise<unknown>` / `=> unknown`
