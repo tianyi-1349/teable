@@ -12,6 +12,31 @@ export const aiCreateWorkflowDraftRoSchema = z.object({
   fieldId: z.string().optional(),
   recordId: z.string().optional(),
   modelKey: z.string().optional(),
+  triggerType: z
+    .enum([
+      'buttonClick',
+      'recordCreated',
+      'recordUpdated',
+      'recordMatchesConditions',
+      'schedule',
+      'webhook',
+      'formSubmitted',
+      'emailReceived',
+    ])
+    .optional(),
+  preferActionKind: z
+    .enum([
+      'runScript',
+      'aiGenerate',
+      'updateRecords',
+      'createRecords',
+      'queryRecords',
+      'sendEmail',
+      'httpRequest',
+      'condition',
+      'loop',
+    ])
+    .optional(),
 });
 
 export type IAiCreateWorkflowDraftRo = z.infer<typeof aiCreateWorkflowDraftRoSchema>;

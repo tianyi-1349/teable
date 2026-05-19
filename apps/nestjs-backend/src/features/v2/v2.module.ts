@@ -4,15 +4,25 @@ import { ORPCModule } from '@orpc/nest';
 import type { Response } from 'express';
 import { LoggerModule } from '../../logger/logger.module';
 import { ShareDbModule } from '../../share-db/share-db.module';
+import { AggregationOpenApiModule } from '../aggregation/open-api/aggregation-open-api.module';
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
+import { BaseNodeModule } from '../base-node/base-node.module';
+import { BaseShareModule } from '../base-share/base-share.module';
+import { SettingOpenApiModule } from '../setting/open-api/setting-open-api.module';
+import { ShareModule } from '../share/share.module';
+import { TemplateOpenApiModule } from '../template/template-open-api.module';
+import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
+import { UndoRedoStackModule } from '../undo-redo/stack/undo-redo-stack.module';
 import { UndoRedoStackService } from '../undo-redo/stack/undo-redo-stack.service';
 import { ViewModule } from '../view/view.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { V2ActionTriggerService } from './v2-action-trigger.service';
 import { V2BaseNodeCompatService } from './v2-base-node-compat.service';
 import { V2ContainerService } from './v2-container.service';
 import { V2ExecutionContextFactory } from './v2-execution-context.factory';
 import { V2FieldDeleteCompatService } from './v2-field-delete-compat.service';
 import { V2OpenApiController } from './v2-openapi.controller';
+import { V2PublishedAppService } from './v2-published-app.service';
 import { V2RecordHistoryService } from './v2-record-history.service';
 import { V2UserRenamePropagationService } from './v2-user-rename-propagation.service';
 import { V2ViewCompatService } from './v2-view-compat.service';
@@ -94,9 +104,17 @@ const toErrorMessage = (body: unknown): string => {
       ],
     }),
     LoggerModule.register(),
+    AggregationOpenApiModule,
     AttachmentsStorageModule,
+    BaseNodeModule,
+    BaseShareModule,
     ShareDbModule,
+    ShareModule,
+    SettingOpenApiModule,
+    TemplateOpenApiModule,
+    UndoRedoStackModule,
     ViewModule,
+    WorkflowModule,
   ],
   controllers: [V2Controller, V2OpenApiController],
   providers: [
@@ -107,8 +125,10 @@ const toErrorMessage = (body: unknown): string => {
     V2BaseNodeCompatService,
     V2UserRenamePropagationService,
     V2FieldDeleteCompatService,
+    V2PublishedAppService,
     V2RecordHistoryService,
     V2ViewCompatService,
+    UndoRedoService,
     UndoRedoStackService,
   ],
   exports: [V2ContainerService, V2ExecutionContextFactory, V2UserRenamePropagationService],

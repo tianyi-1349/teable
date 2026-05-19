@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { type DomainError, domainError } from '../domain/shared/DomainError';
 import { TableId } from '../domain/table/TableId';
 import { ViewId } from '../domain/table/views/ViewId';
+import type { RecordFilter } from '../queries/RecordFilterDto';
 import { RecordSearch } from '../queries/RecordSearch';
-import { MAX_SELECTION_STREAM_BATCH_SIZE } from './shared/streamBatchSize';
 import {
   pasteCommandInputSchema,
   type PasteGroup,
@@ -20,7 +20,7 @@ import {
   type RangeType,
   validateRangesFormat,
 } from './RangeUtils';
-import type { RecordFilter } from '../queries/RecordFilterDto';
+import { MAX_SELECTION_STREAM_BATCH_SIZE } from './shared/streamBatchSize';
 
 export const pasteStreamCommandInputSchema = pasteCommandInputSchema.extend({
   batchSize: z.number().int().min(1).max(MAX_SELECTION_STREAM_BATCH_SIZE).optional(),

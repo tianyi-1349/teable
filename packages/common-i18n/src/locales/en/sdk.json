@@ -1302,6 +1302,7 @@
       "embeddingModelNotSet": "Embedding model is not set",
       "validateActionFailed": "Validate field AI action failed",
       "generateFailed": "AI generation failed",
+      "generateStopped": "AI generation was stopped",
       "unsupportedActionType": "Unsupported AI action type",
       "geminiImageNotSupportedViaGateway": "Gemini image generation is not supported through AI Gateway. Please configure a direct Google provider instead."
     },

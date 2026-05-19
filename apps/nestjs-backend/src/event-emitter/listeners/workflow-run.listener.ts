@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WorkflowService } from '../../features/workflow/workflow.service';
 import { WorkflowRunnerService } from '../../features/workflow/workflow-runner.service';
-import type { ButtonClickEvent, RecordCreateEvent, RecordUpdateEvent } from '../events';
-import { Events } from '../events';
+import { WorkflowService } from '../../features/workflow/workflow.service';
+import { ButtonClickEvent, RecordCreateEvent, RecordUpdateEvent, Events } from '../events';
 
 @Injectable()
 export class WorkflowRunListener {
@@ -37,10 +36,11 @@ export class WorkflowRunListener {
   @OnEvent(Events.TABLE_RECORD_UPDATE, { async: true })
   async handleRecordUpdate(event: RecordUpdateEvent): Promise<void> {
     await this.handleRecordTrigger('recordUpdated', event.payload.tableId, event.payload);
+    await this.handleRecordTrigger('recordMatchesConditions', event.payload.tableId, event.payload);
   }
 
   private async handleRecordTrigger(
-    triggerType: 'recordCreated' | 'recordUpdated',
+    triggerType: 'recordCreated' | 'recordUpdated' | 'recordMatchesConditions',
     tableId: string,
     input: unknown
   ) {

@@ -1,3 +1,4 @@
+import { container } from '@teable/v2-di';
 import {
   BaseId,
   DefaultTableMapper,
@@ -16,7 +17,6 @@ import {
   v2CoreTokens,
 } from '@teable/v2-core';
 import type { ITableRepository } from '@teable/v2-core';
-import { container } from '@teable/v2-di';
 
 import type { IV2NodeUnitTestContainer } from './v2NodeUnitTestContainer';
 

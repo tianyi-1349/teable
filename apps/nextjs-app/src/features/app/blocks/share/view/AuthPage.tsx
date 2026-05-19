@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 import { shareConfig } from '@/features/i18n/share.config';
+import { getFriendlyErrorMessage } from '@/lib/get-friendly-error-message';
 
 export const AuthPage = () => {
   const [error, setError] = useState('');
@@ -37,10 +38,10 @@ export const AuthPage = () => {
         if (localization?.i18nKey) {
           setError(t(`sdk:${localization.i18nKey}` as never));
         } else {
-          setError(error.message);
+          setError(getFriendlyErrorMessage(error, t));
         }
       } else {
-        setError(error as string);
+        setError(getFriendlyErrorMessage(error, t));
       }
     }
   };

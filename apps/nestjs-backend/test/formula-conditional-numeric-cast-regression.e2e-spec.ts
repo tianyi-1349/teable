@@ -12,6 +12,7 @@ import {
 
 describe('Formula conditional numeric cast safety (regression)', () => {
   const isForceV2 = process.env.FORCE_V2_ALL === 'true';
+  const malformedDisplayPrice = '39.9339.93';
   let app: INestApplication;
   const baseId = globalThis.testConfig.baseId as string;
 
@@ -52,7 +53,7 @@ describe('Formula conditional numeric cast safety (regression)', () => {
           records: [
             {
               fields: {
-                DisplayPrice: '39.9339.93',
+                DisplayPrice: malformedDisplayPrice,
               },
             },
             {
@@ -67,12 +68,12 @@ describe('Formula conditional numeric cast safety (regression)', () => {
 
         const targetRecords = records.filter((record) => {
           const displayPrice = record.fields.DisplayPrice;
-          return displayPrice === '39.9339.93' || displayPrice === '39.93';
+          return displayPrice === malformedDisplayPrice || displayPrice === '39.93';
         });
 
         expect(targetRecords).toHaveLength(2);
         const malformedNumericRecord = targetRecords.find(
-          (record) => record.fields.DisplayPrice === '39.9339.93'
+          (record) => record.fields.DisplayPrice === malformedDisplayPrice
         );
         const validNumericRecord = targetRecords.find(
           (record) => record.fields.DisplayPrice === '39.93'

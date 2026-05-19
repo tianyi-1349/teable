@@ -8,7 +8,7 @@ import {
   permanentDeleteTable,
 } from './utils/init-app';
 
-const DATETIME_FORMAT_SPECIFIER_CASES = [
+const datetimeFormatSpecifierCases = [
   { token: 'YY', expected: '26' },
   { token: 'YYYY', expected: '2026' },
   { token: 'M', expected: '2' },
@@ -238,7 +238,7 @@ describe('Formula DATETIME_FORMAT token semantics (e2e)', () => {
     const dateFieldId = generateFieldId();
 
     try {
-      const formulaFields = DATETIME_FORMAT_SPECIFIER_CASES.map((item, index) => ({
+      const formulaFields = datetimeFormatSpecifierCases.map((item, index) => ({
         name: `spec_${index.toString().padStart(2, '0')}`,
         type: FieldType.Formula,
         options: {
@@ -263,7 +263,7 @@ describe('Formula DATETIME_FORMAT token semantics (e2e)', () => {
       });
 
       const record = await getRecord(tableId, records[0].id);
-      for (const [index, item] of DATETIME_FORMAT_SPECIFIER_CASES.entries()) {
+      for (const [index, item] of datetimeFormatSpecifierCases.entries()) {
         const fieldName = `spec_${index.toString().padStart(2, '0')}`;
         const fieldId = fieldIdByName[fieldName];
         expect(record.fields?.[fieldId as string]).toBe(item.expected);

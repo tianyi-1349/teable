@@ -8,7 +8,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": false,
     "target": "esnext",
-    "lib": ["esnext", "dom"],
+    "lib": ["esnext", "dom", "dom.iterable"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": false,
@@ -20,6 +20,7 @@
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/openapi": ["../../openapi/src"],
       "@teable/v2-core": ["../core/src"],
       "@teable/core": ["../../core/src"],
       "@teable/formula": ["../../formula/src"],
@@ -47,6 +48,7 @@
   ],
   "include": [
     "src",
+    "../../openapi/src",
     "../core/src",
     "../di/src",
     "../../core/src",

@@ -6,7 +6,7 @@ export const V2_CODE_OWNERSHIP_ATTRIBUTE = 'teable.code.ownership';
 export const V2_CODE_PATH_ATTRIBUTE = 'teable.code.path';
 export const V2_CODE_LAYER_ATTRIBUTE = 'teable.code.layer';
 
-const V2_SPAN_ATTRIBUTES: SpanAttributes = {
+const v2SpanAttributes: SpanAttributes = {
   [V2_CODE_OWNERSHIP_ATTRIBUTE]: 'v2',
   [V2_CODE_PATH_ATTRIBUTE]: 'community/packages/v2',
   [V2_CODE_LAYER_ATTRIBUTE]: 'core',
@@ -40,7 +40,7 @@ export class OpenTelemetryTracer implements ITracer {
     const tracer = trace.getTracer(this.name);
     const span = tracer.startSpan(
       name,
-      { attributes: { ...V2_SPAN_ATTRIBUTES, ...attributes } },
+      { attributes: { ...v2SpanAttributes, ...attributes } },
       otelContext.active()
     );
     return new OpenTelemetrySpan(span);

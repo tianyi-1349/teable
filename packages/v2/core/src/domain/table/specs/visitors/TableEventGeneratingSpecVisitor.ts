@@ -78,6 +78,9 @@ import type { TableUpdateFieldHasErrorSpec } from '../TableUpdateFieldHasErrorSp
 import type { TableUpdateFieldNameSpec } from '../TableUpdateFieldNameSpec';
 import type { TableUpdateFieldTypeSpec } from '../TableUpdateFieldTypeSpec';
 import type { TableUpdateViewColumnMetaSpec } from '../TableUpdateViewColumnMetaSpec';
+import type { TableUpdateViewNameSpec } from '../TableUpdateViewNameSpec';
+import type { TableUpdateViewOptionsSpec } from '../TableUpdateViewOptionsSpec';
+import type { TableUpdateViewPropertiesSpec } from '../TableUpdateViewPropertiesSpec';
 import type { TableUpdateViewQueryDefaultsSpec } from '../TableUpdateViewQueryDefaultsSpec';
 import { FieldUpdateSemanticsVisitor } from './FieldUpdateSemanticsVisitor';
 
@@ -205,6 +208,18 @@ export class TableEventGeneratingSpecVisitor implements ITableSpecVisitor<void> 
         })
       );
     }
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewName(_spec: TableUpdateViewNameSpec): Result<void, DomainError> {
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewOptions(_spec: TableUpdateViewOptionsSpec): Result<void, DomainError> {
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewProperties(_spec: TableUpdateViewPropertiesSpec): Result<void, DomainError> {
     return ok(undefined);
   }
 

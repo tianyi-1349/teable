@@ -69,6 +69,9 @@ import type { TableUpdateFieldHasErrorSpec } from './TableUpdateFieldHasErrorSpe
 import type { TableUpdateFieldNameSpec } from './TableUpdateFieldNameSpec';
 import type { TableUpdateFieldTypeSpec } from './TableUpdateFieldTypeSpec';
 import type { TableUpdateViewColumnMetaSpec } from './TableUpdateViewColumnMetaSpec';
+import type { TableUpdateViewNameSpec } from './TableUpdateViewNameSpec';
+import type { TableUpdateViewOptionsSpec } from './TableUpdateViewOptionsSpec';
+import type { TableUpdateViewPropertiesSpec } from './TableUpdateViewPropertiesSpec';
 import type { TableUpdateViewQueryDefaultsSpec } from './TableUpdateViewQueryDefaultsSpec';
 
 class SpyVisitor implements ITableSpecVisitor {
@@ -113,6 +116,27 @@ class SpyVisitor implements ITableSpecVisitor {
     _: TableUpdateViewColumnMetaSpec
   ): ReturnType<ITableSpecVisitor['visitTableUpdateViewColumnMeta']> {
     this.calls.push('TableUpdateViewColumnMetaSpec');
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewName(
+    _: TableUpdateViewNameSpec
+  ): ReturnType<ITableSpecVisitor['visitTableUpdateViewName']> {
+    this.calls.push('TableUpdateViewNameSpec');
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewOptions(
+    _: TableUpdateViewOptionsSpec
+  ): ReturnType<ITableSpecVisitor['visitTableUpdateViewOptions']> {
+    this.calls.push('TableUpdateViewOptionsSpec');
+    return ok(undefined);
+  }
+
+  visitTableUpdateViewProperties(
+    _: TableUpdateViewPropertiesSpec
+  ): ReturnType<ITableSpecVisitor['visitTableUpdateViewProperties']> {
+    this.calls.push('TableUpdateViewPropertiesSpec');
     return ok(undefined);
   }
 

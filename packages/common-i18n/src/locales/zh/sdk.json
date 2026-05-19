@@ -1294,6 +1294,7 @@
       "embeddingModelNotSet": "嵌入模型未设置",
       "validateActionFailed": "验证字段AI操作失败",
       "generateFailed": "AI生成失败",
+      "generateStopped": "AI 生成已停止",
       "unsupportedActionType": "不支持的AI操作类型",
       "geminiImageNotSupportedViaGateway": "AI Gateway 不支持 Gemini 图像生成。请改为配置直连 Google 服务商。"
     },

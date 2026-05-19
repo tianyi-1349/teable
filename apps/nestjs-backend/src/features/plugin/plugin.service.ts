@@ -338,7 +338,7 @@ export class PluginService {
     const userId = this.cls.get('user.id');
     const isAdmin = this.cls.get('user.isAdmin');
     const { secret, hashedSecret, maskedSecret } = await generateSecret();
-    const res = await this.prismaService.plugin.update({
+    await this.prismaService.plugin.update({
       select: {
         id: true,
         secret: true,

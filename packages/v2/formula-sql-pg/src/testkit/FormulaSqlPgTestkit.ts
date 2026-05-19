@@ -457,6 +457,225 @@ const createForeignTable = async (
   };
 };
 
+type HostRelationContext = {
+  foreignTable?: Table;
+  foreignPrimary?: Field;
+  foreignNumber?: Field;
+  foreignDate?: Field;
+  linkFieldId: string;
+  fieldIds: Record<FieldTypeLiteral, string>;
+  lookupNumberId?: string;
+  lookupDateId?: string;
+};
+
+const createLookupRelationFields = (
+  context: HostRelationContext
+): Array<Record<string, unknown>> => {
+  const {
+    foreignTable,
+    foreignPrimary,
+    foreignNumber,
+    foreignDate,
+    linkFieldId,
+    fieldIds,
+    lookupNumberId,
+    lookupDateId,
+  } = context;
+
+  if (
+    !foreignTable ||
+    !foreignPrimary ||
+    !foreignNumber ||
+    !foreignDate ||
+    !lookupNumberId ||
+    !lookupDateId
+  ) {
+    throw new Error('Lookup fields require a foreign table');
+  }
+
+  return [
+    {
+      type: 'lookup',
+      id: fieldIds.lookup,
+      name: FIELD_TYPE_NAMES.lookup,
+      options: {
+        linkFieldId,
+        foreignTableId: foreignTable.id().toString(),
+        lookupFieldId: foreignPrimary.id().toString(),
+      },
+    },
+    {
+      type: 'lookup',
+      id: lookupNumberId,
+      name: 'LookupNumber',
+      options: {
+        linkFieldId,
+        foreignTableId: foreignTable.id().toString(),
+        lookupFieldId: foreignNumber.id().toString(),
+      },
+    },
+    {
+      type: 'lookup',
+      id: lookupDateId,
+      name: 'LookupDate',
+      options: {
+        linkFieldId,
+        foreignTableId: foreignTable.id().toString(),
+        lookupFieldId: foreignDate.id().toString(),
+      },
+    },
+  ];
+};
+
+const createRollupRelationField = (context: HostRelationContext): Record<string, unknown> => {
+  const { foreignTable, foreignNumber, linkFieldId, fieldIds } = context;
+
+  if (!foreignTable || !foreignNumber) {
+    throw new Error('Rollup field requires a foreign table');
+  }
+
+  return {
+    type: 'rollup',
+    id: fieldIds.rollup,
+    name: FIELD_TYPE_NAMES.rollup,
+    options: { expression: 'sum({values})', formatting: { type: 'decimal', precision: 2 } },
+    config: {
+      linkFieldId,
+      foreignTableId: foreignTable.id().toString(),
+      lookupFieldId: foreignNumber.id().toString(),
+    },
+  };
+};
+
+const createConditionalRelationField = (
+  type: 'conditionalLookup' | 'conditionalRollup',
+  context: HostRelationContext,
+  condition: Record<string, unknown>
+): Record<string, unknown> => {
+  const { foreignTable, foreignNumber, fieldIds } = context;
+
+  if (!foreignTable || !foreignNumber) {
+    throw new Error(
+      type === 'conditionalLookup'
+        ? 'Conditional lookup field requires a foreign table'
+        : 'Conditional rollup field requires a foreign table'
+    );
+  }
+
+  return type === 'conditionalLookup'
+    ? {
+        type,
+        id: fieldIds.conditionalLookup,
+        name: FIELD_TYPE_NAMES.conditionalLookup,
+        options: {
+          foreignTableId: foreignTable.id().toString(),
+          lookupFieldId: foreignNumber.id().toString(),
+          condition,
+        },
+      }
+    : {
+        type,
+        id: fieldIds.conditionalRollup,
+        name: FIELD_TYPE_NAMES.conditionalRollup,
+        options: { expression: 'sum({values})', formatting: { type: 'decimal', precision: 2 } },
+        config: {
+          foreignTableId: foreignTable.id().toString(),
+          lookupFieldId: foreignNumber.id().toString(),
+          condition,
+        },
+      };
+};
+
+const buildRelationFields = (params: {
+  includedFieldTypeSet: ReadonlySet<FieldTypeLiteral>;
+  context: HostRelationContext;
+  nonEmptyCondition?: Record<string, unknown>;
+}): Array<Record<string, unknown>> => {
+  const { includedFieldTypeSet, context, nonEmptyCondition } = params;
+  const relationFields: Array<Record<string, unknown>> = [];
+
+  if (includedFieldTypeSet.has('lookup')) {
+    relationFields.push(...createLookupRelationFields(context));
+  }
+
+  if (includedFieldTypeSet.has('rollup')) {
+    relationFields.push(createRollupRelationField(context));
+  }
+
+  if (includedFieldTypeSet.has('conditionalLookup')) {
+    if (!nonEmptyCondition) {
+      throw new Error('Conditional lookup field requires a foreign table');
+    }
+    relationFields.push(
+      createConditionalRelationField('conditionalLookup', context, nonEmptyCondition)
+    );
+  }
+
+  if (includedFieldTypeSet.has('conditionalRollup')) {
+    if (!nonEmptyCondition) {
+      throw new Error('Conditional rollup field requires a foreign table');
+    }
+    relationFields.push(
+      createConditionalRelationField('conditionalRollup', context, nonEmptyCondition)
+    );
+  }
+
+  return relationFields;
+};
+
+const normalizeRawSnapshotValue = (
+  fieldType: string,
+  isTemporalField: boolean,
+  rawValue: string | null
+): string | null => {
+  if (isTemporalField) return normalizeTemporalText(rawValue);
+  if (fieldType === 'formula') return null;
+  if (fieldType === 'link') return normalizeLinkRawValue(rawValue);
+  return rawValue;
+};
+
+const normalizeFormattedSnapshotValue = (
+  isTemporalField: boolean,
+  formattedValue: string | null
+): string | null => (isTemporalField ? normalizeTemporalText(formattedValue) : formattedValue);
+
+const fetchSnapshotValues = async (params: {
+  testTable: FormulaTestTable;
+  field: Field;
+  fieldType: string;
+  isTemporalField: boolean;
+}): Promise<{ rawValue: string | null; formattedValue: string | null }> => {
+  const { testTable, field, fieldType, isTemporalField } = params;
+  const rawSql = fetchRawFieldValueSql(field, testTable.tableAlias);
+  const formattedSql = buildFormattedFieldValueSql(testTable, field);
+  const [rawValue, formattedValue] = await Promise.all([
+    fetchSqlValue(testTable, rawSql),
+    fetchSqlValue(testTable, formattedSql),
+  ]);
+
+  return {
+    rawValue: normalizeRawSnapshotValue(fieldType, isTemporalField, rawValue),
+    formattedValue: normalizeFormattedSnapshotValue(isTemporalField, formattedValue),
+  };
+};
+
+const buildLookupInnerFieldSnapshot = async (params: {
+  testTable: FormulaTestTable;
+  field: Field;
+  nextVisited: ReadonlySet<string>;
+}): Promise<FieldSnapshotValue | null> => {
+  const resolvedInnerField = resolveLookupInnerField(params.field);
+  if (!resolvedInnerField) return null;
+
+  const innerFieldId = resolvedInnerField.id().toString();
+  if (params.nextVisited.has(innerFieldId)) return null;
+
+  return buildFieldSnapshotValue(params.testTable, resolvedInnerField, {
+    includeValues: false,
+    visited: params.nextVisited,
+  });
+};
+
 const createHostTable = async (params: {
   container: IV2NodeTestContainer;
   foreignTable?: Table;
@@ -669,69 +888,6 @@ const createHostTable = async (params: {
   const result = await executeCommand<{ table: Table }>(container, command);
   let table = result.table;
 
-  const relationFields: Array<Record<string, unknown>> = [];
-  if (includedFieldTypeSet.has('lookup')) {
-    if (
-      !foreignTable ||
-      !foreignPrimary ||
-      !foreignNumber ||
-      !foreignDate ||
-      !lookupNumberId ||
-      !lookupDateId
-    ) {
-      throw new Error('Lookup fields require a foreign table');
-    }
-    relationFields.push(
-      {
-        type: 'lookup',
-        id: fieldIds.lookup,
-        name: FIELD_TYPE_NAMES.lookup,
-        options: {
-          linkFieldId,
-          foreignTableId: foreignTable.id().toString(),
-          lookupFieldId: foreignPrimary.id().toString(),
-        },
-      },
-      {
-        type: 'lookup',
-        id: lookupNumberId,
-        name: 'LookupNumber',
-        options: {
-          linkFieldId,
-          foreignTableId: foreignTable.id().toString(),
-          lookupFieldId: foreignNumber.id().toString(),
-        },
-      },
-      {
-        type: 'lookup',
-        id: lookupDateId,
-        name: 'LookupDate',
-        options: {
-          linkFieldId,
-          foreignTableId: foreignTable.id().toString(),
-          lookupFieldId: foreignDate.id().toString(),
-        },
-      }
-    );
-  }
-
-  if (includedFieldTypeSet.has('rollup')) {
-    if (!foreignTable || !foreignNumber) {
-      throw new Error('Rollup field requires a foreign table');
-    }
-    relationFields.push({
-      type: 'rollup',
-      id: fieldIds.rollup,
-      name: FIELD_TYPE_NAMES.rollup,
-      options: { expression: 'sum({values})', formatting: { type: 'decimal', precision: 2 } },
-      config: {
-        linkFieldId,
-        foreignTableId: foreignTable.id().toString(),
-        lookupFieldId: foreignNumber.id().toString(),
-      },
-    });
-  }
-
   const nonEmptyCondition =
     foreignNumber == null
       ? undefined
@@ -748,38 +904,20 @@ const createHostTable = async (params: {
           },
         };
 
-  if (includedFieldTypeSet.has('conditionalLookup')) {
-    if (!foreignTable || !foreignNumber || !nonEmptyCondition) {
-      throw new Error('Conditional lookup field requires a foreign table');
-    }
-    relationFields.push({
-      type: 'conditionalLookup',
-      id: fieldIds.conditionalLookup,
-      name: FIELD_TYPE_NAMES.conditionalLookup,
-      options: {
-        foreignTableId: foreignTable.id().toString(),
-        lookupFieldId: foreignNumber.id().toString(),
-        condition: nonEmptyCondition,
-      },
-    });
-  }
-
-  if (includedFieldTypeSet.has('conditionalRollup')) {
-    if (!foreignTable || !foreignNumber || !nonEmptyCondition) {
-      throw new Error('Conditional rollup field requires a foreign table');
-    }
-    relationFields.push({
-      type: 'conditionalRollup',
-      id: fieldIds.conditionalRollup,
-      name: FIELD_TYPE_NAMES.conditionalRollup,
-      options: { expression: 'sum({values})', formatting: { type: 'decimal', precision: 2 } },
-      config: {
-        foreignTableId: foreignTable.id().toString(),
-        lookupFieldId: foreignNumber.id().toString(),
-        condition: nonEmptyCondition,
-      },
-    });
-  }
+  const relationFields = buildRelationFields({
+    includedFieldTypeSet,
+    context: {
+      foreignTable,
+      foreignPrimary,
+      foreignNumber,
+      foreignDate,
+      linkFieldId,
+      fieldIds,
+      lookupNumberId,
+      lookupDateId,
+    },
+    nonEmptyCondition,
+  });
 
   if (relationFields.length > 0) {
     const relationCommand = unwrapOrThrow(
@@ -1136,35 +1274,12 @@ const buildFieldSnapshotValue = async (
   let normalizedRawValue: string | null = null;
   let normalizedFormattedValue: string | null = null;
   if (includeValues) {
-    const rawSql = fetchRawFieldValueSql(field, testTable.tableAlias);
-    const formattedSql = buildFormattedFieldValueSql(testTable, field);
-    const [rawValue, formattedValue] = await Promise.all([
-      fetchSqlValue(testTable, rawSql),
-      fetchSqlValue(testTable, formattedSql),
-    ]);
-    normalizedRawValue = isTemporalField
-      ? normalizeTemporalText(rawValue)
-      : fieldType === 'formula'
-        ? null
-        : fieldType === 'link'
-          ? normalizeLinkRawValue(rawValue)
-          : rawValue;
-    normalizedFormattedValue = isTemporalField
-      ? normalizeTemporalText(formattedValue)
-      : formattedValue;
+    const values = await fetchSnapshotValues({ testTable, field, fieldType, isTemporalField });
+    normalizedRawValue = values.rawValue;
+    normalizedFormattedValue = values.formattedValue;
   }
 
-  let innerField: FieldSnapshotValue | null = null;
-  const resolvedInnerField = resolveLookupInnerField(field);
-  if (resolvedInnerField) {
-    const innerFieldId = resolvedInnerField.id().toString();
-    if (!nextVisited.has(innerFieldId)) {
-      innerField = await buildFieldSnapshotValue(testTable, resolvedInnerField, {
-        includeValues: false,
-        visited: nextVisited,
-      });
-    }
-  }
+  const innerField = await buildLookupInnerFieldSnapshot({ testTable, field, nextVisited });
 
   const snapshot: FieldSnapshotValue = {
     fieldName: field.name().toString(),

@@ -1,6 +1,6 @@
 import type { Effect } from 'effect';
 import { Context } from 'effect';
-import type { CliError } from '../errors';
+import type { CliError } from '../errors/CliError';
 
 /** Input for creating a single table */
 export interface CreateTableInput {

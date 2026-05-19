@@ -45,8 +45,8 @@ import type {
 import type { ImageModel, LanguageModel } from 'ai';
 import { createGateway, generateText, streamText } from 'ai';
 import axios from 'axios';
-import { difference } from 'lodash';
 import type { Response } from 'express';
+import { difference } from 'lodash';
 import { BaseConfig, IBaseConfig } from '../../configs/base.config';
 import { CustomHttpException } from '../../custom.exception';
 import { PerformanceCacheService } from '../../performance-cache';
@@ -55,18 +55,18 @@ import { RecordOpenApiService } from '../record/open-api/record-open-api.service
 import { RecordService } from '../record/record.service';
 import { SettingService } from '../setting/setting.service';
 import {
-  createAiStreamError,
-  getAiStreamErrorMessage,
-  handleAiStreamErrorResponse,
-} from './stream-error.helper';
-import {
   buildNativeCapabilitiesVo,
   filterNativeCapabilities,
   queryNativeCapabilities,
   resolveNativeCapabilities,
 } from './native-capability';
-import { isFieldVisible } from './view-context.helper';
+import {
+  createAiStreamError,
+  getAiStreamErrorMessage,
+  handleAiStreamErrorResponse,
+} from './stream-error.helper';
 import { getAdaptedProviderOptions, getTaskModelKey, modelProviders } from './util';
+import { isFieldVisible } from './view-context.helper';
 
 // Fixed name for all instance (platform-provided) providers in modelKey.
 // Instance models always end with @teable (e.g. "aiGateway@model@teable", "anthropic@model@teable").
@@ -93,7 +93,7 @@ type IAttachmentApplyValue = {
   urls: string[];
 };
 
-const AI_EXTRACT_SUPPORTED_FIELD_TYPES = new Set<FieldType>(
+const aiExtractSupportedFieldTypes = new Set<FieldType>(
   Object.values(aiExtractWritableFieldTypeSchema.enum)
 );
 
@@ -213,7 +213,8 @@ export class AiService {
 
   private parseAiJson(text: string): Record<string, unknown> {
     const trimmed = text.trim();
-    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
+    const fencedMatch = trimmed.match(/```(?:json)?[\t ]*\r?\n?([\s\S]*?)```/i);
     const candidate = fencedMatch?.[1]?.trim() ?? trimmed;
 
     try {
@@ -403,7 +404,7 @@ export class AiService {
 
     switch (showAsType) {
       case SingleLineTextDisplayType.Email:
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
+        return /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(normalized) ? normalized : null;
       case SingleLineTextDisplayType.Phone: {
         const compact = normalized.replace(/[\s().-]/g, '');
         return /^\+?\d{6,20}$/.test(compact) ? normalized : null;
@@ -606,6 +607,7 @@ export class AiService {
     return normalized;
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private normalizeFieldPreview(
     field: IExtractField,
     rawValue: unknown,
@@ -613,7 +615,7 @@ export class AiService {
   ): IAiExtractWritePreviewField {
     const choices = this.getFieldChoices(field);
 
-    if (!AI_EXTRACT_SUPPORTED_FIELD_TYPES.has(field.type)) {
+    if (!aiExtractSupportedFieldTypes.has(field.type)) {
       return {
         fieldId: field.id,
         name: field.name,
@@ -710,14 +712,13 @@ export class AiService {
 
     const editableFields = fields.filter((field) => !field.isComputed).map((field) => field);
     if (fieldIds?.length) {
-      const orderedFields = fieldIds
+      return fieldIds
         .map((fieldId) => editableFields.find((field) => field.id === fieldId))
         .filter((field): field is (typeof editableFields)[number] => Boolean(field));
-      return orderedFields;
     }
 
     return editableFields.filter((field) =>
-      AI_EXTRACT_SUPPORTED_FIELD_TYPES.has(field.type as FieldType)
+      aiExtractSupportedFieldTypes.has(field.type as FieldType)
     );
   }
 
@@ -804,6 +805,7 @@ export class AiService {
     };
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async applyExtractAndWrite(
     baseId: string,
     body: IAiExtractWriteApplyRo

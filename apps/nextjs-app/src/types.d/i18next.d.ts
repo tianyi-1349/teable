@@ -5,11 +5,9 @@
  * @link https://react.i18next.com/latest/typescript
  */
 import 'i18next';
-import type { I18nNamespaces } from '@teable/common-i18n';
 
 declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'common';
-    resources: I18nNamespaces;
   }
 }

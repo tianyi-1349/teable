@@ -1,5 +1,5 @@
-import { CreateTableCommand, Table } from '@teable/v2-core';
 import { describe, expect, it } from 'vitest';
+import { CreateTableCommand, Table } from '@teable/v2-core';
 
 describe('CreateTableCommand', () => {
   it('defaults fields and views when missing', () => {

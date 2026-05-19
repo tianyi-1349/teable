@@ -8,8 +8,6 @@
  *
  * Uses real database via createV2NodeTestContainer.
  */
-import { v2RecordRepositoryPostgresTokens } from '@teable/v2-adapter-table-repository-postgres';
-import type { ComputedUpdatePlanner } from '@teable/v2-adapter-table-repository-postgres';
 import { createV2NodeTestContainer } from '@teable/v2-container-node-test';
 import {
   ActorId,
@@ -28,6 +26,8 @@ import {
   type TableId,
 } from '@teable/v2-core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { ComputedUpdatePlanner } from '@teable/v2-adapter-table-repository-postgres';
+import { v2RecordRepositoryPostgresTokens } from '@teable/v2-adapter-table-repository-postgres';
 
 import {
   getV2NodeTestContainer,

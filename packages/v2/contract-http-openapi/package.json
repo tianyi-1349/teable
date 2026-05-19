@@ -34,6 +34,7 @@
     "@orpc/contract": "1.13.0",
     "@orpc/openapi": "1.13.0",
     "@orpc/server": "1.13.0",
+    "@teable/openapi": "workspace:*",
     "@teable/v2-contract-http": "workspace:*"
   },
   "devDependencies": {

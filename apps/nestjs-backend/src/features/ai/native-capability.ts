@@ -6,7 +6,7 @@ import type {
   IQueryNativeAICapabilitiesRo,
 } from '@teable/openapi';
 
-const NATIVE_AI_ACTIONS = ['aiChat', 'aiGenerate', 'aiExtractAndWrite', 'aiViewContext'] as const;
+const nativeAiActions = ['aiChat', 'aiGenerate', 'aiExtractAndWrite', 'aiViewContext'] as const;
 
 const hasChatModel = (config: IGetAIConfig | null) => Boolean(config?.chatModel?.lg);
 
@@ -17,7 +17,7 @@ export const resolveNativeCapabilities = (
   const disabled = new Set(disableActions);
   const modelConfigured = hasChatModel(config);
 
-  return NATIVE_AI_ACTIONS.map((action) => {
+  return nativeAiActions.map((action) => {
     if (disabled.has(action)) {
       return { action, enabled: false, reason: 'Action is disabled by configuration.' };
     }

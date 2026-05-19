@@ -4,14 +4,14 @@ import { describe, expect, it } from 'vitest';
 import type { BaseId } from '../domain/base/BaseId';
 import { BaseId as ConcreteBaseId } from '../domain/base/BaseId';
 import { domainError } from '../domain/shared/DomainError';
-import { FieldId } from '../domain/table/fields/FieldId';
-import { FieldName } from '../domain/table/fields/FieldName';
 import type { Field } from '../domain/table/fields/Field';
 import { createNumberField, createSingleLineTextField } from '../domain/table/fields/FieldFactory';
+import { FieldId } from '../domain/table/fields/FieldId';
+import { FieldName } from '../domain/table/fields/FieldName';
 import type { LinkForeignTableReference } from '../domain/table/fields/visitors/LinkForeignTableReferenceVisitor';
 import type { TableId } from '../domain/table/TableId';
-import { TypeConversionUpdateSpec } from './TypeConversionUpdateSpec';
 import type { ICreateTableFieldSpec } from './TableFieldSpecs';
+import { TypeConversionUpdateSpec } from './TypeConversionUpdateSpec';
 
 const createTextField = (seed: string) =>
   createSingleLineTextField({

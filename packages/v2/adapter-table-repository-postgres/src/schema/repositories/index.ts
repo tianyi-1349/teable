@@ -1,1 +1,1 @@
-export * from './PostgresTableSchemaRepository';
+export { PostgresTableSchemaRepository } from './PostgresTableSchemaRepository';

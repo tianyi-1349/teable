@@ -2,7 +2,6 @@
 'use client';
 
 import type { ItemInstance } from '@headless-tree/core';
-import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { Slot } from '@radix-ui/react-slot';
 import * as React from 'react';
 import { cn } from '../utils';

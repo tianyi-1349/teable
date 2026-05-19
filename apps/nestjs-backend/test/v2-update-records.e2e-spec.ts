@@ -11,6 +11,8 @@ import {
   permanentDeleteTable,
 } from './utils/init-app';
 
+const contentTypeHeader = 'content-type';
+
 describe('V2Controller updateRecords (e2e)', () => {
   let app: INestApplication;
   let appUrl: string;
@@ -142,7 +144,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -193,7 +195,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -258,7 +260,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -337,7 +339,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -421,7 +423,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -505,7 +507,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -548,7 +550,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,
@@ -631,7 +633,7 @@ describe('V2Controller updateRecords (e2e)', () => {
         method: 'POST',
         headers: {
           cookie,
-          'content-type': 'application/json',
+          [contentTypeHeader]: 'application/json',
         },
         body: JSON.stringify({
           tableId: table.id,

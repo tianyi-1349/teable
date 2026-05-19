@@ -1,15 +1,14 @@
-import * as XLSX from 'xlsx';
-import { err, ok } from 'neverthrow';
-import type { Result } from 'neverthrow';
-
 import {
   domainError,
   type DomainError,
-  type IImportSourceAdapter,
   type IImportOptions,
   type IImportParseResult,
   type IImportSource,
+  type IImportSourceAdapter,
 } from '@teable/v2-core';
+import { err, ok } from 'neverthrow';
+import type { Result } from 'neverthrow';
+import * as XLSX from 'xlsx';
 
 /**
  * Excel Import Adapter

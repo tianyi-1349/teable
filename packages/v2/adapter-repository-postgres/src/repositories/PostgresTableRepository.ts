@@ -1184,9 +1184,13 @@ export class PostgresTableRepository implements core.ITableRepository {
       ? (row.views as Array<{
           id: string;
           name: string;
+          description: string | null;
           type: string;
           options: string | null;
+          order: number;
           column_meta: string | null;
+          is_locked: boolean | null;
+          share_meta: string | null;
           sort: string | null;
           filter: string | null;
           group: string | null;
@@ -1952,9 +1956,13 @@ export class PostgresTableRepository implements core.ITableRepository {
   private deserializeViewDto(row: {
     id: string;
     name: string;
+    description: string | null;
     type: string;
     options: string | null;
+    order: number;
     column_meta: string | null;
+    is_locked: boolean | null;
+    share_meta: string | null;
     sort: string | null;
     filter: string | null;
     group: string | null;
@@ -1973,19 +1981,25 @@ export class PostgresTableRepository implements core.ITableRepository {
       ...(sortResult.manualSort !== undefined ? { manualSort: sortResult.manualSort } : {}),
     };
     const options = row.options === null ? undefined : this.parseJsonValue(row.options);
+    const shareMeta = row.share_meta === null ? undefined : this.parseJsonValue(row.share_meta);
+    const base = {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      order: row.order,
+      ...(row.is_locked !== null ? { isLocked: row.is_locked } : {}),
+      ...(shareMeta !== undefined ? { shareMeta } : {}),
+      columnMeta,
+      query,
+      options,
+    };
 
-    if (row.type === 'grid')
-      return ok({ id: row.id, name: row.name, type: 'grid', columnMeta, query, options });
-    if (row.type === 'kanban')
-      return ok({ id: row.id, name: row.name, type: 'kanban', columnMeta, query, options });
-    if (row.type === 'gallery')
-      return ok({ id: row.id, name: row.name, type: 'gallery', columnMeta, query, options });
-    if (row.type === 'calendar')
-      return ok({ id: row.id, name: row.name, type: 'calendar', columnMeta, query, options });
-    if (row.type === 'form')
-      return ok({ id: row.id, name: row.name, type: 'form', columnMeta, query, options });
-    if (row.type === 'plugin')
-      return ok({ id: row.id, name: row.name, type: 'plugin', columnMeta, query, options });
+    if (row.type === 'grid') return ok({ ...base, type: 'grid' });
+    if (row.type === 'kanban') return ok({ ...base, type: 'kanban' });
+    if (row.type === 'gallery') return ok({ ...base, type: 'gallery' });
+    if (row.type === 'calendar') return ok({ ...base, type: 'calendar' });
+    if (row.type === 'form') return ok({ ...base, type: 'form' });
+    if (row.type === 'plugin') return ok({ ...base, type: 'plugin' });
     return err(domainError.validation({ message: 'Unsupported view type' }));
   }
 

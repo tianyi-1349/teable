@@ -42,5 +42,11 @@ module.exports = {
         '@typescript-eslint/consistent-type-imports': 'off',
       },
     },
+    {
+      files: ['test/**/*.spec.ts', 'test/**/*.e2e-spec.ts', 'test/**/*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
   ],
 };

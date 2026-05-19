@@ -8,8 +8,8 @@ import {
 } from '@teable/v2-core';
 import { describe, expect, it } from 'vitest';
 
-import { FieldValueChangeCollectorVisitor } from './FieldValueChangeCollectorVisitor';
 import { createBtnField, createTextField, createValidFieldId } from './__tests__/helpers';
+import { FieldValueChangeCollectorVisitor } from './FieldValueChangeCollectorVisitor';
 
 const mkFieldId = (seed: string) => FieldId.create(createValidFieldId(seed))._unsafeUnwrap();
 const mkFieldName = (name: string) => FieldName.create(name)._unsafeUnwrap();

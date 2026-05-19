@@ -1,25 +1,12 @@
 import { QueryClient } from '@tanstack/react-query';
 import { IdPrefix } from '@teable/core';
-import { BaseNodeResourceType } from '@teable/openapi';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import type { GetServerSideProps } from 'next';
 import type { ReactElement } from 'react';
-import { CommunityPage } from '@/features/app/base/CommunityPage';
 import type { ISSRContext } from '@/features/app/base-node';
-import {
-  TablePage,
-  getTableServerSideProps,
-  DashBoardPage,
-  getDashboardServerSideProps,
-  getWorkflowServerSideProps,
-  WorkflowPage,
-  AppPage,
-  getAppServerSideProps,
-  getBaseServerSideProps,
-  redirect,
-} from '@/features/app/base-node';
+import { BaseNodePageSwitch, getResourcePageProps, redirect } from '@/features/app/base-node';
 import type { IBaseNodePageProps } from '@/features/app/base-node/types';
-import { parseBaseSlug, useBaseResource } from '@/features/app/hooks/useBaseResource';
+import { parseBaseSlug } from '@/features/app/hooks/useBaseResource';
 import { BaseLayout } from '@/features/app/layouts/BaseLayout';
 import { baseAllConfig } from '@/features/i18n/base-all.config';
 import ensureLogin from '@/lib/ensureLogin';
@@ -30,20 +17,7 @@ import withAuthSSR from '@/lib/withAuthSSR';
 import withEnv from '@/lib/withEnv';
 
 const UnifiedBasePage: NextPageWithLayout<IBaseNodePageProps> = (props: IBaseNodePageProps) => {
-  const { resourceType } = useBaseResource();
-
-  switch (resourceType) {
-    case BaseNodeResourceType.Table:
-      return <TablePage {...props} />;
-    case BaseNodeResourceType.Dashboard:
-      return <DashBoardPage />;
-    case BaseNodeResourceType.Workflow:
-      return <WorkflowPage />;
-    case BaseNodeResourceType.App:
-      return <AppPage {...props} />;
-    default:
-      return <CommunityPage />;
-  }
+  return <BaseNodePageSwitch {...props} />;
 };
 
 export const getServerSideProps: GetServerSideProps<IBaseNodePageProps> = withEnv(
@@ -86,22 +60,7 @@ export const getServerSideProps: GetServerSideProps<IBaseNodePageProps> = withEn
         base,
       };
 
-      if (!parsed.resourceType) {
-        return getBaseServerSideProps(ctx);
-      }
-
-      switch (parsed.resourceType) {
-        case BaseNodeResourceType.Table:
-          return getTableServerSideProps(ctx, parsed, queryParams);
-        case BaseNodeResourceType.Dashboard:
-          return getDashboardServerSideProps(ctx, parsed);
-        case BaseNodeResourceType.Workflow:
-          return getWorkflowServerSideProps(ctx, parsed);
-        case BaseNodeResourceType.App:
-          return getAppServerSideProps(ctx, parsed);
-        default:
-          return { notFound: true };
-      }
+      return getResourcePageProps(ctx, parsed, queryParams);
     })
   )
 );

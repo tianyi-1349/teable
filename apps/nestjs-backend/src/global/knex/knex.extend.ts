@@ -8,23 +8,20 @@ try {
   knex.QueryBuilder.extend('columnList', function (tableName: string) {
     const driverClient = getDriverName(this);
 
-    switch (driverClient) {
-      case DriverClient.Pg: {
-        const [schema, name] = tableName.split('.');
-        this.select({
-          name: 'column_name',
-          type: 'data_type',
-          dflt_value: 'column_default',
-          notnull: 'is_nullable',
-        })
-          .from('information_schema.columns')
-          .where('table_name', name)
-          .where('table_schema', schema);
-        break;
-      }
-      default:
-        throw new Error(`Unsupported database driver: ${driverClient}`);
+    if (driverClient !== DriverClient.Pg) {
+      throw new Error(`Unsupported database driver: ${driverClient}`);
     }
+
+    const [schema, name] = tableName.split('.');
+    this.select({
+      name: 'column_name',
+      type: 'data_type',
+      dflt_value: 'column_default',
+      notnull: 'is_nullable',
+    })
+      .from('information_schema.columns')
+      .where('table_name', name)
+      .where('table_schema', schema);
     return this;
   });
 } catch (e) {

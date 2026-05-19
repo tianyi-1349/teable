@@ -1,7 +1,7 @@
 import type { SchemaRepairResult } from '@teable/v2-adapter-table-repository-postgres';
 import type { Effect } from 'effect';
 import { Context } from 'effect';
-import type { CliError } from '../errors';
+import type { CliError } from '../errors/CliError';
 
 export interface SchemaRepairOptions {
   readonly dryRun?: boolean;

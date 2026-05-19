@@ -55,6 +55,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { isHTTPS, isLocalhost } from '@/features/app/utils';
 import { serializerCellValueHtml, serializerHtml } from '@/features/app/utils/clipboard';
 import { tableConfig } from '@/features/i18n/table.config';
+import { getFriendlyErrorMessage } from '@/lib/get-friendly-error-message';
 import {
   getEffectCellCount,
   getEffectRows,
@@ -125,6 +126,11 @@ export const useSelectionOperation = (props?: {
   });
 
   const { t } = useTranslation(tableConfig.i18nNamespaces);
+  const getSelectionErrorDescription = useCallback(
+    (error: unknown) =>
+      getHttpErrorMessage(error as HttpError, t, 'sdk') || getFriendlyErrorMessage(error, t),
+    [t]
+  );
   const [clearProgress, setClearProgress] = useState<IClearSelectionStreamProgressEvent | null>(
     null
   );
@@ -821,7 +827,10 @@ export const useSelectionOperation = (props?: {
             setIsDeleteProgressOpen(true);
           },
           onError: (error) => {
-            setDeleteErrors((previous) => [...previous, error]);
+            setDeleteErrors((previous) => [
+              ...previous,
+              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+            ]);
             setIsDeleteProgressOpen(true);
           },
         }
@@ -836,7 +845,7 @@ export const useSelectionOperation = (props?: {
 
       return false;
     },
-    [buildSelectionRequest, tableId]
+    [buildSelectionRequest, t, tableId]
   );
 
   const runClearSelectionStream = useCallback(
@@ -881,7 +890,10 @@ export const useSelectionOperation = (props?: {
             setIsClearProgressOpen(true);
           },
           onError: (error) => {
-            setClearErrors((previous) => [...previous, error]);
+            setClearErrors((previous) => [
+              ...previous,
+              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+            ]);
             setIsClearProgressOpen(true);
           },
         }
@@ -892,7 +904,7 @@ export const useSelectionOperation = (props?: {
 
       return streamResult.errors.length > 0;
     },
-    [collapsedGroupIds, groupBy, search, selectionViewQuery, tableId, viewId]
+    [collapsedGroupIds, groupBy, search, selectionViewQuery, t, tableId, viewId]
   );
 
   const confirmDeleteSelection = useCallback(async () => {
@@ -910,13 +922,16 @@ export const useSelectionOperation = (props?: {
         return;
       }
     } catch (error) {
-      const description =
-        getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-        (error instanceof Error ? error.message : 'Unknown error');
+      const description = getSelectionErrorDescription(error);
       ensureDeleteProgressDialogError(description);
       console.error('Delete error: ', error);
     }
-  }, [ensureDeleteProgressDialogError, pendingDeleteSelection, runDeleteSelectionStream, t]);
+  }, [
+    ensureDeleteProgressDialogError,
+    getSelectionErrorDescription,
+    pendingDeleteSelection,
+    runDeleteSelectionStream,
+  ]);
 
   const confirmClearSelection = useCallback(async () => {
     if (!pendingClearSelection) {
@@ -929,13 +944,16 @@ export const useSelectionOperation = (props?: {
     try {
       await runClearSelectionStream(clearRo, totalCount);
     } catch (error) {
-      const description =
-        getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-        (error instanceof Error ? error.message : 'Unknown error');
+      const description = getSelectionErrorDescription(error);
       ensureClearProgressDialogError(description);
       console.error('Clear error: ', error);
     }
-  }, [ensureClearProgressDialogError, pendingClearSelection, runClearSelectionStream, t]);
+  }, [
+    ensureClearProgressDialogError,
+    getSelectionErrorDescription,
+    pendingClearSelection,
+    runClearSelectionStream,
+  ]);
 
   const runDuplicateSelectionStream = useCallback(
     async (duplicateRo: IRangesRo, totalCount: number) => {
@@ -970,7 +988,10 @@ export const useSelectionOperation = (props?: {
             setIsDuplicateProgressOpen(true);
           },
           onError: (error) => {
-            setDuplicateErrors((previous) => [...previous, error]);
+            setDuplicateErrors((previous) => [
+              ...previous,
+              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+            ]);
             setIsDuplicateProgressOpen(true);
           },
         }
@@ -985,7 +1006,7 @@ export const useSelectionOperation = (props?: {
 
       return false;
     },
-    [buildSelectionRequest, tableId]
+    [buildSelectionRequest, t, tableId]
   );
 
   const runPasteSelectionStream = useCallback(
@@ -1030,7 +1051,10 @@ export const useSelectionOperation = (props?: {
             setIsPasteProgressOpen(true);
           },
           onError: (error) => {
-            setPasteErrors((previous) => [...previous, error]);
+            setPasteErrors((previous) => [
+              ...previous,
+              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+            ]);
             setIsPasteProgressOpen(true);
           },
         }
@@ -1041,7 +1065,7 @@ export const useSelectionOperation = (props?: {
 
       return streamResult.errors.length > 0;
     },
-    [collapsedGroupIds, groupBy, search, selectionViewQuery, tableId, viewId]
+    [collapsedGroupIds, groupBy, search, selectionViewQuery, t, tableId, viewId]
   );
 
   const confirmDuplicateSelection = useCallback(async () => {
@@ -1059,17 +1083,15 @@ export const useSelectionOperation = (props?: {
         return;
       }
     } catch (error) {
-      const description =
-        getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-        (error instanceof Error ? error.message : 'Unknown error');
+      const description = getSelectionErrorDescription(error);
       ensureDuplicateProgressDialogError(description);
       console.error('Duplicate error: ', error);
     }
   }, [
     ensureDuplicateProgressDialogError,
+    getSelectionErrorDescription,
     pendingDuplicateSelection,
     runDuplicateSelectionStream,
-    t,
   ]);
 
   const confirmPasteSelection = useCallback(async () => {
@@ -1083,13 +1105,16 @@ export const useSelectionOperation = (props?: {
     try {
       await runPasteSelectionStream(pasteRo, totalCount);
     } catch (error) {
-      const description =
-        getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-        (error instanceof Error ? error.message : 'Unknown error');
+      const description = getSelectionErrorDescription(error);
       ensurePasteProgressDialogError(description);
       console.error('Paste error: ', error);
     }
-  }, [ensurePasteProgressDialogError, pendingPasteSelection, runPasteSelectionStream, t]);
+  }, [
+    ensurePasteProgressDialogError,
+    getSelectionErrorDescription,
+    pendingPasteSelection,
+    runPasteSelectionStream,
+  ]);
 
   const doDelete = useCallback(
     async (selection: CombinedSelection) => {
@@ -1114,14 +1139,20 @@ export const useSelectionOperation = (props?: {
           toast.success(t('table:table.actionTips.deleteSuccessful'), { id: toastId });
         }
       } catch (error) {
-        const description =
-          getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-          (error instanceof Error ? error.message : 'Unknown error');
+        const description = getSelectionErrorDescription(error);
         toast.error(description, { id: deleteToastId });
         console.error('Delete error: ', error);
       }
     },
-    [deleteReq, openDeleteConfirmationDialog, rowCount, tableId, t, viewId]
+    [
+      deleteReq,
+      getSelectionErrorDescription,
+      openDeleteConfirmationDialog,
+      rowCount,
+      tableId,
+      t,
+      viewId,
+    ]
   );
 
   const doDuplicate = useCallback(
@@ -1145,20 +1176,18 @@ export const useSelectionOperation = (props?: {
           return;
         }
       } catch (error) {
-        const description =
-          getHttpErrorMessage(error as HttpError, t, 'sdk') ||
-          (error instanceof Error ? error.message : 'Unknown error');
+        const description = getSelectionErrorDescription(error);
         ensureDuplicateProgressDialogError(description);
         console.error('Duplicate error: ', error);
       }
     },
     [
       ensureDuplicateProgressDialogError,
+      getSelectionErrorDescription,
       openDuplicateConfirmationDialog,
       rowCount,
       runDuplicateSelectionStream,
       tableId,
-      t,
       viewId,
     ]
   );
@@ -1202,7 +1231,7 @@ export const useSelectionOperation = (props?: {
       } catch (e) {
         const error = e as Error;
         toast.error(t('table:table.actionTips.copyFailed'), {
-          description: error.message,
+          description: getFriendlyErrorMessage(error, t),
           id: toastId,
         });
         console.error('Sync copy error: ', error);

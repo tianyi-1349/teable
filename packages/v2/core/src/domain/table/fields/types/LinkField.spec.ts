@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { BaseId } from '../../../base/BaseId';
 import type { DomainError } from '../../../shared/DomainError';
-import { ForeignTable } from '../../ForeignTable';
 import { DbTableName } from '../../DbTableName';
+import { ForeignTable } from '../../ForeignTable';
 import { UpdateLinkConfigSpec } from '../../specs/field-updates/UpdateLinkConfigSpec';
 import { UpdateSingleSelectOptionsSpec } from '../../specs/field-updates/UpdateSingleSelectOptionsSpec';
 import { TableUpdateFieldTypeSpec } from '../../specs/TableUpdateFieldTypeSpec';

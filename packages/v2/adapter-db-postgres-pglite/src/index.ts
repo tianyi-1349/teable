@@ -8,5 +8,5 @@ export {
   v2PostgresDbTokens,
 } from '@teable/v2-adapter-db-postgres-shared';
 
-export * from './createDb';
-export * from './di/register';
+export { createV2PostgresPgliteDb } from './createDb';
+export { registerV2PostgresPgliteDb } from './di/register';

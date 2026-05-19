@@ -1,17 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IAiGenerateRo } from '@teable/openapi';
 
-export const WORKFLOW_AI_PROVIDER = Symbol('WORKFLOW_AI_PROVIDER');
+export const workflowAiProviderToken = Symbol('WORKFLOW_AI_PROVIDER');
 
 export interface IWorkflowAiService {
   generateText(baseId: string, aiGenerateRo: IAiGenerateRo): Promise<string>;
+  createWorkflowDraft(
+    baseId: string,
+    prompt: string,
+    context?: Record<string, unknown>
+  ): Promise<string>;
 }
 
 @Injectable()
 export class WorkflowAiService implements IWorkflowAiService {
-  constructor(@Inject(WORKFLOW_AI_PROVIDER) private readonly aiProvider: IWorkflowAiService) {}
+  constructor(@Inject(workflowAiProviderToken) private readonly aiProvider: IWorkflowAiService) {}
 
   async generateText(baseId: string, aiGenerateRo: IAiGenerateRo): Promise<string> {
     return this.aiProvider.generateText(baseId, aiGenerateRo);
+  }
+
+  async createWorkflowDraft(
+    baseId: string,
+    prompt: string,
+    context?: Record<string, unknown>
+  ): Promise<string> {
+    return this.aiProvider.createWorkflowDraft(baseId, prompt, context);
   }
 }

@@ -1,9 +1,9 @@
 import * as http from 'http';
 import * as https from 'https';
+import { URL } from 'url';
 import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiStreamErrorCode, type IAiViewContextQuery } from '@teable/openapi';
-import { URL } from 'url';
 import type { Response, Request } from 'express';
 import { AiService } from '../ai/ai.service';
 import { createAiStreamError, handleAiStreamErrorResponse } from '../ai/stream-error.helper';

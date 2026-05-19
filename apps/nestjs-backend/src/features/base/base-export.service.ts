@@ -120,7 +120,7 @@ export class BaseExportService {
     s3Path: string,
     archivePath: string,
     timeoutMs: number = 10 * 60 * 1000,
-    chatId?: string
+    _chatId?: string
   ): Promise<boolean> {
     try {
       const stream = await this.storageAdapter.downloadFile(bucket, s3Path);
@@ -411,8 +411,8 @@ export class BaseExportService {
     includedDashboardIds,
     excludedTableIds,
     // for enterprise version, do not delete these properties
-    includedAppIds,
-    includedWorkflowIds,
+    includedAppIds: _includedAppIds,
+    includedWorkflowIds: _includedWorkflowIds,
     // Root node IDs - nodes that should have their parentId set to null
     rootNodeIds,
   }: {

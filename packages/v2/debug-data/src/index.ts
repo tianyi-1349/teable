@@ -1,18 +1,40 @@
-export * from './types';
+export type {
+  DebugJsonField,
+  DebugTableMeta,
+  DebugTableSummary,
+  DebugFieldMeta,
+  DebugFieldSummary,
+  DebugFieldRelationDirection,
+  DebugFieldRelationOptions,
+  DebugFieldRelationEdgeKind,
+  DebugFieldRelationEdgeSemantic,
+  DebugFieldRelationEdge,
+  DebugFieldRelationNode,
+  DebugFieldRelationReport,
+  DebugRawRecord,
+  DebugRawRecordQueryOptions,
+  DebugRawRecordQueryResult,
+} from './types';
 
 // Ports
-export * from './ports/DebugMetaStore';
-export * from './ports/DebugRecordStore';
-export * from './ports/FieldRelationGraph';
+export type { IDebugMetaStore } from './ports/DebugMetaStore';
+export type { IDebugRecordStore } from './ports/DebugRecordStore';
+export type {
+  DebugFieldRelationGraphFieldMeta,
+  DebugFieldRelationGraphData,
+  IDebugFieldRelationGraph,
+} from './ports/FieldRelationGraph';
 
 // DI
-export * from './di/register';
-export * from './di/tokens';
+export type { V2DebugDataRegistrationOptions } from './di/register';
+export { registerV2DebugData } from './di/register';
+export { v2DebugDataTokens } from './di/tokens';
 
 // Service
-export * from './service/DebugDataService';
+export { DebugDataService } from './service/DebugDataService';
 
 // Adapters
-export * from './adapters/postgres/PostgresDebugMetaStore';
-export * from './adapters/postgres/PostgresDebugRecordStore';
-export * from './adapters/postgres/PostgresFieldRelationGraph';
+export { PostgresDebugMetaStore } from './adapters/postgres/PostgresDebugMetaStore';
+export { PostgresDebugRecordStore } from './adapters/postgres/PostgresDebugRecordStore';
+export type { FieldDependencyEdgeKind } from './adapters/postgres/PostgresFieldRelationGraph';
+export { PostgresFieldRelationGraph } from './adapters/postgres/PostgresFieldRelationGraph';

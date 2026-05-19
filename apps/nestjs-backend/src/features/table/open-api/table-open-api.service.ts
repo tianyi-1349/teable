@@ -45,9 +45,9 @@ import { EventEmitterService } from '../../../event-emitter/event-emitter.servic
 import { Events } from '../../../event-emitter/events';
 import { RawOpType } from '../../../share-db/interface';
 import type { IClsStore } from '../../../types/cls';
-import { validateRoleOperations } from '../../base-sql-executor/utils';
 import { updateOrder } from '../../../utils/update-order';
 import { PermissionService } from '../../auth/permission.service';
+import { validateRoleOperations } from '../../base-sql-executor/utils';
 import { BatchService } from '../../calculation/batch.service';
 import { LinkService } from '../../calculation/link.service';
 import { FieldCreatingService } from '../../field/field-calculate/field-creating.service';

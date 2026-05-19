@@ -16,7 +16,9 @@ import { AttachmentsStorageService } from '../attachments/attachments-storage.se
 import StorageAdapter from '../attachments/plugins/adapter';
 import { resolveThumbnailMimetype } from '../attachments/utils';
 
-const ATTACHMENT_DECORATION_CONCURRENCY = 4;
+const attachmentDecorationConcurrency = 4;
+const contentTypeHeader = 'Content-Type';
+const contentDispositionHeader = 'Content-Disposition';
 
 /**
  * Nestjs-backend adapter for the v2-core `IAttachmentUrlSignerService` port.
@@ -51,7 +53,7 @@ export class V2AttachmentUrlSignerService implements IAttachmentUrlSignerService
       }
     }
 
-    const limit = pLimit(ATTACHMENT_DECORATION_CONCURRENCY);
+    const limit = pLimit(attachmentDecorationConcurrency);
     const entries = await Promise.all(
       items.map((item) =>
         limit(async () => [item.token, await this.signOne(item, thumbnailPathMap)] as const)
@@ -75,8 +77,8 @@ export class V2AttachmentUrlSignerService implements IAttachmentUrlSignerService
       item.token,
       undefined,
       {
-        'Content-Type': item.mimetype,
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(
+        [contentTypeHeader]: item.mimetype,
+        [contentDispositionHeader]: `attachment; filename*=UTF-8''${encodeURIComponent(
           item.name ?? item.token
         )}`,
       }

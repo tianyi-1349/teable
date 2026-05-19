@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>能力盘点提示词复制板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.6;padding:24px}
+h1{font-size:1.5rem;margin-bottom:8px;color:#fff}
+p.sub{font-size:0.85rem;color:#888;margin-bottom:24px}
+.step{margin-bottom:24px;border:1px solid #333;border-radius:8px;overflow:hidden}
+.step-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#1a1a1a;cursor:pointer;gap:12px}
+.step-header h2{font-size:1rem;color:#f0f0f0;flex:1}
+.badge{font-size:0.7rem;padding:2px 8px;border-radius:4px;background:#2d2d2d;color:#aaa;white-space:nowrap}
+.copy-btn{font-size:0.8rem;padding:6px 16px;border-radius:6px;border:1px solid #555;background:#222;color:#ccc;cursor:pointer;transition:all .2s}
+.copy-btn:hover{background:#333;color:#fff;border-color:#888}
+.copy-btn.copied{background:#16a34a;color:#fff;border-color:#16a34a}
+.step-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.step-body.open{max-height:none;overflow:visible;padding:16px}
+.step-body pre{white-space:pre-wrap;word-break:break-word;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:0.82rem;line-height:1.5;background:#111;border:1px solid #333;border-radius:6px;padding:12px;margin-top:8px;color:#d4d4d4}
+.flow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.flow-item{font-size:0.75rem;padding:4px 12px;border-radius:4px;background:#1e3a5f;color:#93c5fd}
+.flow-arrow{color:#555;font-size:0.9rem;align-self:center}
+</style>
+</head>
+<body>
+
+<h1>能力盘点提示词复制板</h1>
+<p class="sub">按 Kimi → DeepSeek → GPT-5.5 串行执行。点击标题展开，点击“复制”一键复制提示词。</p>
+
+<div class="flow">
+  <span class="flow-item">Step 1: Kimi K2.6</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-item">Step 2: DeepSeek V4 Pro</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-item">Step 3: GPT-5.5</span>
+</div>
+
+<div class="step">
+  <div class="step-header" onclick="toggle(this)">
+    <h2>第 1 步：Kimi K2.6 生成结构地图</h2>
+    <span class="badge">结构扫描</span>
+    <button class="copy-btn" onclick="copyPrompt(event, this, 'step1')">复制</button>
+  </div>
+  <div class="step-body" id="step1-body">
+    <pre id="step1">你现在是仓库结构分析专家。请对这个代码仓库做“全目录代码结构扫描”，目标是建立一份完整、清晰、可供后续能力盘点使用的结构地图。
+
+分析目标：
+1. 识别仓库的顶层分层结构
+2. 识别前端、后端、共享包、数据库、插件、v2 子系统的职责边界
+3. 识别每个主要目录下已经存在的模块类型、核心入口、主要资源类型
+4. 标出高价值功能域，例如：
+   - auth / oauth / user / organization
+   - base / table / field / record / view / dashboard
+   - share / published app / base-node / automation / workflow
+   - import / export / attachments / comments / notifications
+   - plugin / sdk / openapi / v2 runtime / db schema
+5. 为后续能力识别建立“功能入口地图”
+
+你的工作方式：
+1. 优先按目录和模块划分理解系统
+2. 用文件命名、目录命名、入口文件、controller、page、route、schema、index 导出等信号推断职责
+3. 关注“模块存在且有实现痕迹”的能力
+4. 你的任务是做结构地图，不做最终能力结论
+
+请输出 Markdown，结构固定如下：
+
+# Repo Structure Map
+
+## 1. 仓库总体分层
+- 顶层目录
+- 每层职责
+- 运行时关系
+
+## 2. 主要应用
+### apps/nextjs-app
+- 主要职责
+- 关键页面域
+- 关键运行时域
+- 关键共享能力
+
+### apps/nestjs-backend
+- 主要职责
+- 关键 feature 模块
+- 关键 API 域
+- 关键基础设施能力
+
+## 3. 共享包与支撑层
+### packages/core
+### packages/openapi
+### packages/sdk
+### packages/db-main-prisma
+### packages/v2/*
+### plugins
+- 分别说明职责、输出物、被谁依赖
+
+## 4. 关键功能域地图
+按功能域列出：
+- 功能域名称
+- 对应目录
+- 关键入口文件或代表性文件
+- 与哪些模块协作
+
+## 5. 后续能力盘点建议
+给 DeepSeek 下一步分析提供建议：
+- 先看哪些模块
+- 哪些模块功能密度最高
+- 哪些模块需要结合前后端和 openapi 一起看
+
+要求：
+- 尽量覆盖全仓库
+- 尽量具体到目录层级
+- 不要泛泛而谈
+- 不要输出“可能有”“猜测有”这类模糊结论
+- 只依据代码结构和实现痕迹给出结构地图</pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-header" onclick="toggle(this)">
+    <h2>第 2 步：DeepSeek V4 Pro 生成能力初稿</h2>
+    <span class="badge">能力识别</span>
+    <button class="copy-btn" onclick="copyPrompt(event, this, 'step2')">复制</button>
+  </div>
+  <div class="step-body" id="step2-body">
+    <pre id="step2">你现在是代码能力识别专家。请基于下面提供的“Repo Structure Map”，继续分析这个仓库“已经实现的具体能力”，形成一份详细能力清单初稿。
+
+你的输入材料：
+1. 仓库结构地图 Repo Structure Map
+2. 代码仓库本身
+3. 重点关注前后端、OpenAPI、数据库 schema、SDK、v2 子系统之间的对应关系
+
+分析目标：
+1. 识别仓库已经实现的具体业务能力
+2. 把能力按类型归类
+3. 每一项能力都尽量给出对应模块或文件线索
+4. 区分“已实现能力”和“支撑性能力”
+5. 找出能力之间的调用或契约关系
+
+重点识别以下类型：
+- 用户与身份能力
+- 组织与空间能力
+- Base / Table / Field / Record 数据能力
+- 多视图能力
+- 分享与发布能力
+- 自动化与 workflow 能力
+- AI 能力
+- 导入导出能力
+- 评论、通知、协作能力
+- 插件与扩展能力
+- OpenAPI / SDK / 外部接入能力
+- v2 runtime / command-query / domain 能力
+- 数据库 schema / migration / persistence 能力
+- 实时协作、undo/redo、history、search、aggregation 等横向能力
+
+请输出 Markdown，结构固定如下：
+
+# Implemented Capabilities Draft
+
+## 1. 能力总览
+- 用 10 到 20 条概括全仓库已实现的大类能力
+
+## 2. 详细能力清单
+每一项能力按以下格式输出：
+
+### [能力类型] 能力名称
+- 能力说明：
+- 主要实现位置：
+- 关键文件：
+- 前端入口：
+- 后端入口：
+- OpenAPI / SDK / Schema 对应：
+- 当前能力成熟度判断：完整 / 较完整 / 局部实现
+
+示例类型：
+- 认证与登录
+- 记录增删改查
+- 视图分享
+- 自动化动作运行
+- 附件上传下载
+- 模板管理
+- 评论系统
+- 插件面板
+- 数据导入
+- 数据导出
+- 权限矩阵
+- 实时同步
+- Undo / Redo
+
+## 3. 横向基础能力
+- 权限
+- 路由与资源解析
+- API 契约
+- 数据校验
+- 事件与消息
+- 任务队列
+- 存储与文件
+- 审计/历史
+- 观测与监控
+
+## 4. 关键能力链路
+列出若干“从页面/接口到后端实现再到共享契约”的完整链路：
+- 能力名称
+- 前端文件
+- API/契约文件
+- 后端文件
+- 数据层/领域层文件
+
+## 5. 不确定项
+列出你认为存在实现痕迹、但仍需 GPT-5.5 最终复核的能力项
+
+要求：
+- 输出尽量细
+- 每项能力尽量落到文件级别
+- 允许能力清单较长
+- 重点是“已实现了什么”
+- 不要把纯目录名当作最终结论，尽量结合入口文件、controller、page、schema、handler、service 等信号</pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-header" onclick="toggle(this)">
+    <h2>第 3 步：GPT-5.5 生成最终能力清单</h2>
+    <span class="badge">最终收敛</span>
+    <button class="copy-btn" onclick="copyPrompt(event, this, 'step3')">复制</button>
+  </div>
+  <div class="step-body" id="step3-body">
+    <pre id="step3">你现在是最终收敛与校验专家。请基于以下两份输入材料，生成这份仓库“已经实现能力”的最终版明细清单：
+
+输入材料：
+1. Repo Structure Map
+2. Implemented Capabilities Draft
+
+你的职责：
+1. 对能力项做去重、合并、归类
+2. 校验能力名称是否准确
+3. 校验前后端、openapi、schema、v2 模块之间是否形成一致链路
+4. 删除过于虚的表述，保留能被代码支撑的能力
+5. 按“用户真正可感知的功能”和“系统支撑能力”两层输出
+6. 输出一份适合产品、研发、架构评审共同使用的最终能力目录
+
+最终输出要求：
+请输出 Markdown，结构固定如下：
+
+# Final Capability Inventory
+
+## 1. 仓库已实现能力总表
+按大类输出，每类先写一句定义，再列具体能力。
+
+建议分类：
+- 用户与身份
+- 组织、空间与协作
+- Base / Table / Field / Record 数据核心
+- 视图与页面表现
+- 分享、发布与公开访问
+- 自动化与 Workflow
+- AI 与智能生成
+- 导入、导出与附件
+- 评论、通知与协作反馈
+- 插件、扩展与二次开发
+- OpenAPI、SDK 与外部集成
+- v2 领域内核与新架构能力
+- 数据存储、schema 与持久化
+- 基础设施与系统运行能力
+
+## 2. 详细能力明细
+每项能力按以下格式整理：
+
+### 能力名称
+- 类型：
+- 用户价值：
+- 已实现内容：
+- 关键模块：
+- 关键文件：
+- 前端/后端/契约/数据层对应关系：
+- 完整度：完整 / 较完整 / 局部实现
+- 备注：
+
+## 3. 系统级支撑能力
+列出非直接用户功能、但已实现的基础能力：
+- 权限与鉴权
+- schema 校验
+- 命令查询分离
+- 实时通信
+- undo/redo
+- 事件驱动
+- 插件桥接
+- API 类型契约
+- 观测与日志
+- 队列与异步任务
+- 文件与对象存储
+
+## 4. 高价值能力链路
+挑选最关键的 10 到 20 条能力链路，按下面格式输出：
+- 能力
+- 前端入口
+- API / OpenAPI
+- 后端实现
+- 数据或领域层
+- 说明
+
+## 5. 最终结论
+输出：
+1. 这个仓库最核心的能力版图是什么
+2. 哪些能力已经形成体系化实现
+3. 哪些能力属于局部落地或演进中状态
+
+要求：
+- 语言准确
+- 去重彻底
+- 分类稳定
+- 每条结论尽量能被代码结构支撑
+- 最终产物要适合作为“仓库能力盘点清单”</pre>
+  </div>
+</div>
+
+<script>
+function toggle(header){
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+async function copyPrompt(event, button, id){
+  event.stopPropagation();
+  const text = document.getElementById(id).textContent;
+  await navigator.clipboard.writeText(text);
+  const original = button.textContent;
+  button.textContent = '已复制';
+  button.classList.add('copied');
+  setTimeout(() => {
+    button.textContent = original;
+    button.classList.remove('copied');
+  }, 1500);
+}
+</script>
+
+</body>
+</html>

@@ -8,7 +8,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": false,
     "target": "esnext",
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom", "dom.iterable"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": false,
@@ -20,6 +20,7 @@
     "rootDir": "../../",
     "outDir": "dist",
     "paths": {
+      "@teable/openapi": ["../../openapi/src"],
       "@teable/v2-contract-http": ["../contract-http/src"],
       "@teable/v2-container-node": ["../container-node/src"],
       "@teable/v2-container-node-test": ["../container-node-test/src"],
@@ -74,6 +75,7 @@
   ],
   "include": [
     "src",
+    "../../openapi/src",
     "../contract-http/src",
     "../container-node/src",
     "../container-node-test/src",

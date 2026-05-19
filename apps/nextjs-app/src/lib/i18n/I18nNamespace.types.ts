@@ -1,6 +1,6 @@
-import type { CustomTypeOptions } from 'i18next';
+import type { I18nNamespaces } from '@teable/common-i18n';
 
-export type I18nNamespace = keyof CustomTypeOptions['resources'];
+export type I18nNamespace = keyof I18nNamespaces;
 
 /**
  * Helper to get fully typed namespaced keys

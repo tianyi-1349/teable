@@ -12,8 +12,8 @@ import { FieldId } from '../../../domain/table/fields/FieldId';
 import { FieldName } from '../../../domain/table/fields/FieldName';
 import { AttachmentField } from '../../../domain/table/fields/types/AttachmentField';
 import { AutoNumberField } from '../../../domain/table/fields/types/AutoNumberField';
-import { ButtonField } from '../../../domain/table/fields/types/ButtonField';
 import { ButtonConfirm } from '../../../domain/table/fields/types/ButtonConfirm';
+import { ButtonField } from '../../../domain/table/fields/types/ButtonField';
 import { ButtonLabel } from '../../../domain/table/fields/types/ButtonLabel';
 import { ButtonMaxCount } from '../../../domain/table/fields/types/ButtonMaxCount';
 import { ButtonResetCount } from '../../../domain/table/fields/types/ButtonResetCount';
@@ -79,6 +79,7 @@ import { Table as TableAggregate } from '../../../domain/table/Table';
 import type { ITableBuildProps } from '../../../domain/table/TableBuilder';
 import { TableId } from '../../../domain/table/TableId';
 import { TableName } from '../../../domain/table/TableName';
+import { copyViewState } from '../../../domain/table/views/copyViewState';
 import { CalendarView } from '../../../domain/table/views/types/CalendarView';
 import { FormView } from '../../../domain/table/views/types/FormView';
 import { GalleryView } from '../../../domain/table/views/types/GalleryView';
@@ -846,6 +847,10 @@ class ViewToPersistenceVisitor implements IViewVisitor<ITableViewPersistenceDTO>
         id: view.id().toString(),
         name: view.name().toString(),
         type,
+        description: view.description(),
+        ...(view.order() !== undefined ? { order: view.order() } : {}),
+        ...(view.isLocked() !== undefined ? { isLocked: view.isLocked() } : {}),
+        ...(view.shareMeta() !== undefined ? { shareMeta: view.shareMeta() } : {}),
         columnMeta: columnMeta.toDto(),
         query: queryDefaults.toDto(),
         ...(view.options() !== undefined ? { options: view.options() } : {}),
@@ -1388,12 +1393,17 @@ export class DefaultTableMapper implements ITableMapper {
 
         return viewResult.andThen((view) =>
           ViewColumnMeta.rehydrate(dto.columnMeta).andThen((columnMeta) =>
-            view
-              .setColumnMeta(columnMeta)
-              .andThen(() => ViewQueryDefaults.rehydrate(dto.query ?? {}))
-              .andThen((queryDefaults) => view.setQueryDefaults(queryDefaults))
-              .andThen(() => view.setOptions(dto.options))
-              .map(() => view)
+            ViewQueryDefaults.rehydrate(dto.query ?? {}).andThen((queryDefaults) =>
+              copyViewState(view, view, {
+                columnMeta,
+                queryDefaults,
+                options: dto.options,
+                description: dto.description,
+                order: dto.order,
+                isLocked: dto.isLocked,
+                shareMeta: dto.shareMeta,
+              })
+            )
           )
         );
       })

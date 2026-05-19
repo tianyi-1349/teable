@@ -1,1 +1,1 @@
-export * from './PapaparseCsvParser';
+export { PapaparseCsvParser } from './PapaparseCsvParser';

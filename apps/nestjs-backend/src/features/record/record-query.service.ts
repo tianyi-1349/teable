@@ -7,7 +7,7 @@ import { Knex } from 'knex';
 import { InjectModel } from 'nest-knexjs';
 import { Timing } from '../../utils/timing';
 import type { IFieldInstance } from '../field/model/factory';
-import { createFieldInstanceByRaw, fieldCore2FieldInstance } from '../field/model/factory';
+import { fieldCore2FieldInstance } from '../field/model/factory';
 import { InjectRecordQueryBuilder, IRecordQueryBuilder } from './query-builder';
 
 /**

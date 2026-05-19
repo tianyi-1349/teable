@@ -7,6 +7,9 @@ import {
   TableDuplicateFieldSpec,
   TableRemoveFieldSpec,
   TableUpdateViewColumnMetaSpec,
+  TableUpdateViewNameSpec,
+  TableUpdateViewOptionsSpec,
+  TableUpdateViewPropertiesSpec,
   TableUpdateViewQueryDefaultsSpec,
   TableRenameSpec,
   TableByBaseIdSpec,
@@ -152,6 +155,32 @@ export class TableWhereVisitor
     return err(
       domainError.validation({
         message: 'TableUpdateViewColumnMetaSpec is not supported for table filters',
+      })
+    );
+  }
+
+  visitTableUpdateViewName(_: TableUpdateViewNameSpec): Result<ITableMetaWhere, DomainError> {
+    return err(
+      domainError.validation({
+        message: 'TableUpdateViewNameSpec is not supported for table filters',
+      })
+    );
+  }
+
+  visitTableUpdateViewOptions(_: TableUpdateViewOptionsSpec): Result<ITableMetaWhere, DomainError> {
+    return err(
+      domainError.validation({
+        message: 'TableUpdateViewOptionsSpec is not supported for table filters',
+      })
+    );
+  }
+
+  visitTableUpdateViewProperties(
+    _: TableUpdateViewPropertiesSpec
+  ): Result<ITableMetaWhere, DomainError> {
+    return err(
+      domainError.validation({
+        message: 'TableUpdateViewPropertiesSpec is not supported for table filters',
       })
     );
   }

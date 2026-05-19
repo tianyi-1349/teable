@@ -18,6 +18,7 @@ import {
   type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
+import { type JsonValue, jsonValueSchema } from '../shared/json';
 import type { ITableDto } from './dto';
 import { mapTableToDto, tableDtoSchema } from './dto';
 
@@ -44,14 +45,15 @@ export const updateFieldEventDtoSchema = domainEventDtoSchema.extend({
     .record(
       z.string(),
       z.object({
-        oldValue: z.unknown(),
-        newValue: z.unknown(),
+        oldValue: jsonValueSchema.optional(),
+        newValue: jsonValueSchema.optional(),
       })
     )
     .optional(),
 });
 
 export type IUpdateFieldEventDto = z.infer<typeof updateFieldEventDtoSchema>;
+type IUpdateFieldChangesDto = NonNullable<IUpdateFieldEventDto['changes']>;
 
 export const updateFieldResponseDataSchema = z.object({
   table: tableDtoSchema,
@@ -100,8 +102,8 @@ const hasFieldId = (
 
 const mapFieldUpdatedChanges = (
   changes: Readonly<Record<string, FieldUpdatedValueChange>>
-): Record<string, { oldValue: unknown; newValue: unknown }> => {
-  const mapped: Record<string, { oldValue: unknown; newValue: unknown }> = {};
+): IUpdateFieldChangesDto => {
+  const mapped: IUpdateFieldChangesDto = {};
 
   for (const [property, value] of Object.entries(changes)) {
     mapped[property] = {
@@ -113,14 +115,17 @@ const mapFieldUpdatedChanges = (
   return mapped;
 };
 
-const serializeChangeValue = (value: unknown): unknown => {
+const serializeChangeValue = (value: unknown): JsonValue | undefined => {
   if (value == null) return value;
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => serializeChangeValue(item));
+    return value.flatMap((item) => {
+      const serialized = serializeChangeValue(item);
+      return serialized === undefined ? [] : [serialized];
+    });
   }
 
   if (value instanceof Date) {
@@ -151,7 +156,7 @@ const serializeChangeValue = (value: unknown): unknown => {
     );
   }
 
-  return value;
+  return String(value);
 };
 
 const callObjectMethod = (target: object, methodName: string): unknown => {
@@ -171,7 +176,7 @@ const isResultLike = (value: unknown): value is { isOk: () => boolean; value: un
   );
 };
 
-const unwrapResultLike = (value: unknown): unknown => {
+const unwrapResultLike = (value: unknown): JsonValue | undefined => {
   if (isResultLike(value)) {
     return value.isOk() ? serializeChangeValue(value.value) : undefined;
   }

@@ -1,4 +1,5 @@
 import type { DehydratedState } from '@tanstack/react-query';
+import { BaseNodeResourceType } from '@teable/openapi';
 import type { IGetBaseVo, ITableVo } from '@teable/openapi';
 import type { IUser } from '@teable/sdk';
 import { ExpandRecordNavigationContext, NotificationProvider, SessionProvider } from '@teable/sdk';
@@ -24,6 +25,7 @@ import type { IBaseResourceTable } from '../hooks/useBaseResource';
 import { useBaseResource } from '../hooks/useBaseResource';
 import { useEnv } from '../hooks/useEnv';
 import { useSdkLocale } from '../hooks/useSdkLocale';
+import { PublishedAppProvider, PublishedAppRuntime } from '../published-app';
 import { TemplateBaseLayout } from './TemplateBaseLayout';
 
 const BaseLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,10 +85,25 @@ export const BaseLayout: React.FC<{
   base?: IGetBaseVo;
 }> = ({ children, ...props }) => {
   const { tableServerData, user, dehydratedState } = props;
-  const { baseId, tableId, viewId } = useBaseResource() as IBaseResourceTable;
+  const resource = useBaseResource();
+  const { baseId, tableId, viewId } = resource as IBaseResourceTable;
   const sdkLocale = useSdkLocale();
   const { i18n } = useTranslation();
   const { maxSearchFieldCount } = useEnv();
+  // Keep the existing editor shell for table/dashboard/workflow routes.
+  // The first runtime-shell rollout only wraps authenticated App routes.
+  const shouldUsePublishedAppRuntime = resource.resourceType === BaseNodeResourceType.App;
+
+  const content = shouldUsePublishedAppRuntime ? (
+    <PublishedAppProvider base={props.base}>
+      <PublishedAppRuntime>
+        <BaseLayoutInner>{children}</BaseLayoutInner>
+      </PublishedAppRuntime>
+    </PublishedAppProvider>
+  ) : (
+    <BaseLayoutInner>{children}</BaseLayoutInner>
+  );
+
   return (
     <TemplateBaseLayout {...props} childrenContent={children}>
       <AppLayout>
@@ -108,9 +125,7 @@ export const BaseLayout: React.FC<{
                 <BaseProvider>
                   <BaseNodeProvider>
                     <BasePermissionListener />
-                    <TableProvider serverData={tableServerData}>
-                      <BaseLayoutInner>{children}</BaseLayoutInner>
-                    </TableProvider>
+                    <TableProvider serverData={tableServerData}>{content}</TableProvider>
                   </BaseNodeProvider>
                 </BaseProvider>
               </AnchorContext.Provider>

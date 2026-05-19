@@ -102,6 +102,69 @@ type NormalizedFieldOptions = {
   config?: Record<string, unknown>;
 };
 
+const fallbackToSingleLineText = (
+  rawOptions: Record<string, unknown> | undefined
+): NormalizedFieldOptions => ({ type: 'singleLineText', options: rawOptions });
+
+const normalizeConditionalLookupField = (
+  rawOptions: Record<string, unknown> | undefined,
+  rawLookupOptions: Record<string, unknown> | undefined
+): NormalizedFieldOptions => {
+  const foreignTableId =
+    readString(rawLookupOptions, 'foreignTableId') ?? readString(rawOptions, 'foreignTableId');
+  const lookupFieldId =
+    readString(rawLookupOptions, 'lookupFieldId') ?? readString(rawOptions, 'lookupFieldId');
+  const condition = normalizeCondition(rawLookupOptions) ?? normalizeCondition(rawOptions);
+
+  if (foreignTableId && lookupFieldId && condition) {
+    return { type: 'conditionalLookup', options: { foreignTableId, lookupFieldId, condition } };
+  }
+
+  return fallbackToSingleLineText(rawOptions);
+};
+
+const normalizeConditionalRollupField = (
+  rawOptions: Record<string, unknown> | undefined
+): NormalizedFieldOptions => {
+  const options = normalizeFormulaOptions(rawOptions, 'countall({values})');
+  const foreignTableId = readString(rawOptions, 'foreignTableId');
+  const lookupFieldId = readString(rawOptions, 'lookupFieldId');
+  const condition = normalizeCondition(rawOptions);
+
+  if (options && foreignTableId && lookupFieldId && condition) {
+    return {
+      type: 'conditionalRollup',
+      options,
+      config: { foreignTableId, lookupFieldId, condition },
+    };
+  }
+
+  return fallbackToSingleLineText(rawOptions);
+};
+
+const hasComputedFormulaDependency = (
+  expression: string,
+  fieldTypesById: ReadonlyMap<string, string>
+): boolean =>
+  extractFieldReferences(expression).some((ref) => {
+    const type = fieldTypesById.get(ref);
+    return type === 'rollup' || type === 'conditionalRollup';
+  });
+
+const normalizeFormulaField = (
+  rawOptions: Record<string, unknown> | undefined,
+  fieldTypesById: ReadonlyMap<string, string>
+): NormalizedFieldOptions => {
+  const expression = typeof rawOptions?.expression === 'string' ? rawOptions.expression : '';
+
+  if (expression && hasComputedFormulaDependency(expression, fieldTypesById)) {
+    return fallbackToSingleLineText(rawOptions);
+  }
+
+  const options = normalizeFormulaOptions(rawOptions, '0');
+  return options ? { type: 'formula', options } : fallbackToSingleLineText(rawOptions);
+};
+
 /**
  * Normalize a field's options from v1 (dottea) format to v2 format.
  * This handles the conversion of link, lookup, formula, rollup, conditionalRollup,
@@ -120,7 +183,7 @@ export const normalizeFieldOptions = (
 
   if (field.type === 'link') {
     const options = normalizeLinkOptions(rawOptions);
-    return options ? { type: 'link', options } : { type: 'singleLineText', options: rawOptions };
+    return options ? { type: 'link', options } : fallbackToSingleLineText(rawOptions);
   }
 
   const lookupOptions = normalizeLookupOptions(rawLookupOptions);
@@ -132,52 +195,22 @@ export const normalizeFieldOptions = (
     const options = normalizeFormulaOptions(rawOptions, 'countall({values})');
     return options && lookupOptions
       ? { type: 'rollup', options, config: lookupOptions }
-      : { type: 'singleLineText', options: rawOptions };
+      : fallbackToSingleLineText(rawOptions);
   }
 
   // Check conditionalLookup BEFORE formula, because v1 dottea stores conditional lookups
   // with the looked-up field's type (e.g., "formula") and isConditionalLookup: true flag.
   // The lookupOptions contains foreignTableId, lookupFieldId, and filter (condition).
   if (field.type === 'conditionalLookup' || field.isConditionalLookup) {
-    // Config can be in rawOptions or rawLookupOptions depending on v1 export format
-    const foreignTableId =
-      readString(rawLookupOptions, 'foreignTableId') ?? readString(rawOptions, 'foreignTableId');
-    const lookupFieldId =
-      readString(rawLookupOptions, 'lookupFieldId') ?? readString(rawOptions, 'lookupFieldId');
-    const condition = normalizeCondition(rawLookupOptions) ?? normalizeCondition(rawOptions);
-    if (foreignTableId && lookupFieldId && condition) {
-      return { type: 'conditionalLookup', options: { foreignTableId, lookupFieldId, condition } };
-    }
-    return { type: 'singleLineText', options: rawOptions };
+    return normalizeConditionalLookupField(rawOptions, rawLookupOptions);
   }
 
   if (field.type === 'conditionalRollup') {
-    const options = normalizeFormulaOptions(rawOptions, 'countall({values})');
-    const foreignTableId = readString(rawOptions, 'foreignTableId');
-    const lookupFieldId = readString(rawOptions, 'lookupFieldId');
-    const condition = normalizeCondition(rawOptions);
-    if (options && foreignTableId && lookupFieldId && condition) {
-      return {
-        type: 'conditionalRollup',
-        options,
-        config: { foreignTableId, lookupFieldId, condition },
-      };
-    }
-    return { type: 'singleLineText', options: rawOptions };
+    return normalizeConditionalRollupField(rawOptions);
   }
 
   if (field.type === 'formula') {
-    const expression = typeof rawOptions?.expression === 'string' ? rawOptions.expression : '';
-    const refs = expression ? extractFieldReferences(expression) : [];
-    const hasComputedDependency = refs.some((ref) => {
-      const type = fieldTypesById.get(ref);
-      return type === 'rollup' || type === 'conditionalRollup';
-    });
-    if (hasComputedDependency) {
-      return { type: 'singleLineText', options: rawOptions };
-    }
-    const options = normalizeFormulaOptions(rawOptions, '0');
-    return options ? { type: 'formula', options } : { type: 'singleLineText', options: rawOptions };
+    return normalizeFormulaField(rawOptions, fieldTypesById);
   }
 
   return { options: rawOptions };

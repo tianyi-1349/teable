@@ -1,5 +1,5 @@
-import type { BaseId, ITableRepository, MemoryEventBus } from '@teable/v2-core';
 import type { DependencyContainer } from '@teable/v2-di';
+import type { BaseId, ITableRepository, MemoryEventBus } from '@teable/v2-core';
 
 let current: IV2NodeUnitTestContainer | undefined;
 

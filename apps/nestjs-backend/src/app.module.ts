@@ -14,6 +14,7 @@ import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuthModule } from './features/auth/auth.module';
 import { BaseModule } from './features/base/base.module';
 import { BaseNodeModule } from './features/base-node/base-node.module';
+import { BaseShareModule } from './features/base-share/base-share.module';
 import { BuiltinAssetsInitModule } from './features/builtin-assets-init';
 import { CanaryModule } from './features/canary';
 import { ChatModule } from './features/chat/chat.module';
@@ -40,7 +41,6 @@ import { PluginPanelModule } from './features/plugin-panel/plugin-panel.module';
 import { SelectionModule } from './features/selection/selection.module';
 import { AdminOpenApiModule } from './features/setting/open-api/admin-open-api.module';
 import { SettingOpenApiModule } from './features/setting/open-api/setting-open-api.module';
-import { BaseShareModule } from './features/base-share/base-share.module';
 import { ShareModule } from './features/share/share.module';
 import { SpaceModule } from './features/space/space.module';
 import { TemplateOpenApiModule } from './features/template/template-open-api.module';
@@ -49,6 +49,7 @@ import { UndoRedoModule } from './features/undo-redo/open-api/undo-redo.module';
 import { UserModule } from './features/user/user.module';
 import { V2Module } from './features/v2/v2.module';
 import { WorkflowModule } from './features/workflow/workflow.module';
+import { WorkflowScheduleModule } from './features/workflow/workflow-schedule.module';
 import { GlobalModule } from './global/global.module';
 import { InitBootstrapProvider } from './global/init-bootstrap.provider';
 import { LoggerModule } from './logger/logger.module';
@@ -107,6 +108,7 @@ export const appModules = {
     ObservabilityModule,
     BuiltinAssetsInitModule,
     WorkflowModule,
+    WorkflowScheduleModule,
     V2Module,
   ],
   providers: [InitBootstrapProvider],

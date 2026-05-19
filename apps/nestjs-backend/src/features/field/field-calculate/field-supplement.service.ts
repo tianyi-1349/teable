@@ -80,11 +80,6 @@ import { FormulaFieldDto } from '../model/field-dto/formula-field.dto';
 import type { LinkFieldDto } from '../model/field-dto/link-field.dto';
 import { RollupFieldDto } from '../model/field-dto/rollup-field.dto';
 
-type LinkFieldReference = Pick<IFieldVo, 'name' | 'isMultipleCellValue'> & {
-  options: Pick<ILinkFieldOptionsRo, 'relationship' | 'foreignTableId'> &
-    Partial<Pick<ILinkFieldOptions, 'fkHostTableName' | 'selfKeyName' | 'foreignKeyName'>>;
-};
-
 @Injectable()
 export class FieldSupplementService {
   constructor(
@@ -503,6 +498,12 @@ export class FieldSupplementService {
   }
 
   private async prepareLookupOptions(field: IFieldRo, batchFieldVos?: IFieldVo[]) {
+    type ILinkFieldReference = {
+      name: string;
+      isMultipleCellValue?: boolean;
+      options: ILinkFieldOptions;
+    };
+
     const { lookupOptions } = field;
     if (!lookupOptions) {
       throw new CustomHttpException(`lookupOptions is required`, HttpErrorCode.VALIDATION_ERROR, {
@@ -526,11 +527,11 @@ export class FieldSupplementService {
     const batchLinkField = batchFieldVos?.find(
       (candidate) => candidate.id === linkFieldId && candidate.type === FieldType.Link
     );
-    const linkFieldOptions: LinkFieldReference['options'] | undefined =
+    const linkFieldOptions: ILinkFieldReference['options'] | undefined =
       (optionsRaw && (JSON.parse(optionsRaw as string) as ILinkFieldOptions)) ||
-      (batchLinkField?.options as ILinkFieldOptions | ILinkFieldOptionsRo | undefined);
+      (batchLinkField?.options as ILinkFieldOptions | undefined);
 
-    const linkFieldReference: LinkFieldReference | undefined =
+    const linkFieldReference: ILinkFieldReference | undefined =
       linkFieldRaw && linkFieldOptions
         ? {
             name: linkFieldRaw.name,

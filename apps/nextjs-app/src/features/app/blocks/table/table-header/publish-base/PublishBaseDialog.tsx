@@ -125,7 +125,11 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
   const isTemplatePublished = templateDetail?.isPublished;
   const isTemplateFeatured = templateDetail?.featured ?? false;
   const validationResult = useMemo(() => {
-    return validatePublishedAppConfig({ selectedNodeIds, defaultActiveNodeId, treeItems });
+    return validatePublishedAppConfig({
+      selectedNodeIds,
+      defaultNodeId: defaultActiveNodeId,
+      treeItems,
+    });
   }, [defaultActiveNodeId, selectedNodeIds, treeItems]);
   const visibleValidationIssues = validationResult.issues.filter(
     (issue) => issue.severity !== 'info' || selectedNodeIds.length > 0

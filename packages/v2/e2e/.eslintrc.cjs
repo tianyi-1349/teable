@@ -24,5 +24,12 @@ module.exports = {
   rules: {
     '@typescript-eslint/naming-convention': 'off',
   },
-  overrides: [],
+  overrides: [
+    {
+      files: ['**/*.spec.ts', '**/*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
+  ],
 };

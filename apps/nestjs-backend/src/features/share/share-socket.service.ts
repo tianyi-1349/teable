@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpErrorCode, type IGetFieldsQuery } from '@teable/core';
 import type { IGetRecordsRo } from '@teable/openapi';
 import { Knex } from 'knex';

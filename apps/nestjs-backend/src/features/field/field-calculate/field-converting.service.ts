@@ -7,7 +7,6 @@ import type {
   IConvertFieldRo,
   ILinkFieldOptions,
   FieldCore,
-  LinkFieldCore,
 } from '@teable/core';
 import {
   CellValueType,

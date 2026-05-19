@@ -14,7 +14,7 @@ WeChat Mini Program support is intentionally out of scope for this implementatio
 - App node route closure for logged-in and share routes.
 - Cross-device app shell for desktop, tablet, mobile, embed, and PWA standalone contexts.
 - Published app manifest derived from base, share, publish info, and base nodes.
-- Unified navigation model based on published nodes and default active node.
+- Unified navigation model based on published nodes and runtime `defaultNodeId`.
 - Resource renderer abstraction for Table, Dashboard, Workflow, App, and unsupported resources.
 - Mobile-friendly and cross-device behavior for Dashboard, Chart, Table, Form, and shared views.
 - Cross-device preview and validation in the publish dialog.
@@ -98,12 +98,13 @@ Acceptance Criteria:
 
 ### R6: Published Navigation Model
 
-The system shall derive navigation from published nodes and default active node.
+The system shall derive navigation from published nodes and runtime `defaultNodeId`.
 
 Acceptance Criteria:
 
 - `publishInfo.nodes` controls published app page visibility.
-- `defaultActiveNodeId` controls the default app entry when valid.
+- The runtime manifest exposes `defaultNodeId` as the canonical default app entry.
+- Source publish configuration may still store this selection as `defaultActiveNodeId`, but runtime contracts and runtime consumers use `defaultNodeId`.
 - If the default node is invalid, the system falls back to the first renderable published node.
 - Folder nodes are rendered as navigation groups, not resource pages.
 - Direct access to resources outside the published node set is denied with a clear state.

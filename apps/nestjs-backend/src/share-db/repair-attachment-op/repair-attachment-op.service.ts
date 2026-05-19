@@ -190,6 +190,7 @@ export class RepairAttachmentOpService {
     };
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   async repairAttachmentOp(
     rawOp: EditOp | CreateOp | DeleteOp,
     context: {

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import type { INestApplication } from '@nestjs/common';
 import {
   DateFormattingPreset,
@@ -8,9 +9,10 @@ import {
   formatDateToString,
 } from '@teable/core';
 import { GroupPointType } from '@teable/openapi';
-import type { IGroupHeaderPoint } from '@teable/openapi';
-import type { ITableFullVo } from '@teable/openapi';
+import type { IGroupHeaderPoint, ITableFullVo } from '@teable/openapi';
 import { createTable, getRecords, initApp, permanentDeleteTable } from './utils/init-app';
+
+const utcTimeZone = 'UTC';
 
 describe('OpenAPI Record-Group-DateTime-TimeZone (e2e)', async () => {
   let app: INestApplication;
@@ -40,7 +42,7 @@ describe('OpenAPI Record-Group-DateTime-TimeZone (e2e)', async () => {
             formatting: {
               date: DateFormattingPreset.ISO,
               time: TimeFormatting.Hour24,
-              timeZone: 'UTC',
+              timeZone: utcTimeZone,
             },
           },
         },
@@ -77,7 +79,7 @@ describe('OpenAPI Record-Group-DateTime-TimeZone (e2e)', async () => {
       const formatting = {
         date: DateFormattingPreset.ISO,
         time: TimeFormatting.Hour24,
-        timeZone: 'UTC',
+        timeZone: utcTimeZone,
       };
 
       expect(formatDateToString(groupHeader!.value as string, formatting)).toBe(
@@ -103,7 +105,7 @@ describe('OpenAPI Record-Group-DateTime-TimeZone (e2e)', async () => {
             formatting: {
               date: DateFormattingPreset.ISO,
               time: TimeFormatting.Hour24,
-              timeZone: 'UTC',
+              timeZone: utcTimeZone,
             },
           },
         },

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import * as packageExports from './index';
 import { registerV2TableRepositoryPostgresAdapter } from './di/register';
 import { referenceError } from './meta';
 import { PostgresTableRecordRepository } from './record';
 import { v2PostgresDdlAdapterConfigSchema } from './schema/config';
 import { hasPgInputIsValid } from './utils';
+import * as packageExports from './index';
 
 describe('package exports', () => {
   it('re-exports the main API surface from the package root', () => {

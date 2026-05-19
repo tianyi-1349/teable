@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
+import * as fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve, resolve as resolvePath } from 'node:path';
-import * as fs from 'node:fs';
 import { PapaparseCsvParser } from '@teable/v2-adapter-csv-parser-papaparse';
 import type { IV2PostgresDbConfig } from '@teable/v2-adapter-db-postgres-pg';
 import {
@@ -44,7 +44,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 
-import { SpyLogger, type ComputedPlanLogEntry } from './SpyLogger';
+import { SpyLogger, type IComputedPlanLogEntry } from './SpyLogger';
 
 /**
  * Node.js crypto-based hasher implementation for tests.
@@ -97,13 +97,13 @@ export interface IV2NodeTestContainer {
    * Get all computed:plan log entries captured by the SpyLogger.
    * These are logged by ComputedFieldUpdater during execution.
    */
-  getComputedPlans(): ComputedPlanLogEntry[];
+  getComputedPlans(): IComputedPlanLogEntry[];
 
   /**
    * Get the most recent computed:plan log entry.
    * Useful for verifying the last computed update operation.
    */
-  getLastComputedPlan(): ComputedPlanLogEntry | undefined;
+  getLastComputedPlan(): IComputedPlanLogEntry | undefined;
 
   /**
    * Clear all captured log entries.
@@ -123,10 +123,10 @@ export interface IV2NodeTestContainerOptions {
   maxFreeRowLimit?: number;
   computedUpdate?: IV2TableRepositoryPostgresConfig['computedUpdate'];
   logToConsole?: boolean;
-  logLevel?: V2NodeTestContainerLogLevel;
+  logLevel?: IV2NodeTestContainerLogLevel;
 }
 
-export type V2NodeTestContainerLogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
+export type IV2NodeTestContainerLogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
 
 const isSetupTimingEnabled = () => process.env.TEABLE_V2_TEST_SETUP_TIMING === '1';
 
@@ -146,7 +146,7 @@ const createSetupTimer = (scope: string) => {
   };
 };
 
-const testLogLevelPriority: Record<Exclude<V2NodeTestContainerLogLevel, 'silent'>, number> = {
+const testLogLevelPriority: Record<Exclude<IV2NodeTestContainerLogLevel, 'silent'>, number> = {
   error: 0,
   warn: 1,
   info: 2,
@@ -161,7 +161,7 @@ const parseBooleanEnv = (value?: string): boolean | undefined => {
   return undefined;
 };
 
-const resolveTestLogLevel = (value?: string): V2NodeTestContainerLogLevel | undefined => {
+const resolveTestLogLevel = (value?: string): IV2NodeTestContainerLogLevel | undefined => {
   if (!value) return undefined;
   const normalized = value.trim().toLowerCase();
   if (normalized === 'silent') return 'silent';
@@ -175,7 +175,7 @@ const resolveTestLogLevel = (value?: string): V2NodeTestContainerLogLevel | unde
 class LevelFilteredLogger implements ILogger {
   constructor(
     private readonly delegate: ILogger,
-    private readonly minLevel: Exclude<V2NodeTestContainerLogLevel, 'silent'>
+    private readonly minLevel: Exclude<IV2NodeTestContainerLogLevel, 'silent'>
   ) {}
 
   child(context: LogContext): ILogger {
@@ -186,7 +186,7 @@ class LevelFilteredLogger implements ILogger {
     return new LevelFilteredLogger(this.delegate.scope(scope, context), this.minLevel);
   }
 
-  private shouldLog(level: Exclude<V2NodeTestContainerLogLevel, 'silent'>): boolean {
+  private shouldLog(level: Exclude<IV2NodeTestContainerLogLevel, 'silent'>): boolean {
     return testLogLevelPriority[level] <= testLogLevelPriority[this.minLevel];
   }
 
@@ -582,7 +582,7 @@ const loadTypeValidationPolyfillMigrationSql = async (): Promise<string> => {
 };
 
 // Re-export SpyLogger types
-export { SpyLogger, type CapturedLogEntry, type ComputedPlanLogEntry } from './SpyLogger';
+export { SpyLogger, type ICapturedLogEntry, type IComputedPlanLogEntry } from './SpyLogger';
 
 // Re-export snapshot utilities
 export {

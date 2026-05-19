@@ -8,7 +8,7 @@ import type {
 } from '@teable/v2-core';
 import type { Effect } from 'effect';
 import { Context } from 'effect';
-import type { CliError } from '../errors';
+import type { CliError } from '../errors/CliError';
 
 export interface ExplainCreateFieldInput extends ICreateFieldCommandInput {
   readonly analyze: boolean;

@@ -1,3 +1,4 @@
+import type * as OpenTelemetryApi from '@opentelemetry/api';
 import { context as otelContext, trace } from '@opentelemetry/api';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -8,7 +9,7 @@ import {
 } from './v2-tracer.adapter';
 
 vi.mock('@opentelemetry/api', async () => {
-  const actual = await vi.importActual<typeof import('@opentelemetry/api')>('@opentelemetry/api');
+  const actual = await vi.importActual<typeof OpenTelemetryApi>('@opentelemetry/api');
   return {
     ...actual,
     trace: {

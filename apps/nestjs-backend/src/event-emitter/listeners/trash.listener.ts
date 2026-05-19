@@ -13,6 +13,8 @@ import { Events } from '../events';
 
 @Injectable()
 export class TrashListener {
+  private readonly appNodeUniqueWhere = 'baseId_resourceType_resourceId';
+
   constructor(private readonly prismaService: PrismaService) {}
 
   @OnEvent(Events.SPACE_DELETE, { async: true })
@@ -77,7 +79,7 @@ export class TrashListener {
         resourceType = ResourceType.App;
         const appNode = await this.prismaService.baseNode.findUnique({
           where: {
-            baseId_resourceType_resourceId: {
+            [this.appNodeUniqueWhere]: {
               baseId: payload.baseId,
               resourceType: ResourceType.App,
               resourceId,

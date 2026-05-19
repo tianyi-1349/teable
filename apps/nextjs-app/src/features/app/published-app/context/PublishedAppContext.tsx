@@ -4,6 +4,7 @@ import { useIsMobile } from '@teable/sdk/hooks';
 import { useRouter } from 'next/router';
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { useMedia } from 'react-use';
 import { BaseNodeContext } from '@/features/app/blocks/base/base-node/BaseNodeContext';
 import type { TreeItemData } from '@/features/app/blocks/base/base-node/hooks';
 import { ROOT_ID } from '@/features/app/blocks/base/base-node/hooks';
@@ -72,6 +73,7 @@ export const PublishedAppProvider = ({
   const router = useRouter();
   const resource = useBaseResource();
   const isMobile = useIsMobile();
+  const isTablet = useMedia('(min-width: 641px) and (max-width: 1024px)');
   const isPwaStandalone = useIsPwaStandalone();
   const { treeItems } = useContext(BaseNodeContext);
 
@@ -122,7 +124,7 @@ export const PublishedAppProvider = ({
       isShare: Boolean(shareId),
       isReadonly: !allowEdit,
       isMobile,
-      isTablet: false,
+      isTablet,
       isEmbed: false,
       isPwaStandalone,
       navigateToNode: (nodeId: string) => {
@@ -137,6 +139,7 @@ export const PublishedAppProvider = ({
     currentNode,
     defaultNode,
     isMobile,
+    isTablet,
     isPwaStandalone,
     manifest,
     navigation,

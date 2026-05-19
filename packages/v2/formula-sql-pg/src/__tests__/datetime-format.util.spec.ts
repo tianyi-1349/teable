@@ -1,37 +1,42 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeDatetimeFormatExpression } from '../utils/datetime-format.util';
 
+const DEFAULT_DATE_FORMAT_SQL = "'YYYY-MM-DD'";
+const YYYY_MM_DD_FORMAT = 'YYYY-MM-DD';
+
 describe('normalizeDatetimeFormatExpression', () => {
   describe('default handling', () => {
     it('should return default for null input', () => {
-      expect(normalizeDatetimeFormatExpression(null)).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression(null)).toBe(DEFAULT_DATE_FORMAT_SQL);
     });
 
     it('should return default for undefined input', () => {
-      expect(normalizeDatetimeFormatExpression(undefined)).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression(undefined)).toBe(DEFAULT_DATE_FORMAT_SQL);
     });
 
     it('should return default for non-string input', () => {
       // @ts-expect-error testing non-string input
-      expect(normalizeDatetimeFormatExpression(123)).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression(123)).toBe(DEFAULT_DATE_FORMAT_SQL);
     });
 
     it('should return default for empty string', () => {
-      expect(normalizeDatetimeFormatExpression('')).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression('')).toBe(DEFAULT_DATE_FORMAT_SQL);
     });
 
     it('should return default for whitespace only', () => {
-      expect(normalizeDatetimeFormatExpression('   ')).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression('   ')).toBe(DEFAULT_DATE_FORMAT_SQL);
     });
   });
 
   describe('non-quoted strings', () => {
     it('should return input as-is if not starting with quote', () => {
-      expect(normalizeDatetimeFormatExpression('YYYY-MM-DD')).toBe('YYYY-MM-DD');
+      expect(normalizeDatetimeFormatExpression(YYYY_MM_DD_FORMAT)).toBe(YYYY_MM_DD_FORMAT);
     });
 
     it('should return input as-is if not ending with quote', () => {
-      expect(normalizeDatetimeFormatExpression("'YYYY-MM-DD")).toBe("'YYYY-MM-DD");
+      expect(normalizeDatetimeFormatExpression(`'${YYYY_MM_DD_FORMAT}`)).toBe(
+        `'${YYYY_MM_DD_FORMAT}`
+      );
     });
 
     it('should return input as-is if only starting with quote', () => {
@@ -53,7 +58,9 @@ describe('normalizeDatetimeFormatExpression', () => {
     });
 
     it('should normalize YYYY-MM-DD', () => {
-      expect(normalizeDatetimeFormatExpression("'YYYY-MM-DD'")).toBe("'YYYY-MM-DD'");
+      expect(normalizeDatetimeFormatExpression(DEFAULT_DATE_FORMAT_SQL)).toBe(
+        DEFAULT_DATE_FORMAT_SQL
+      );
     });
 
     it('should normalize YY', () => {

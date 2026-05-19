@@ -6,8 +6,8 @@ import { domainError, type DomainError } from '../../shared/DomainError';
 import { Entity } from '../../shared/Entity';
 import type { Field } from '../fields/Field';
 import type { FieldDeletionContext } from '../OnTeableFieldDeleted';
-import { ViewColumnMeta } from './ViewColumnMeta';
 import type { OnTeableViewFieldDeleted, ViewFieldDeletionUpdate } from './OnTeableViewFieldDeleted';
+import { ViewColumnMeta } from './ViewColumnMeta';
 import type { ViewId } from './ViewId';
 import type { ViewName } from './ViewName';
 import type { ViewQueryDefaults } from './ViewQueryDefaults';
@@ -19,6 +19,10 @@ export abstract class View extends Entity<ViewId> implements OnTeableViewFieldDe
   private columnMetaValue: ViewColumnMeta | undefined;
   private queryDefaultsValue: ViewQueryDefaults | undefined;
   private optionsValue: unknown;
+  private descriptionValue: string | null | undefined;
+  private orderValue: number | undefined;
+  private isLockedValue: boolean | undefined;
+  private shareMetaValue: unknown;
 
   protected constructor(
     id: ViewId,
@@ -52,6 +56,22 @@ export abstract class View extends Entity<ViewId> implements OnTeableViewFieldDe
     return this.optionsValue;
   }
 
+  description(): string | null {
+    return this.descriptionValue ?? null;
+  }
+
+  order(): number | undefined {
+    return this.orderValue;
+  }
+
+  isLocked(): boolean | undefined {
+    return this.isLockedValue;
+  }
+
+  shareMeta(): unknown | undefined {
+    return this.shareMetaValue;
+  }
+
   setColumnMeta(columnMeta: ViewColumnMeta): Result<void, DomainError> {
     if (this.columnMetaValue) {
       if (this.columnMetaValue.equals(columnMeta)) return ok(undefined);
@@ -80,6 +100,49 @@ export abstract class View extends Entity<ViewId> implements OnTeableViewFieldDe
     }
 
     this.optionsValue = options;
+    return ok(undefined);
+  }
+
+  setDescription(description: string | null | undefined): Result<void, DomainError> {
+    if (description === undefined) return ok(undefined);
+    if (this.descriptionValue !== undefined) {
+      if (this.descriptionValue === description) return ok(undefined);
+      return err(domainError.invariant({ message: 'ViewDescription already set' }));
+    }
+    this.descriptionValue = description;
+    return ok(undefined);
+  }
+
+  setOrder(order: number | undefined): Result<void, DomainError> {
+    if (order === undefined) return ok(undefined);
+    if (this.orderValue !== undefined) {
+      if (this.orderValue === order) return ok(undefined);
+      return err(domainError.invariant({ message: 'ViewOrder already set' }));
+    }
+    this.orderValue = order;
+    return ok(undefined);
+  }
+
+  setIsLocked(isLocked: boolean | undefined): Result<void, DomainError> {
+    if (isLocked === undefined) return ok(undefined);
+    if (this.isLockedValue !== undefined) {
+      if (this.isLockedValue === isLocked) return ok(undefined);
+      return err(domainError.invariant({ message: 'ViewLocked already set' }));
+    }
+    this.isLockedValue = isLocked;
+    return ok(undefined);
+  }
+
+  setShareMeta(shareMeta: unknown): Result<void, DomainError> {
+    if (shareMeta === undefined) return ok(undefined);
+
+    const nextSerialized = JSON.stringify(shareMeta);
+    if (this.shareMetaValue !== undefined) {
+      if (JSON.stringify(this.shareMetaValue) === nextSerialized) return ok(undefined);
+      return err(domainError.invariant({ message: 'ViewShareMeta already set' }));
+    }
+
+    this.shareMetaValue = shareMeta;
     return ok(undefined);
   }
 

@@ -1,7 +1,7 @@
 import { domainError, type DomainError, type LinkField } from '@teable/v2-core';
+import { sql } from 'kysely';
 import { err, ok, safeTry } from 'neverthrow';
 import type { Result } from 'neverthrow';
-import { sql } from 'kysely';
 
 import { resolveColumnName } from '../../visitors/PostgresTableSchemaFieldColumn';
 import type { SchemaRuleContext } from '../context/SchemaRuleContext';

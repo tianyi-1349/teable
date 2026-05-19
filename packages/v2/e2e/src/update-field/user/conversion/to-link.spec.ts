@@ -66,10 +66,14 @@ describe('update-field: user → link conversion', () => {
   afterAll(async () => {
     try {
       if (hostTableId) await ctx.deleteTable(hostTableId);
-    } catch {}
+    } catch {
+      return undefined;
+    }
     try {
       if (foreignTableId) await ctx.deleteTable(foreignTableId);
-    } catch {}
+    } catch {
+      return undefined;
+    }
   });
 
   test('should convert to link and clear data', async () => {

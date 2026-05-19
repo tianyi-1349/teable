@@ -79,6 +79,7 @@ export enum Events {
   WORKFLOW_DELETE = 'workflow.delete',
   WORKFLOW_UPDATE = 'workflow.update',
   WORKFLOW_ACTIVATE = 'workflow.activate',
+  WORKFLOW_APPLY_UPDATE = 'workflow.apply.update',
   WORKFLOW_DEACTIVATE = 'workflow.deactivate',
 
   APP_CREATE = 'app.create',

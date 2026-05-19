@@ -25,6 +25,7 @@ import type {
   Table,
   SingleLineTextField,
   UserField,
+  View,
   ViewColumnMetaValue,
   DomainError,
 } from '@teable/v2-core';
@@ -62,6 +63,11 @@ export const viewDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.enum(['grid', 'calendar', 'kanban', 'form', 'gallery', 'plugin']),
+  description: z.string().nullable().optional(),
+  order: z.number().optional(),
+  isLocked: z.boolean().optional(),
+  shareMeta: z.unknown().optional(),
+  options: z.unknown().optional(),
   columnMeta: columnMetaSchema,
 });
 
@@ -939,6 +945,19 @@ export const mapFieldToDto = (
   primaryFieldId: FieldId
 ): Result<IFieldDto, DomainError> => field.accept(new FieldToDtoVisitor(primaryFieldId));
 
+export const mapViewToDto = (view: View): Result<IViewDto, DomainError> =>
+  view.columnMeta().map((columnMeta) => ({
+    id: view.id().toString(),
+    name: view.name().toString(),
+    type: view.type().toString(),
+    description: view.description(),
+    ...(view.order() !== undefined ? { order: view.order() } : {}),
+    ...(view.isLocked() !== undefined ? { isLocked: view.isLocked() } : {}),
+    ...(view.shareMeta() !== undefined ? { shareMeta: view.shareMeta() } : {}),
+    ...(view.options() !== undefined ? { options: view.options() } : {}),
+    columnMeta: columnMeta.toDto(),
+  }));
+
 export const mapTableToDto = (table: Table): Result<ITableDto, DomainError> => {
   const primaryFieldId = table.primaryFieldId();
   const dbTableNameResult = table.dbTableName().andThen((name) => name.value());
@@ -946,16 +965,7 @@ export const mapTableToDto = (table: Table): Result<ITableDto, DomainError> => {
   const fieldsResult = sequenceResults(
     table.getFields().map((f) => mapFieldToDto(f, primaryFieldId))
   );
-  const viewsResult = sequenceResults(
-    table.views().map((view) =>
-      view.columnMeta().map((columnMeta) => ({
-        id: view.id().toString(),
-        name: view.name().toString(),
-        type: view.type().toString(),
-        columnMeta: columnMeta.toDto(),
-      }))
-    )
-  );
+  const viewsResult = sequenceResults(table.views().map(mapViewToDto));
 
   return fieldsResult.andThen((fields) =>
     viewsResult.map((views) => ({

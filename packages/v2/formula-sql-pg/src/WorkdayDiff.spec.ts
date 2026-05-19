@@ -16,42 +16,45 @@ type WorkdayDiffCase = {
   sqlMustContain: ReadonlyArray<string>;
 };
 
+const GENERATE_SERIES_SQL = 'generate_series';
+const EXTRACT_DOW_SQL = 'EXTRACT(DOW';
+
 const workdayDiffCases: ReadonlyArray<WorkdayDiffCase> = [
   {
     id: 'WeekdayOnly',
     expression: 'WORKDAY_DIFF("2026-02-23", "2026-02-27")',
     expected: '4',
-    sqlMustContain: ['generate_series', 'EXTRACT(DOW'],
+    sqlMustContain: [GENERATE_SERIES_SQL, EXTRACT_DOW_SQL],
   },
   {
     id: 'CrossWeekend',
     expression: 'WORKDAY_DIFF("2026-02-23", "2026-03-02")',
     expected: '5',
-    sqlMustContain: ['generate_series', 'EXTRACT(DOW'],
+    sqlMustContain: [GENERATE_SERIES_SQL, EXTRACT_DOW_SQL],
   },
   {
     id: 'WeekendOnly',
     expression: 'WORKDAY_DIFF("2026-02-28", "2026-03-01")',
     expected: '0',
-    sqlMustContain: ['generate_series', 'EXTRACT(DOW'],
+    sqlMustContain: [GENERATE_SERIES_SQL, EXTRACT_DOW_SQL],
   },
   {
     id: 'HolidayExclusion',
     expression: 'WORKDAY_DIFF("2026-02-23", "2026-03-02", "2026-02-24")',
     expected: '4',
-    sqlMustContain: ['generate_series', 'regexp_split_to_table'],
+    sqlMustContain: [GENERATE_SERIES_SQL, 'regexp_split_to_table'],
   },
   {
     id: 'ReverseRange',
     expression: 'WORKDAY_DIFF("2026-03-02", "2026-02-23")',
     expected: '-5',
-    sqlMustContain: ['generate_series', 'CASE WHEN p.end_date >= p.start_date'],
+    sqlMustContain: [GENERATE_SERIES_SQL, 'CASE WHEN p.end_date >= p.start_date'],
   },
   {
     id: 'InverseOfWorkday',
     expression: 'WORKDAY_DIFF("2026-02-23", WORKDAY("2026-02-23", 5))',
     expected: '5',
-    sqlMustContain: ['generate_series', 'OFFSET ABS(p.day_count) - 1'],
+    sqlMustContain: [GENERATE_SERIES_SQL, 'OFFSET ABS(p.day_count) - 1'],
   },
 ];
 

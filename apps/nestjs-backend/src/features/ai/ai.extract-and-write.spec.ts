@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+/* eslint-disable sonarjs/no-duplicate-string */
 import { FieldKeyType, FieldType } from '@teable/core';
+import { generateText } from 'ai';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('ai', () => {
   return {
@@ -9,7 +11,6 @@ vi.mock('ai', () => {
   };
 });
 
-import { generateText } from 'ai';
 import { AiService } from './ai.service';
 
 const mockedGenerateText = vi.mocked(generateText);

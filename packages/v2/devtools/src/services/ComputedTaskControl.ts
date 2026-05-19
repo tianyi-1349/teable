@@ -1,7 +1,7 @@
 import type { ComputedUpdatePauseScopeType } from '@teable/v2-adapter-table-repository-postgres';
 import type { Effect } from 'effect';
 import { Context } from 'effect';
-import type { CliError } from '../errors';
+import type { CliError } from '../errors/CliError';
 
 export interface RunComputedTaskByIdInput {
   readonly taskId: string;

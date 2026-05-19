@@ -1,4 +1,7 @@
+/* eslint-disable sonarjs/no-duplicate-string */
+import { createHmac } from 'crypto';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { HttpErrorCode } from '@teable/core';
 import { WorkflowService } from './workflow.service';
 
 describe('WorkflowService', () => {
@@ -44,9 +47,22 @@ describe('WorkflowService', () => {
   };
   const aiService = {
     generateText: vi.fn(),
+    createWorkflowDraft: vi.fn(),
   };
   const recordService = {
     filterRecordIdsByFilter: vi.fn(),
+  };
+  const cacheService = {
+    incr: vi.fn(),
+  };
+  const thresholdConfig = {
+    webhook: {
+      workflowRateLimit: 2,
+    },
+  };
+  const workflowScheduleService = {
+    syncWorkflowSchedule: vi.fn(),
+    removeWorkflowSchedule: vi.fn(),
   };
 
   let service: WorkflowService;
@@ -58,14 +74,19 @@ describe('WorkflowService', () => {
       prismaService as never,
       cls as never,
       aiService as never,
-      recordService as never
+      recordService as never,
+      cacheService as never,
+      thresholdConfig as never,
+      workflowScheduleService as never
     );
   });
 
   it('creates a pending button workflow run', async () => {
     prismaService.workflow.findFirstOrThrow.mockResolvedValue({
       id: workflowId,
+      baseId,
       activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'buttonClick' }],
     });
     prismaService.workflowRun.create.mockResolvedValue({ id: runId });
 
@@ -86,6 +107,176 @@ describe('WorkflowService', () => {
           __automationContext: expect.objectContaining({
             source: 'automation',
             workflowId,
+          }),
+        }),
+        createdBy: userId,
+      },
+      select: { id: true },
+    });
+    expect(result).toEqual({ runId });
+  }, 10000);
+
+  it('creates a pending webhook workflow run', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: {} }],
+    });
+    cacheService.incr.mockResolvedValue(1);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+
+    const result = await service.createWebhookRun(workflowId, {
+      message: 'hello',
+    });
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith({
+      data: {
+        workflowId,
+        snapshotId: 'wsn123',
+        triggerType: 'webhook',
+        status: 'pending',
+        input: expect.objectContaining({
+          message: 'hello',
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+            baseId,
+          }),
+        }),
+        createdBy: userId,
+      },
+      select: { id: true },
+    });
+    expect(result).toEqual({ runId });
+  });
+
+  it('rejects webhook run when secret does not match trigger config', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: { secret: 'expected-secret' } }],
+    });
+
+    await expect(
+      service.createWebhookRun(workflowId, { message: 'hello' }, { secret: 'wrong-secret' })
+    ).rejects.toMatchObject({
+      code: HttpErrorCode.UNAUTHORIZED,
+      message: 'Invalid webhook secret',
+    });
+  });
+
+  it('rejects webhook run when workflow rate limit is exceeded', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: {} }],
+    });
+    cacheService.incr.mockResolvedValue(3);
+
+    await expect(service.createWebhookRun(workflowId, { message: 'hello' })).rejects.toMatchObject({
+      code: HttpErrorCode.TOO_MANY_REQUESTS,
+      message: 'Webhook rate limit exceeded',
+    });
+  });
+
+  it('creates a pending schedule workflow run', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'schedule' }],
+    });
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+
+    const result = await service.createScheduleRun(workflowId, {
+      tick: 'manual',
+    });
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith({
+      data: {
+        workflowId,
+        snapshotId: 'wsn123',
+        triggerType: 'schedule',
+        status: 'pending',
+        input: expect.objectContaining({
+          tick: 'manual',
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+            baseId,
+          }),
+        }),
+        createdBy: userId,
+      },
+      select: { id: true },
+    });
+    expect(result).toEqual({ runId });
+  });
+
+  it('creates a pending form submitted workflow run', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'formSubmitted' }],
+    });
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+
+    const result = await service.createFormSubmittedRun(workflowId, {
+      submissionId: 'sub123',
+    });
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith({
+      data: {
+        workflowId,
+        snapshotId: 'wsn123',
+        triggerType: 'formSubmitted',
+        status: 'pending',
+        input: expect.objectContaining({
+          submissionId: 'sub123',
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+            baseId,
+          }),
+        }),
+        createdBy: userId,
+      },
+      select: { id: true },
+    });
+    expect(result).toEqual({ runId });
+  });
+
+  it('creates a pending email received workflow run', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'emailReceived' }],
+    });
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+
+    const result = await service.createEmailReceivedRun(workflowId, {
+      subject: 'New ticket',
+      from: 'ops@example.com',
+    });
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith({
+      data: {
+        workflowId,
+        snapshotId: 'wsn123',
+        triggerType: 'emailReceived',
+        status: 'pending',
+        input: expect.objectContaining({
+          subject: 'New ticket',
+          from: 'ops@example.com',
+          __automationContext: expect.objectContaining({
+            source: 'automation',
+            workflowId,
+            baseId,
           }),
         }),
         createdBy: userId,
@@ -224,7 +415,10 @@ describe('WorkflowService', () => {
       } as never,
       cls as never,
       aiService as never,
-      recordService as never
+      recordService as never,
+      cacheService as never,
+      thresholdConfig as never,
+      workflowScheduleService as never
     );
 
     await runService.completeEmptyRun(runId);
@@ -264,8 +458,8 @@ describe('WorkflowService', () => {
           id: 'wa123',
           workflowId,
           nodeType: 'action',
-          kind: 'runScript',
-          config: { script: 'return input;' },
+          kind: 'aiGenerate',
+          config: { prompt: 'Summarize {{ input }}' },
         },
       ],
     });
@@ -296,7 +490,126 @@ describe('WorkflowService', () => {
         data: expect.objectContaining({ isActive: true, activeSnapshotId: 'wsn123' }),
       })
     );
+    expect(workflowScheduleService.syncWorkflowSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({ id: workflowId, isActive: false })
+    );
     expect(result).toMatchObject({ isActive: true, activeSnapshotId: 'wsn123' });
+  });
+
+  it('applies draft updates by refreshing the active snapshot', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Deploy',
+      description: null,
+      order: 1,
+      isActive: true,
+      activeSnapshotId: 'wsn-old',
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'buttonClick',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'aiGenerate',
+          config: { prompt: 'Summarize {{ input }}' },
+        },
+      ],
+    });
+    prismaService.workflowSnapshot.aggregate.mockResolvedValue({ _max: { version: 3 } });
+    prismaService.workflowSnapshot.create.mockResolvedValue({ id: 'wsn124' });
+    prismaService.workflow.update.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Deploy',
+      isActive: true,
+      activeSnapshotId: 'wsn124',
+    });
+
+    const result = await service.applyUpdateWorkflow(baseId, workflowId);
+
+    expect(prismaService.workflowSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workflowId,
+          version: 4,
+          createdBy: userId,
+        }),
+      })
+    );
+    expect(prismaService.workflow.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: workflowId },
+        data: expect.objectContaining({ isActive: true, activeSnapshotId: 'wsn124' }),
+      })
+    );
+    expect(workflowScheduleService.syncWorkflowSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({ id: workflowId, isActive: true })
+    );
+    expect(result).toMatchObject({ isActive: true, activeSnapshotId: 'wsn124' });
+  });
+
+  it('removes schedule registration when workflow is deactivated', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Schedule workflow',
+      description: null,
+      order: 1,
+      isActive: true,
+      activeSnapshotId: 'wsn123',
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'schedule',
+          config: { mode: 'interval', intervalSeconds: 60 },
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          config: { script: 'return input;' },
+        },
+      ],
+    });
+    prismaService.workflow.update.mockResolvedValue({ id: workflowId, isActive: false });
+
+    await service.deactivateWorkflow(baseId, workflowId);
+
+    expect(workflowScheduleService.removeWorkflowSchedule).toHaveBeenCalledWith(workflowId);
+  });
+
+  it('parses schedule trigger config from workflow nodes', () => {
+    const config = service.getScheduleTriggerConfig({
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'schedule',
+          config: { mode: 'cron', cron: '*/5 * * * *' },
+        },
+      ],
+    } as never);
+
+    expect(config).toEqual({ mode: 'cron', cron: '*/5 * * * *', intervalSeconds: undefined });
   });
 
   it('rejects activation without a trigger', async () => {
@@ -396,6 +709,53 @@ describe('WorkflowService', () => {
     expect(prismaService.workflowSnapshot.create).not.toHaveBeenCalled();
   });
 
+  it('rejects activation when action capability is marked unrunnable', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Sandboxed script',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'recordCreated',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          config: { script: 'return input;' },
+        },
+      ],
+    });
+
+    prismaService.workflowSnapshot.aggregate.mockResolvedValue({ _max: { version: 1 } });
+    prismaService.workflowSnapshot.create.mockResolvedValue({ id: 'wsn-run-script' });
+    prismaService.workflow.update.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Sandboxed script',
+      isActive: true,
+      activeSnapshotId: 'wsn-run-script',
+    });
+
+    const result = await service.activateWorkflow(baseId, workflowId);
+
+    expect(prismaService.workflowSnapshot.create).toHaveBeenCalled();
+    expect(result).toMatchObject({ isActive: true, activeSnapshotId: 'wsn-run-script' });
+  });
+
   it('creates an inactive AI workflow draft for review', async () => {
     prismaService.workflow.aggregate.mockResolvedValue({ _max: { order: 1 } });
     prismaService.workflow.findFirstOrThrow.mockResolvedValue({
@@ -412,8 +772,14 @@ describe('WorkflowService', () => {
       lastModifiedBy: userId,
       nodes: [],
     });
-    aiService.generateText.mockResolvedValue(
-      JSON.stringify({ name: 'AI draft', description: 'Draft', script: 'return { ok: true };' })
+    aiService.createWorkflowDraft.mockResolvedValue(
+      JSON.stringify({
+        name: 'AI draft',
+        description: 'Draft',
+        triggerType: 'buttonClick',
+        actionKind: 'runScript',
+        actionConfig: { script: 'return { ok: true };' },
+      })
     );
 
     const result = await service.aiCreateWorkflowDraft(baseId, {
@@ -440,6 +806,188 @@ describe('WorkflowService', () => {
       })
     );
     expect(result).toMatchObject({ id: workflowId, isActive: false });
+  });
+
+  it('creates AI draft with generated trigger and non-script action config', async () => {
+    prismaService.workflow.aggregate.mockResolvedValue({ _max: { order: 1 } });
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'AI webhook draft',
+      description: 'Draft',
+      order: 2,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: userId,
+      nodes: [],
+    });
+    aiService.createWorkflowDraft.mockResolvedValue(
+      JSON.stringify({
+        name: 'AI webhook draft',
+        description: 'Draft',
+        triggerType: 'webhook',
+        triggerConfig: { bodySizeLimitKb: 16 },
+        actionKind: 'aiGenerate',
+        actionConfig: { prompt: 'Summarize {{ input }}' },
+      })
+    );
+
+    await service.aiCreateWorkflowDraft(baseId, {
+      prompt: 'Summarize webhook payloads',
+      triggerType: 'webhook',
+      preferActionKind: 'aiGenerate',
+    });
+
+    expect(prismaService.workflowNode.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ nodeType: 'trigger', kind: 'webhook' }),
+          expect.objectContaining({
+            nodeType: 'action',
+            kind: 'aiGenerate',
+            config: { prompt: 'Summarize {{ input }}', source: 'aiDraft' },
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('creates AI draft with multiple generated actions and field mappings', async () => {
+    prismaService.workflow.aggregate.mockResolvedValue({ _max: { order: 1 } });
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'AI multi-step draft',
+      description: 'Draft',
+      order: 2,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: userId,
+      nodes: [],
+    });
+    aiService.createWorkflowDraft.mockResolvedValue(
+      JSON.stringify({
+        name: 'AI multi-step draft',
+        description: 'Draft',
+        triggerType: 'recordCreated',
+        fieldMappings: { recordId: '{{ input.record.id }}' },
+        testPlan: {
+          input: { record: { id: 'rec1' }, tableId: 'tbl1', items: [1, 2] },
+          expectedActionKinds: ['queryRecords', 'loop'],
+          activationChecks: ['Confirm query table mapping', 'Confirm loop maxIterations'],
+        },
+        actions: [
+          { kind: 'queryRecords', config: { tableId: '{{ input.tableId }}', take: 5 } },
+          { kind: 'loop', config: { itemsPath: '{{ input.items }}', maxIterations: 10 } },
+        ],
+      })
+    );
+
+    await service.aiCreateWorkflowDraft(baseId, {
+      prompt: 'When a record is created, query recent records and loop through items',
+      triggerType: 'recordCreated',
+      preferActionKind: 'queryRecords',
+    });
+
+    expect(prismaService.workflowNode.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            nodeType: 'trigger',
+            kind: 'recordCreated',
+            config: expect.objectContaining({
+              fieldMappings: { recordId: '{{ input.record.id }}' },
+              testPlan: expect.objectContaining({
+                expectedActionKinds: ['queryRecords', 'loop'],
+              }),
+            }),
+          }),
+          expect.objectContaining({ nodeType: 'action', kind: 'queryRecords' }),
+          expect.objectContaining({ nodeType: 'action', kind: 'loop' }),
+        ]),
+      })
+    );
+  });
+
+  it('rejects webhook run when signature is invalid', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: { signatureSecret: 'sig-secret' } }],
+    });
+
+    await expect(
+      service.createWebhookRun(
+        workflowId,
+        { message: 'hello' },
+        {
+          signature: 'wrong',
+          timestamp: `${Math.floor(Date.now() / 1000)}`,
+          rawBody: '{"message":"hello"}',
+        }
+      )
+    ).rejects.toMatchObject({
+      code: HttpErrorCode.UNAUTHORIZED,
+      message: 'Invalid webhook signature',
+    });
+  });
+
+  it('rejects webhook run when timestamp is expired', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [
+        {
+          kind: 'webhook',
+          config: { signatureSecret: 'sig-secret', timestampToleranceSeconds: 60 },
+        },
+      ],
+    });
+
+    const rawBody = '{"message":"hello"}';
+    const expiredTimestamp = `${Math.floor(Date.now() / 1000) - 3600}`;
+    const signature = createHmac('sha256', 'sig-secret')
+      .update(`${expiredTimestamp}.${rawBody}`)
+      .digest('hex');
+
+    await expect(
+      service.createWebhookRun(
+        workflowId,
+        { message: 'hello' },
+        { signature, timestamp: expiredTimestamp, rawBody }
+      )
+    ).rejects.toMatchObject({
+      code: HttpErrorCode.UNAUTHORIZED,
+      message: 'Webhook timestamp expired',
+    });
+  });
+
+  it('rejects webhook run when signature timestamp header is missing', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: { signatureSecret: 'sig-secret' } }],
+    });
+
+    await expect(
+      service.createWebhookRun(
+        workflowId,
+        { message: 'hello' },
+        { signature: 'sha256=abc', rawBody: '{"message":"hello"}' }
+      )
+    ).rejects.toMatchObject({
+      code: HttpErrorCode.UNAUTHORIZED,
+      message: 'Missing webhook timestamp header',
+    });
   });
 
   it('creates a manual test run with a temporary snapshot for inactive draft', async () => {
@@ -495,6 +1043,86 @@ describe('WorkflowService', () => {
     expect(result).toMatchObject({ id: runId, status: 'pending' });
   });
 
+  it('creates a node test run with a trimmed snapshot ending at the target action node', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      name: 'Draft',
+      description: null,
+      order: 1,
+      isActive: false,
+      activeSnapshotId: null,
+      createdBy: userId,
+      createdTime: new Date(),
+      lastModifiedTime: null,
+      lastModifiedBy: null,
+      nodes: [
+        {
+          id: 'wtr123',
+          workflowId,
+          nodeType: 'trigger',
+          kind: 'buttonClick',
+          nextNodeId: 'wa123',
+          config: {},
+        },
+        {
+          id: 'wa123',
+          workflowId,
+          nodeType: 'action',
+          kind: 'runScript',
+          parentNodeId: 'wtr123',
+          nextNodeId: 'wa124',
+          config: { script: 'return input;' },
+        },
+        {
+          id: 'wa124',
+          workflowId,
+          nodeType: 'action',
+          kind: 'aiGenerate',
+          parentNodeId: 'wa123',
+          config: { prompt: 'Summarize {{ input }}' },
+        },
+      ],
+    });
+    prismaService.workflowSnapshot.aggregate.mockResolvedValue({ _max: { version: 1 } });
+    prismaService.workflowSnapshot.create.mockResolvedValue({ id: 'wsn-node-test' });
+    prismaService.workflowRun.create.mockResolvedValue({
+      id: runId,
+      workflowId,
+      snapshotId: 'wsn-node-test',
+      triggerType: 'manualNodeTest',
+      status: 'pending',
+    });
+
+    const result = await service.createTestNodeRun(baseId, workflowId, 'wa123', { manual: true });
+
+    expect(prismaService.workflowSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workflowId,
+          version: 2,
+          snapshot: expect.objectContaining({
+            nodes: expect.arrayContaining([
+              expect.objectContaining({ id: 'wtr123' }),
+              expect.objectContaining({ id: 'wa123' }),
+            ]),
+          }),
+        }),
+      })
+    );
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workflowId,
+          snapshotId: 'wsn-node-test',
+          triggerType: 'manualNodeTest',
+          input: expect.objectContaining({ manual: true }),
+        }),
+      })
+    );
+    expect(result).toMatchObject({ id: runId, status: 'pending' });
+  });
+
   it('creates active record trigger runs for matching table', async () => {
     prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
     prismaService.workflow.findMany.mockResolvedValue([
@@ -504,6 +1132,7 @@ describe('WorkflowService', () => {
         nodes: [{ config: { tableId: 'tbl123' } }],
       },
     ]);
+    recordService.filterRecordIdsByFilter.mockResolvedValue(['rec123']);
     prismaService.workflowRun.create.mockResolvedValue({ id: runId, workflowId });
 
     const input = { tableId: 'tbl123', record: { id: 'rec123', fields: {} } };
@@ -585,6 +1214,68 @@ describe('WorkflowService', () => {
     const result = await service.createRecordTriggerRuns('tbl123', 'recordUpdated', {
       tableId: 'tbl123',
       record: { id: 'rec123', fields: {} },
+    });
+
+    expect(prismaService.workflowRun.create).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  it('creates record trigger runs when record matches conditions after update transition', async () => {
+    const filter = {
+      conjunction: 'and' as const,
+      filterSet: [{ fieldId: 'fldStatus', operator: 'is', value: 'Open' }],
+    };
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl123', filter } }],
+      },
+    ]);
+    recordService.filterRecordIdsByFilter
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(['rec123']);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId, workflowId });
+
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordMatchesConditions', {
+      tableId: 'tbl123',
+      record: {
+        id: 'rec123',
+        fields: {
+          fldStatus: { oldValue: 'Pending', newValue: 'Open' },
+        },
+      },
+    });
+
+    expect(result).toEqual([{ runId, workflowId }]);
+  });
+
+  it('does not create record trigger runs when record was already matching conditions before update', async () => {
+    const filter = {
+      conjunction: 'and' as const,
+      filterSet: [{ fieldId: 'fldStatus', operator: 'is', value: 'Open' }],
+    };
+    prismaService.tableMeta.findFirst.mockResolvedValue({ baseId });
+    prismaService.workflow.findMany.mockResolvedValue([
+      {
+        id: workflowId,
+        activeSnapshotId: 'wsn123',
+        nodes: [{ config: { tableId: 'tbl123', filter } }],
+      },
+    ]);
+    recordService.filterRecordIdsByFilter
+      .mockResolvedValueOnce(['rec123'])
+      .mockResolvedValueOnce(['rec123']);
+
+    const result = await service.createRecordTriggerRuns('tbl123', 'recordMatchesConditions', {
+      tableId: 'tbl123',
+      record: {
+        id: 'rec123',
+        fields: {
+          fldStatus: { oldValue: 'Open', newValue: 'Open' },
+        },
+      },
     });
 
     expect(prismaService.workflowRun.create).not.toHaveBeenCalled();

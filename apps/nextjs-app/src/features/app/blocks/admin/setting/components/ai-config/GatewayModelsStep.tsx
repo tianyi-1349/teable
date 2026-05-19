@@ -8,6 +8,7 @@ import { Label } from '@teable/ui-lib/shadcn';
 import Fuse from 'fuse.js';
 import { useTranslation } from 'next-i18next';
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { getReadableAiConfigErrorMessage } from './error-message';
 import { AddModelDialog } from './gateway-models-step/AddModelDialog';
 import { ModelCard } from './gateway-models-step/ModelCard';
 import { QuickAddButtons } from './gateway-models-step/QuickAddButtons';
@@ -71,11 +72,13 @@ export function GatewayModelsStep({
       setAvailableModels(models);
     } catch (error) {
       console.error('Failed to fetch gateway models:', error);
-      setModelsLoadError(error instanceof Error ? error.message : 'Failed to fetch models');
+      setModelsLoadError(
+        getReadableAiConfigErrorMessage(error, t, 'admin.setting.ai.fetchModelListError')
+      );
     } finally {
       setIsLoadingModels(false);
     }
-  }, [apiKey]);
+  }, [apiKey, t]);
 
   // Load models on component mount (for quick add buttons) and when dialog opens
   useEffect(() => {

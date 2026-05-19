@@ -4,9 +4,9 @@ import type { Result } from 'neverthrow';
 
 import { domainError, type DomainError } from '../../domain/shared/DomainError';
 import { AndSpec } from '../../domain/shared/specification/AndSpec';
+import type { ISpecification } from '../../domain/shared/specification/ISpecification';
 import { NotSpec } from '../../domain/shared/specification/NotSpec';
 import { OrSpec } from '../../domain/shared/specification/OrSpec';
-import type { ISpecification } from '../../domain/shared/specification/ISpecification';
 import type { Field } from '../../domain/table/fields/Field';
 import type { FieldId } from '../../domain/table/fields/FieldId';
 import { FieldType } from '../../domain/table/fields/FieldType';

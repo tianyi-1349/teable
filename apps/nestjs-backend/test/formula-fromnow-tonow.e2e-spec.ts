@@ -14,7 +14,7 @@ const toNumber = (value: unknown): number => {
   return parsed;
 };
 
-const FLOAT_COMPARISON_TOLERANCE = 1e-9;
+const floatComparisonTolerance = 1e-9;
 
 describe('Formula FROMNOW / TONOW (e2e)', () => {
   let app: INestApplication;
@@ -108,10 +108,10 @@ describe('Formula FROMNOW / TONOW (e2e)', () => {
       expect(pastToNow).toBeGreaterThan(0);
       expect(Math.abs(pastDay - pastToNow)).toBeLessThanOrEqual(1);
 
-      expect(pastHour + FLOAT_COMPARISON_TOLERANCE).toBeGreaterThanOrEqual(pastDay * 24);
-      expect(pastHour).toBeLessThan((pastDay + 1) * 24 + FLOAT_COMPARISON_TOLERANCE);
-      expect(pastSecond + FLOAT_COMPARISON_TOLERANCE).toBeGreaterThanOrEqual(pastHour * 3600);
-      expect(pastSecond).toBeLessThan((pastHour + 1) * 3600 + FLOAT_COMPARISON_TOLERANCE);
+      expect(pastHour + floatComparisonTolerance).toBeGreaterThanOrEqual(pastDay * 24);
+      expect(pastHour).toBeLessThan((pastDay + 1) * 24 + floatComparisonTolerance);
+      expect(pastSecond + floatComparisonTolerance).toBeGreaterThanOrEqual(pastHour * 3600);
+      expect(pastSecond).toBeLessThan((pastHour + 1) * 3600 + floatComparisonTolerance);
 
       const futureToNow = toNumber(futureRecord.fields?.[toNowDayId as string]);
       expect(futureToNow).toBeLessThan(0);

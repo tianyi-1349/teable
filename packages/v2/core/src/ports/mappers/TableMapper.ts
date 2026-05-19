@@ -331,6 +331,10 @@ export type ITableFieldPersistenceDTO =
 export type ITableViewPersistenceDTOBase = {
   id: string;
   name: string;
+  description?: string | null;
+  order?: number;
+  isLocked?: boolean;
+  shareMeta?: unknown;
   columnMeta: ViewColumnMetaValue;
   query?: ViewQueryDefaultsDTO;
   options?: unknown;

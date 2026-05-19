@@ -14,7 +14,7 @@ export const getTableByIdInputSchema = z.object({
 export type IGetTableByIdQueryInput = z.input<typeof getTableByIdInputSchema>;
 
 export class GetTableByIdQuery {
-  private constructor(
+  protected constructor(
     readonly baseId: BaseId,
     readonly tableId: TableId
   ) {}

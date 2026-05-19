@@ -1,23 +1,11 @@
-import { BaseNodeResourceType } from '@teable/openapi';
 import type { GetServerSideProps } from 'next';
 import type { ReactElement } from 'react';
 import { SsrApi } from '@/backend/api/rest/ssr-api';
 import type { ISSRContext } from '@/features/app/base-node';
-import {
-  DashBoardPage,
-  AppPage,
-  getBaseServerSideProps,
-  getAppServerSideProps,
-  getDashboardServerSideProps,
-  getTableServerSideProps,
-  getWorkflowServerSideProps,
-  TablePage,
-  WorkflowPage,
-} from '@/features/app/base-node';
+import { BaseNodePageSwitch, getResourcePageProps } from '@/features/app/base-node';
 import type { IShareBasePagePropsBase } from '@/features/app/blocks/share/base/share-base-ssr';
 import { createShareBaseSSR } from '@/features/app/blocks/share/base/share-base-ssr';
 import type { IBaseResourceParsed } from '@/features/app/hooks/useBaseResource';
-import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { ShareBaseLayout } from '@/features/app/layouts/ShareBaseLayout';
 import type { NextPageWithLayout } from '@/lib/type';
 import withEnv from '@/lib/withEnv';
@@ -25,42 +13,15 @@ import withEnv from '@/lib/withEnv';
 export type IShareBasePageProps = IShareBasePagePropsBase;
 
 const ShareBasePage: NextPageWithLayout<IShareBasePageProps> = (props: IShareBasePageProps) => {
-  const { resourceType } = useBaseResource();
-
-  switch (resourceType) {
-    case BaseNodeResourceType.Table:
-      return <TablePage {...props} />;
-    case BaseNodeResourceType.Dashboard:
-      return <DashBoardPage />;
-    case BaseNodeResourceType.Workflow:
-      return <WorkflowPage />;
-    case BaseNodeResourceType.App:
-      return <AppPage {...props} />;
-    default:
-      return null;
-  }
+  return <BaseNodePageSwitch {...props} />;
 };
 
-const getResourcePageProps = async (
+const getShareResourcePageProps = async (
   ctx: ISSRContext,
   parsed: IBaseResourceParsed,
   queryParams: Record<string, string | string[] | undefined>
 ) => {
-  if (!parsed.resourceType) {
-    return getBaseServerSideProps(ctx);
-  }
-  switch (parsed.resourceType) {
-    case BaseNodeResourceType.Table:
-      return getTableServerSideProps(ctx, parsed, queryParams);
-    case BaseNodeResourceType.Dashboard:
-      return getDashboardServerSideProps(ctx, parsed);
-    case BaseNodeResourceType.Workflow:
-      return getWorkflowServerSideProps(ctx, parsed);
-    case BaseNodeResourceType.App:
-      return getAppServerSideProps(ctx, parsed);
-    default:
-      return null;
-  }
+  return getResourcePageProps(ctx, parsed, queryParams);
 };
 
 export const getServerSideProps: GetServerSideProps<IShareBasePageProps> =
@@ -69,7 +30,7 @@ export const getServerSideProps: GetServerSideProps<IShareBasePageProps> =
     return createShareBaseSSR<IShareBasePageProps>({
       ssrApi,
       context,
-      getResourcePageProps,
+      getResourcePageProps: getShareResourcePageProps,
     });
   });
 

@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { NoopCellValueSpec } from '../../records/specs/values/NoopCellValueSpec';
+import { SetAttachmentValueSpec } from '../../records/specs/values/SetAttachmentValueSpec';
 import { SetCheckboxValueSpec } from '../../records/specs/values/SetCheckboxValueSpec';
 import { SetDateValueSpec } from '../../records/specs/values/SetDateValueSpec';
-import { SetLinkValueSpec } from '../../records/specs/values/SetLinkValueSpec';
 import { SetLinkValueByTitleSpec } from '../../records/specs/values/SetLinkValueByTitleSpec';
+import { SetLinkValueSpec } from '../../records/specs/values/SetLinkValueSpec';
 import { SetNumberValueSpec } from '../../records/specs/values/SetNumberValueSpec';
-import { SetRatingValueSpec } from '../../records/specs/values/SetRatingValueSpec';
+import type { SetRatingValueSpec } from '../../records/specs/values/SetRatingValueSpec';
 import { SetSingleLineTextValueSpec } from '../../records/specs/values/SetSingleLineTextValueSpec';
 import type { SetSingleSelectValueSpec } from '../../records/specs/values/SetSingleSelectValueSpec';
 import { SetUserValueSpec } from '../../records/specs/values/SetUserValueSpec';
-import { SetAttachmentValueSpec } from '../../records/specs/values/SetAttachmentValueSpec';
-import { AttachmentField } from '../types/AttachmentField';
-import { AutoNumberField } from '../types/AutoNumberField';
 import { FieldId } from '../FieldId';
 import { FieldName } from '../FieldName';
+import { AttachmentField } from '../types/AttachmentField';
+import { AutoNumberField } from '../types/AutoNumberField';
 import { ButtonField } from '../types/ButtonField';
 import { CheckboxField } from '../types/CheckboxField';
 import { CreatedByField } from '../types/CreatedByField';

@@ -117,7 +117,7 @@ The implementation shall align with these official capabilities:
 ## Phase 1 Implementation Notes
 
 - REQ-WF-001, REQ-WF-002, REQ-WF-005, REQ-TRG-001, REQ-HIS-001, and the workflow-level part of REQ-HIS-003 are partially implemented in the local Phase 1 branch.
-- REQ-WF-003 and REQ-WF-004 are implemented as active snapshot persistence on activation, but draft node editing APIs are not implemented yet.
+- REQ-WF-003 and REQ-WF-004 are implemented as active snapshot persistence on activation, and draft node editing is currently carried by `updateWorkflow` node mutation semantics.
 - REQ-HIS-002 is structurally supported by `workflow_run_step`, but no action runner creates step rows yet.
 - AC-001 is implemented as an accepted run lifecycle: button click returns a real runId and records a completed empty runner result.
-- AC-002 is partially implemented for create, update, activate, deactivate, duplicate, and delete APIs; test/apply-update UI and draft node editing remain future work.
+- AC-002 is partially implemented for create, update, activate, deactivate, duplicate, delete, draft editing, and AI draft creation APIs; explicit apply-update UX, richer node test flows, and remaining workflow UI still remain future work.

@@ -12,6 +12,7 @@ type IWorkflowCreatePayload = { baseId: string; workflow: IWorkflowVo };
 type IWorkflowDeletePayload = { baseId: string; workflowId: string; permanent?: boolean };
 type IWorkflowUpdatePayload = IWorkflowCreatePayload;
 type IWorkflowActivatePayload = IWorkflowCreatePayload;
+type IWorkflowApplyUpdatePayload = IWorkflowCreatePayload;
 type IWorkflowDeactivatePayload = IWorkflowCreatePayload;
 
 export class WorkflowCreateEvent extends CoreEvent<IWorkflowCreatePayload> {
@@ -45,6 +46,14 @@ export class WorkflowActivateEvent extends CoreEvent<IWorkflowActivatePayload> {
   }
 }
 
+export class WorkflowApplyUpdateEvent extends CoreEvent<IWorkflowApplyUpdatePayload> {
+  public readonly name = Events.WORKFLOW_APPLY_UPDATE;
+
+  constructor(payload: IWorkflowApplyUpdatePayload, context: IEventContext) {
+    super(payload, context);
+  }
+}
+
 export class WorkflowDeactivateEvent extends CoreEvent<IWorkflowDeactivatePayload> {
   public readonly name = Events.WORKFLOW_DEACTIVATE;
 
@@ -61,6 +70,7 @@ export class WorkflowEventFactory {
       | IWorkflowDeletePayload
       | IWorkflowUpdatePayload
       | IWorkflowActivatePayload
+      | IWorkflowApplyUpdatePayload
       | IWorkflowDeactivatePayload,
     context: IEventContext
   ) {
@@ -76,6 +86,9 @@ export class WorkflowEventFactory {
       })
       .with(Events.WORKFLOW_ACTIVATE, () => {
         return new WorkflowActivateEvent(payload as IWorkflowActivatePayload, context);
+      })
+      .with(Events.WORKFLOW_APPLY_UPDATE, () => {
+        return new WorkflowApplyUpdateEvent(payload as IWorkflowApplyUpdatePayload, context);
       })
       .with(Events.WORKFLOW_DEACTIVATE, () => {
         return new WorkflowDeactivateEvent(payload as IWorkflowDeactivatePayload, context);

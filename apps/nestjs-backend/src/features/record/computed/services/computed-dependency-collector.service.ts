@@ -264,7 +264,7 @@ export class ComputedDependencyCollectorService {
 
   private async loadTableDomains(
     tableIds: Iterable<string>,
-    ctx: ICollectorExecutionContext
+    _ctx: ICollectorExecutionContext
   ): Promise<Map<string, TableDomain>> {
     const ids = Array.from(new Set(Array.from(tableIds).filter(Boolean)));
     if (!ids.length) return new Map();
@@ -1607,7 +1607,7 @@ export class ComputedDependencyCollectorService {
     }
 
     const impactedTables = new Set([...Object.keys(impact), tableId]);
-    for (const [tid, ids] of Object.entries(plannedForeignRecordIds)) {
+    for (const [tid] of Object.entries(plannedForeignRecordIds)) {
       if (!impactedTables.has(tid)) {
         impactedTables.add(tid);
       }

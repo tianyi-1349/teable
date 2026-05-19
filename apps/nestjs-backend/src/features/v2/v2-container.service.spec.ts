@@ -19,8 +19,8 @@ import { CacheService } from '../../cache/cache.service';
 import { thresholdConfig } from '../../configs/threshold.config';
 import { ShareDbService } from '../../share-db/share-db.service';
 import { AttachmentsStorageService } from '../attachments/attachments-storage.service';
-import { V2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 import { V2ContainerService } from './v2-container.service';
+import { v2ProjectionRegistrar, type IV2ProjectionRegistrar } from './v2-projection-registrar';
 
 const mocks = vi.hoisted(() => ({
   createV2NodePgContainer: vi.fn(),
@@ -78,7 +78,7 @@ vi.mock('./v2-tracer.adapter', () => ({
   OpenTelemetryTracer: class OpenTelemetryTracer {},
 }));
 
-@V2ProjectionRegistrar()
+@v2ProjectionRegistrar()
 class TestProjectionRegistrar implements IV2ProjectionRegistrar {
   registerProjections = vi.fn();
 }

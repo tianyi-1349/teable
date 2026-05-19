@@ -1,28 +1,31 @@
 import { err, ok, type Result } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
 
-import { LinkTitleResolverService } from './LinkTitleResolverService';
-import { PasteLinkAutoResolveService } from './PasteLinkAutoResolveService';
-import type { RecordBatchCreationService } from './RecordBatchCreationService';
-import { TableQueryService } from './TableQueryService';
 import { BaseId } from '../../domain/base/BaseId';
 import { ActorId } from '../../domain/shared/ActorId';
 import { domainError, type DomainError } from '../../domain/shared/DomainError';
+import type { ISpecification } from '../../domain/shared/specification/ISpecification';
 import { FieldId } from '../../domain/table/fields/FieldId';
 import { FieldName } from '../../domain/table/fields/FieldName';
 import { FieldNotNull } from '../../domain/table/fields/types/FieldNotNull';
 import { FormulaExpression } from '../../domain/table/fields/types/FormulaExpression';
 import { LinkFieldConfig } from '../../domain/table/fields/types/LinkFieldConfig';
+import type { ITableSpecVisitor } from '../../domain/table/specs/ITableSpecVisitor';
 import { Table } from '../../domain/table/Table';
 import { TableId } from '../../domain/table/TableId';
 import { TableName } from '../../domain/table/TableName';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import type { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
-import type { ITableRepository } from '../../ports/TableRepository';
-import type { TableFindOptions, TableUpdatePersistResult } from '../../ports/TableRepository';
-import type { ITableSpecVisitor } from '../../domain/table/specs/ITableSpecVisitor';
-import type { ISpecification } from '../../domain/shared/specification/ISpecification';
+import type {
+  ITableRepository,
+  TableFindOptions,
+  TableUpdatePersistResult,
+} from '../../ports/TableRepository';
+import { LinkTitleResolverService } from './LinkTitleResolverService';
+import { PasteLinkAutoResolveService } from './PasteLinkAutoResolveService';
+import type { RecordBatchCreationService } from './RecordBatchCreationService';
+import { TableQueryService } from './TableQueryService';
 
 const createContext = (): IExecutionContext => ({
   actorId: ActorId.create('system')._unsafeUnwrap(),

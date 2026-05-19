@@ -68,7 +68,7 @@ export class DatetimeCellValueFilterAdapter extends CellValueFilterPostgres {
     builderClient: Knex.QueryBuilder,
     _operator: IFilterOperator,
     value: IFilterValue,
-    dbProvider: IDbProvider
+    _dbProvider: IDbProvider
   ): Knex.QueryBuilder {
     if (isFieldReferenceValue(value)) {
       const ref = this.resolveFieldReference(value);
@@ -89,7 +89,7 @@ export class DatetimeCellValueFilterAdapter extends CellValueFilterPostgres {
     builderClient: Knex.QueryBuilder,
     _operator: IFilterOperator,
     value: IFilterValue,
-    dbProvider: IDbProvider
+    _dbProvider: IDbProvider
   ): Knex.QueryBuilder {
     if (isFieldReferenceValue(value)) {
       const ref = this.resolveFieldReference(value);
@@ -110,7 +110,7 @@ export class DatetimeCellValueFilterAdapter extends CellValueFilterPostgres {
     builderClient: Knex.QueryBuilder,
     _operator: IFilterOperator,
     value: IFilterValue,
-    dbProvider: IDbProvider
+    _dbProvider: IDbProvider
   ): Knex.QueryBuilder {
     if (isFieldReferenceValue(value)) {
       const ref = this.resolveFieldReference(value);
@@ -131,7 +131,7 @@ export class DatetimeCellValueFilterAdapter extends CellValueFilterPostgres {
     builderClient: Knex.QueryBuilder,
     _operator: IFilterOperator,
     value: IFilterValue,
-    dbProvider: IDbProvider
+    _dbProvider: IDbProvider
   ): Knex.QueryBuilder {
     if (isFieldReferenceValue(value)) {
       const ref = this.resolveFieldReference(value);
