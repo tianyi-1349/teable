@@ -38,7 +38,7 @@
    - 作用：反推后续 roadmap、技术债和 v2 迁移重点
 5. 盘点执行手册
    - 文件：`/workspace/capability-inventory-execution-playbook.md`
-   - 作用：固定 `GPT-5.5` 主盘点、`DeepSeek v4pro` 边界复核和最终收口的执行方式
+   - 作用：固定 `GPT-5.5` 主盘点、`DeepSeek v4pro` 边界复核、`GPT-codex5.3` 工程拆解和最终收口的执行方式
 
 治理路线图文档：
 1. `capability-gap-task-matrix.md`
@@ -58,7 +58,7 @@
 8. `billing-usage-boundary-note.md`
    - 作用：沉淀 billing / usage 的主仓边界证据、阻塞原因与后续接入条件
 9. `capability-prompts.md`
-   - 作用：提供与执行手册一致的主盘点、边界复核、最终收口提示词模板
+   - 作用：提供与执行手册一致的主盘点、边界复核、工程拆解、最终收口提示词模板
 10. `object-storage-governance-plan.md`
    - 作用：沉淀对象存储能力的统一治理视图、抽象层次和后续维护规则
 

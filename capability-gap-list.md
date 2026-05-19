@@ -51,7 +51,7 @@
   - View 域已确认存在 v2 领域内核，并且本轮已补 `views.list`、`views.getById`、`views.updateName`、`views.updateDescription`、`views.updateLocked`、`views.updateShareMeta`、`views.updateOptions`、`views.updateOrder`、`views.updateFilter`、`views.updateSort`、`views.updateGroup`、`views.updateColumnMeta`、`views.reorderRecords` 与 `api/v2` 独立公开入口。
   - View 基础读写链路现已全部形成专用 `view` 读写闭环，shared router 与 Nest `api/v2` 双层都已接通 command/query bus。
   - Comment 域本轮已新增基础读入口：`comments.list`、`comments.getById`、`comments.getRecordCount`、`comments.getTableCount`，并补了 `comments.getSubscribeDetail`、`comments.subscribe`、`comments.unsubscribe`，说明该域已经形成基础 `contract-http + api/v2` 公开迁移面。
-- Aggregation / Search 本轮已补 `tables.getRowCount`、`tables.getRecordIndex`、`tables.getSearchCount`、`tables.getSearchIndex`，Undo / Redo 本轮已补 `tables.undo`、`tables.redo`，并同步打通 Nest `api/v2`、`contract-http`、`contract-http-implementation` 与 generic router 四层链路。
+- Aggregation / Search 本轮已补 `tables.getRowCount`、`tables.getRecordIndex`、`tables.getSearchCount`、`tables.getSearchIndex`，并继续补 `tables.getAggregation`、`tables.getGroupPoints`、`tables.getCalendarDailyCollection`、`tables.getTaskStatusCollection` 的 v2 contract 与 Nest adapter 接线；当前高级聚合执行层仍复用 v1 service。Undo / Redo 本轮已补 `tables.undo`、`tables.redo`，并同步打通 Nest `api/v2`、`contract-http`、`contract-http-implementation` 与 generic router 四层链路。
 - 当前剩余缺口聚焦于 share / published / plugin 等更高层产品能力，以及 comment / share / published / template / setting / workflow 在 generic router 侧仍需显式依赖 Nest adapter 的边界统一。
 - 当前处理补充
   - 已通过 `v1-v2-coverage-matrix.md`、`workflow-domain-governance-roadmap.md`、`share-published-governance-roadmap.md`、`ports-adapters-adoption-roadmap.md` 把剩余迁移工作转成持续执行的路线图，不再停留在抽象缺口描述。
@@ -74,6 +74,13 @@
   - 当前又补齐 `workflows.create`、`workflows.update`、`workflows.delete`、`workflows.duplicate`，workflow 的主 CRUD 入口也已进入 v2。
   - 当前又补齐 `workflows.activate`、`workflows.deactivate`，workflow lifecycle 主链路已在后续修订中全部补齐。
   - 当前又补齐 `workflows.testRun`，workflow 的读取、CRUD 和 lifecycle 主链路都已进入 v2。
+  - 当前又补齐 `workflows.aiCreateDraft`，AI draft 已进入 v2 公开主链路；同时前端工作区已通过 `updateWorkflow` 承载草稿节点编辑。
+- 当前又补齐 `workflows.applyUpdate`，独立 apply-update 语义已进入 v2 公开主链路，并由 backend 刷新 `activeSnapshotId` 指向新 snapshot。
+- 当前又补齐 `workflows.testNode`、`workflows.triggerWebhook`、`workflows.triggerSchedule`、`workflows.triggerFormSubmitted`、`workflows.triggerEmailReceived`，workflow 的 node debug 与 direct trigger 入口已进入 v2 公开主链路。
+- `schedule` 当前已具备最小正式调度基础设施：active workflow 可按 `manual / interval / cron` 配置同步 backend repeat job。
+- `webhook` 当前已具备更完整的最小正式契约面：支持可选 secret、可选 HMAC-SHA256 signature 校验、时间窗校验、公开 header 契约说明，以及 workflow 级 body size limit / rate limit / 分层错误语义。
+- workflow 当前已具备 9 类最小 action runtime：`runScript`、`aiGenerate`、`updateRecords`、`createRecords`、`queryRecords`、`sendEmail`、`httpRequest`、`condition`、`loop`。
+- AI authoring 当前已提升到最小多形态/多节点/activation-ready 草稿生成：AI draft 已可生成多类 trigger/action 组合、最小多节点 actions、fieldMappings 与 `testPlan(input / expectedActionKinds / activationChecks)`，而不是固定单一草稿模板。
   - 已补 `workflow-domain-governance-roadmap.md`，明确读取、CRUD、生命周期三层推进顺序。
 - 缺口本质
   - 功能完整，但 V2 领域化表达和统一执行模型仍有继续下沉空间。
@@ -112,7 +119,7 @@
   - 当前剩余缺口主要是代码结构和治理边界的统一，而不再是“能力位置不可见”。
   - 本轮已新增 `settings.get`、`settings.getPublic` 两条 v2 公开入口，说明系统管理域已开始从 setting 读取面进入 `contract-http + api/v2` 迁移路径。
   - 当前又已统一 `packages/v2/contract-http-implementation/src/router.ts` 的 Nest-only 边界表达，并补齐 `tables` 域新增公开入口在 generic router 的接线；剩余 comment / share / published / template / setting / workflow 仍保留显式 Nest adapter 边界，当前已从“隐性不一致”转为“显式边界约束”。
-  - 当前已进一步确认 `billing/subscription` 与 `usage` 在前端按 Cloud / EE 条件消费，但当前主仓 backend 未定位到稳定事实源，因此这两组接口本轮收口为仓库边界受限项。
+  - 当前已进一步确认 `billing & usage` 在前端按 Cloud / EE 条件消费，但当前主仓 backend 未定位到稳定 controller / service 事实源，因此该域本轮收口为仓库边界受限项。
   - 已补 `peripheral-domain-roadmap.md` 与 `observability-and-adapter-validation-plan.md`，并将 billing、organization、外围命名、观测与适配验证正式收口到路线图治理与边界说明。
 - 建议优先级：P1
 
@@ -127,11 +134,11 @@
   - 组织域还没有形成与协作域同级的成熟业务面。
 - 建议优先级：P1
 
-### 3.2 Billing 能力更接近“查询接口”，还不是完整业务域
+### 3.2 Billing & Usage 能力更接近“外围查询接口”，还不是完整业务域
 
 - 现状
-  - 已有 `billing/subscription/*` 契约与后端接口。
-  - 从现有盘点看，更多是状态查询，而不是完整计费产品域。
+  - 已有 `billing/subscription/*`、`usage/*` 的 openapi 契约。
+  - 当前主仓中未定位到对应稳定 backend controller / service，实现面更接近前端消费的外围查询契约。
 - 缺口本质
   - 计费域仍偏轻量，缺少更完整的业务闭环表达。
 - 当前修订说明

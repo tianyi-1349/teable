@@ -9,7 +9,7 @@
 这份文档用于收口 `capability-gap-task-matrix.md` 中以下外围域治理主题：
 
 - `3.1 组织信息域较浅`
-- `3.2 Billing 更接近查询接口`
+- `3.2 Billing & Usage 更接近外围查询接口`
 - `3.3 独立 Univer 插件产品化程度低`
 - `3.4 OpenAPI 子域与后端 feature 命名体系有历史包袱`
 
@@ -25,7 +25,7 @@
 1. 保持独立业务域定位
 2. 后续仅在协作主链路确实需要时再触发收敛
 
-## 3. Billing 域
+## 3. Billing & Usage 域
 
 ### 当前状态
 

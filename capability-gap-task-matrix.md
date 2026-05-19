@@ -30,11 +30,11 @@
 | 编号 | 缺口主题 | 当前状态 | 证据 | 建议动作 | 优先级 |
 |------|----------|----------|------|----------|--------|
 | 2.1 | V1 与 V2 双轨能力覆盖不一致 | 已修复 | 已补 `views.*`、`comments.*`、`workflows.*`、`share.*`、`templates.*`、`settings.*`、`tables.getRowCount`、`tables.getRecordIndex`、`tables.getSearchCount`、`tables.getSearchIndex`、`tables.undo`、`tables.redo` 等 v2 公开入口，并完成高价值公开面的输出契约收口，`contract-http-implementation` handler 已清理宽泛返回签名；最新验证中 `v2-contract-http` 与 `v2-contract-http-implementation` 包级 typecheck 持续通过 | 已纳入 `workflow-domain-governance-roadmap.md`、`share-published-governance-roadmap.md`、`ports-adapters-adoption-roadmap.md` 的持续治理范围 | P0 |
-| 2.2 | Workflow 领域架构表达仍偏分散 | 已修复 | 已形成 `workflow-domain-governance-roadmap.md`，并已补 `workflows.getById`、`workflows.listRuns`、`workflows.getRun`、`workflows.create`、`workflows.update`、`workflows.delete`、`workflows.duplicate`、`workflows.activate`、`workflows.deactivate`、`workflows.testRun`，且 workflow 高价值公开面已完成 DTO 输出校验收口 | 已转入更深的 port 化、前端工作区统一和细节治理 | P0 |
-| 2.3 | Share 与 Published 统一度不足 | 已修复 | 已形成 `share-published-governance-roadmap.md`，并已补 share 只读主链路、`share.formSubmitView`、`share.copyView`、`share.buttonClickView`、template published 首批入口，以及 `publishedApps.getRuntimeManifest`、`publishedApps.getNavigationModel`、`publishedApps.getNodeRuntime` 三层 backend contract；share / published 高价值公开面已完成 DTO 输出校验收口 | 已转入 published runtime permission / mode 细化语义的持续治理 | P0 |
+| 2.2 | Workflow 领域架构表达仍偏分散 | 已修复 | 已形成 `workflow-domain-governance-roadmap.md`，并已补 `workflows.getById`、`workflows.listRuns`、`workflows.getRun`、`workflows.create`、`workflows.update`、`workflows.delete`、`workflows.duplicate`、`workflows.activate`、`workflows.deactivate`、`workflows.testRun`、`workflows.aiCreateDraft`、`workflows.applyUpdate`，且 workflow 高价值公开面已完成 DTO 输出校验收口 | 已转入 runner/history、更深 port 化与前端工作区统一治理 | P0 |
+| 2.3 | Share 与 Published 统一度不足 | 已修复 | 已形成 `share-published-governance-roadmap.md`，并已补 share 只读主链路、`share.formSubmitView`、`share.copyView`、`share.buttonClickView`、template published 首批入口，以及 `publishedApps.getRuntimeManifest`、`publishedApps.getNavigationModel`、`publishedApps.getNodeRuntime` 三层 backend contract；share / published 高价值公开面已完成 DTO 输出校验收口 | 已转入 published runtime mode 语义落地、`defaultNodeId` 命名收敛与统一 runtime 访问模型的持续治理 | P0 |
 | 2.4 | 系统管理类接口分布偏散 | 已修复 | 已有 `system-management-and-peripheral-index.md`，并已补 `settings.get`、`settings.getPublic`；generic router 的 Nest-only 边界表达已统一，`tables` 新增公开入口也已接入 shared router；已进一步确认 `billing/subscription` 与 `usage` 在当前主仓缺少稳定 backend 事实源，剩余项已转入边界说明与后续路线图阶段 | 已纳入索引维护、边界说明和触发型路线图治理 | P1 |
 | 3.1 | 组织信息域较浅 | 已修复 | 已形成 `peripheral-domain-roadmap.md`，明确其作为独立外围域维持现状 | 已转为按协作主链路需求触发的专项治理 | P1 |
-| 3.2 | Billing 更接近查询接口 | 已修复 | 已形成 `peripheral-domain-roadmap.md`，并确认前端消费存在 Cloud / EE 门控、当前主仓 backend 未定位到稳定事实源 | 已转为维持查询域定位并按事实源触发的边界治理 | P1 |
+| 3.2 | Billing & Usage 更接近外围查询接口 | 已修复 | 已形成 `peripheral-domain-roadmap.md`，并确认前端消费存在 Cloud / EE 门控、当前主仓 backend 未定位到稳定 controller / service 事实源 | 已转为维持外围查询域定位并按事实源触发的边界治理 | P1 |
 | 3.3 | 独立 Univer 插件产品化程度低 | 已修复 | 已形成 `peripheral-domain-roadmap.md`，将其标记为实验性外围域 | 已转为按业务价值触发的专项治理 | P2 |
 | 3.4 | OpenAPI 子域与后端 feature 命名体系有历史包袱 | 已修复 | 已有 `system-management-and-peripheral-index.md` 与 `peripheral-domain-roadmap.md` 对命名不直观能力做索引说明 | 已转为专项治理触发时再执行真实重命名 | P1 |
 | 4.1 | contract-http 还不是全站主契约层 | 已修复 | 已有 `v1-v2-coverage-matrix.md` 持续跟踪迁移状态，并补了多批高价值域 v2 入口 | 已纳入按领域路线图持续演进的治理范围 | P0 |
@@ -92,12 +92,27 @@
 以下缺口成立，但当前更适合先形成工程拆分，不适合马上做大范围代码重构：
 
 - Workflow 全量领域化收口
-- Share / Published 全量统一到 v2
+- Share / Published 统一 runtime 访问模型与 mode 语义落地
 - Ports / Adapters 大面积迁移
 - 公式到 SQL、计算字段和事件总线的深度扩展
 - 多数据库和多 HTTP 适配的大规模测试验证
 
 这些项适合在当前盘点基础上进入正式 roadmap，而不是在本轮直接一次性重构。
+
+## 4.1 阶段 3 工程拆解映射
+
+以下任务是当前最小可执行工程切口，对应 `capability-engineering-task-breakdown-codex53-2026-05-18.md`：
+
+1. `P0-T1` Published runtime mode/defaultNodeId 语义收敛
+2. `P0-T2` Published runtime 跨端 shell 最小闭环
+3. `P0-T3` Workflow draft/apply-update 后端语义闭环
+4. `P0-T4` Workflow trigger runner 与 step history 最小可用闭环
+5. `P0-T5` 高级聚合 v2 契约补齐
+6. `P1-T1` Share/Published/Template 统一访问模型契约化
+7. `P1-T2` Frontend workflow 工作区闭环
+8. `P1-T3` 多适配器 smoke matrix 落地
+9. `P1-T4` 观测能力产品化索引
+10. `P1-T5` Billing & Usage 边界项标准化
 
 ## 5. 建议的执行顺序
 

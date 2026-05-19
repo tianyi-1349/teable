@@ -14,6 +14,7 @@ import type {
   ISearchCountRo,
   IRecordIndexRo,
   IRecordIndexVo,
+  ITaskStatusCollectionVo,
 } from '@teable/openapi';
 import { forIn, isEmpty, map } from 'lodash';
 import { IAggregationService } from '../aggregation.service.interface';
@@ -132,5 +133,12 @@ export class AggregationOpenApiService {
     projection?: string[]
   ) {
     return await this.aggregationService.getRecordIndexBySearchOrder(tableId, queryRo, projection);
+  }
+
+  async getTaskStatusCollection(_tableId: string): Promise<ITaskStatusCollectionVo> {
+    return {
+      fieldMap: {},
+      cells: [],
+    };
   }
 }

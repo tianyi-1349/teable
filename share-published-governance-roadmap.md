@@ -46,7 +46,7 @@
 
 ### 2.3 当前治理主题
 
-- published app runtime 已有 manifest、navigation、node runtime contract，并已补 `defaultUrl`、`passwordRestricted` 语义；更统一的 permissions / runtime 语义层已转入持续治理
+- published app runtime 已有 manifest、navigation、node runtime contract，并已补 `defaultUrl`、`passwordRestricted` 语义；当前已明确两项收口切口：`authenticated/template` mode 落地、`defaultNodeId` 命名统一
 - template publish 与 published runtime 已共享 `defaultUrl` 语义；更深的一体化公开 contract 模型已转入后续专项治理
 
 ## 3. 分层路线图
@@ -71,6 +71,7 @@
 
 1. published permissions 与 mode 的统一 contract 细化
 2. template publish 与 published runtime 的更深统一
+3. `nodeId` / `defaultNodeId` / `defaultActiveNodeId` 的单一权威字段收敛
 
 当前参考文档：
 
@@ -91,6 +92,7 @@
 - `defaultUrl`
 - `defaultNodeId`
 - 与默认节点解析相关的资源路径规则
+ - `mode` 的统一解析规则（`share | template | authenticated`）
 
 ## 4. 推荐切口
 
@@ -115,7 +117,7 @@
 
 1. template publish 侧：`TemplatePermalinkService.resolvePermalink(...)` 使用 `publishInfo.defaultUrl`
 2. published runtime 侧：`publishedApps.getRuntimeManifest` 暴露 `defaultUrl`
-3. 后续可以围绕 `defaultUrl + defaultNodeId` 形成统一 Published 访问模型
+3. 后续可以围绕 `defaultUrl + defaultNodeId + mode` 形成统一 Published 访问模型
 
 ## 5. 完成判定
 
@@ -124,17 +126,19 @@ Share / Published 可从“统一度不足”升级到“基础统一面已形�
 1. share 读取与核心交互入口都进入 v2
 2. published app runtime 至少有 manifest / node data / permission 三类公开 contract
 3. template publish 与 published app runtime 之间的关系有统一说明文档
+4. `authenticated/template` mode 完成落地，`defaultNodeId` 命名收敛到单一权威字段
 
 当前进度：
 
 - 条件 1 已满足
 - 条件 2 已完成 manifest / navigation / node runtime 三层 backend contract，permission 细化已转入持续治理
 - 条件 3 已通过路线图与 contract 设计文档建立统一说明
+ - 条件 4 当前未满足，仍是下一波 P0/P1 工程主线
 
 ## 6. 当前结论
 
 当前最合适的执行口径是：
 
-1. 继续细化 published app runtime 的更深 permission / mode 语义
+1. 先完成 published app runtime 的 `authenticated/template` mode 落地与默认节点语义收敛
 2. 再做 share / published 的统一 runtime 语义收束
-3. 最后把 template publish 与 published runtime 的 `defaultUrl / defaultNodeId` 统一收成共享访问模型
+3. 最后把 template publish 与 published runtime 的 `defaultUrl / defaultNodeId / mode` 统一收成共享访问模型

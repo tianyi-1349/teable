@@ -43,11 +43,11 @@
 | Record | 完整 | 完整 | 双轨并行，V2 已具备较完整闭环 | V1 有 `openapi/src/record/*` + `features/record/*`；V2 有 create / list / get / update / batch / paste / clear / reorder / importCsv |
 | View | 完整 | 局部 | V1 主导，V2 已形成基础独立读写闭环 | V1 有 `openapi/src/view/*` + `features/view/*`；V2 已有 `domain/table/views/*`、相关 spec / event / projection，且已新增 `views.list`、`views.getById`、`views.updateName`、`views.updateDescription`、`views.updateLocked`、`views.updateShareMeta`、`views.updateOptions`、`views.updateOrder`、`views.updateFilter`、`views.updateSort`、`views.updateGroup`、`views.updateColumnMeta`、`views.reorderRecords`，shared router 与 `api/v2` 已接通基础执行入口 |
 | Comment | 完整 | 局部 | V1 主导，V2 已新增基础读面与订阅能力，且 comment 高价值公开面已完成 DTO 输出校验收口 | V1 有 `openapi/src/comment/*` + `features/comment/*`；V2 当前已新增 `packages/v2/contract-http/src/comment/listComments.ts`、`getCommentById.ts`、`getCommentCounts.ts`、`commentSubscribe.ts` 与 Nest `api/v2` `comments.list`、`comments.getById`、`comments.getRecordCount`、`comments.getTableCount`、`comments.getSubscribeDetail`、`comments.subscribe`、`comments.unsubscribe` 入口，implementation handler 已清理宽泛返回签名 |
-| Share / Published | 完整 | 较完整 | V1 主导，但 share 读取与核心交互面、template published 公开面已进入 v2，published runtime 的 manifest / navigation / node runtime 三层 backend contract 已落地，且高价值公开面已完成 DTO 输出校验收口；当前 `v2-contract-http` 与 `v2-contract-http-implementation` 包级 typecheck 保持绿色 | V1 有 `openapi/src/share/*` + `features/share/*` + 前端 Published 运行时；V2 当前已新增 `packages/v2/contract-http/src/share/*` 下的 `getShareView`、`getShareViewAggregations`、`getShareViewRowCount`、`getShareViewRecords`、`getShareViewGroupPoints`、`getShareViewLinkRecords`、`getShareViewCollaborators`、`getShareViewCalendarDailyCollection`、`getShareViewSearchCount`、`getShareViewSearchIndex`、`formSubmitShareView.ts`、`copyShareView.ts`、`buttonClickShareView.ts`，并新增 `packages/v2/contract-http/src/template/listPublishedTemplates.ts`、`getTemplateById.ts`、`getTemplatePermalink.ts`、`incrementTemplateVisit.ts`、`packages/v2/contract-http/src/published-app/getRuntimeManifest.ts`、`packages/v2/contract-http/src/published-app/getNavigationModel.ts`、`getNodeRuntime.ts` 与 Nest `api/v2` 对应入口 |
-| Workflow | 完整 | 基础闭环已形成 | 功能成熟，读取、CRUD 与 lifecycle 主链路已完成本轮公开迁移，且 workflow 高价值公开面已完成 DTO 输出校验收口 | V1 有 `openapi/src/automation/workflow/*` + `features/workflow/*`；V2 当前已新增 `packages/v2/contract-http/src/workflow/activateWorkflow.ts`、`createWorkflow.ts`、`deactivateWorkflow.ts`、`listWorkflows.ts`、`updateWorkflow.ts`、`deleteWorkflow.ts`、`duplicateWorkflow.ts`、`getWorkflowById.ts`、`getWorkflowCapabilities.ts`、`listWorkflowRuns.ts`、`getWorkflowRun.ts`、`testRunWorkflow.ts` 与 Nest `api/v2` `workflows.activate`、`workflows.create`、`workflows.deactivate`、`workflows.list`、`workflows.update`、`workflows.delete`、`workflows.duplicate`、`workflows.getById`、`workflows.getCapabilities`、`workflows.listRuns`、`workflows.getRun`、`workflows.testRun` 入口 |
-| Undo / Redo | 完整 | 较完整 | V2 已形成命令、服务、公开契约和 shared router 接线 | V1 有 `openapi/src/undo-redo/*` + `features/undo-redo/*`；V2 当前已新增 `packages/v2/contract-http/src/table/undo.ts`、`redo.ts`，并在 `contract.ts`、Nest `api/v2` 与 `createV2OrpcRouter` 中公开 `tables.undo`、`tables.redo` |
-| Aggregation / Search | 完整 | 较完整 | V1 主导，但 table 级读取公开层已进入 v2 | V1 有 `openapi/src/aggregation/*`、`search/*` + backend feature；V2 当前已新增 `packages/v2/contract-http/src/table/getRowCount.ts`、`getRecordIndex.ts`、`getSearchCount.ts`、`getSearchIndex.ts`，并在 `contract.ts`、Nest `api/v2` 与 `createV2OrpcRouter` 中公开对应入口 |
-| Admin / Setting / Billing | 完整 | 局部 | V1 主导，setting 已完成本轮 v2 公开层和输出契约收口，billing / usage 当前受仓库边界限制 | V1 有 `openapi/src/admin/setting/*`、`billing/subscription/*`、`usage/*`；V2 当前已新增 `packages/v2/contract-http/src/setting/getSetting.ts`、`getPublicSetting.ts` 与 Nest `api/v2` `settings.get`、`settings.getPublic` 入口，setting handler 已完成显式 DTO 输出校验；前端对 billing / usage 的消费存在 `useIsCloud()` / `useIsEE()` 门控，而当前主仓 backend 未定位到对应稳定 controller / service |
+| Share / Published | 完整 | 较完整 | V1 主导，但 share 读取与核心交互面、template published 公开面已进入 v2，published runtime 的 manifest / navigation / node runtime 三层 backend contract 已落地；当前稳定缺口聚焦于 `authenticated/template` mode 未实现、`defaultNodeId` 命名未统一、统一 runtime 访问模型未成型 | V1 有 `openapi/src/share/*` + `features/share/*` + 前端 Published 运行时；V2 当前已新增 `packages/v2/contract-http/src/share/*` 下的 `getShareView`、`getShareViewAggregations`、`getShareViewRowCount`、`getShareViewRecords`、`getShareViewGroupPoints`、`getShareViewLinkRecords`、`getShareViewCollaborators`、`getShareViewCalendarDailyCollection`、`getShareViewSearchCount`、`getShareViewSearchIndex`、`formSubmitShareView.ts`、`copyShareView.ts`、`buttonClickShareView.ts`，并新增 `packages/v2/contract-http/src/template/listPublishedTemplates.ts`、`getTemplateById.ts`、`getTemplatePermalink.ts`、`incrementTemplateVisit.ts`、`packages/v2/contract-http/src/published-app/getRuntimeManifest.ts`、`getNavigationModel.ts`、`getNodeRuntime.ts` 与 Nest `api/v2` 对应入口 |
+| Workflow | 完整 | 基础闭环已形成 | 功能成熟，读取、CRUD、lifecycle、node test、direct trigger、9 类最小 action runtime、webhook 分层错误契约，以及 AI draft 多形态/多节点/activation-ready 草稿生成主链路已完成本轮公开迁移，且 workflow 高价值公开面已完成 DTO 输出校验收口 | V1 有 `openapi/src/automation/workflow/*` + `features/workflow/*`；V2 当前已新增 `packages/v2/contract-http/src/workflow/activateWorkflow.ts`、`createWorkflow.ts`、`deactivateWorkflow.ts`、`listWorkflows.ts`、`updateWorkflow.ts`、`deleteWorkflow.ts`、`duplicateWorkflow.ts`、`getWorkflowById.ts`、`getWorkflowCapabilities.ts`、`listWorkflowRuns.ts`、`getWorkflowRun.ts`、`testRunWorkflow.ts`、`testNodeWorkflow.ts`、`triggerWebhookWorkflow.ts`、`triggerScheduleWorkflow.ts`、`triggerFormSubmittedWorkflow.ts`、`triggerEmailReceivedWorkflow.ts`，并由 Nest `api/v2` 公开 `workflows.activate`、`workflows.create`、`workflows.deactivate`、`workflows.list`、`workflows.update`、`workflows.delete`、`workflows.duplicate`、`workflows.getById`、`workflows.getCapabilities`、`workflows.listRuns`、`workflows.getRun`、`workflows.testRun`、`workflows.testNode` 与四类 direct trigger 入口 |
+| Undo / Redo | 完整 | 较完整 | V2 已形成命令、服务、公开契约和 shared router 接线；主契约链路已闭环 | V1 有 `openapi/src/undo-redo/*` + `features/undo-redo/*`；V2 当前已新增 `packages/v2/contract-http/src/table/undo.ts`、`redo.ts`，并在 `contract.ts`、Nest `api/v2` 与 `createV2OrpcRouter` 中公开 `tables.undo`、`tables.redo`；剩余差异主要是 SSE stream 仍保留在 v1/openapi |
+| Aggregation / Search | 完整 | 较完整 | V1 主导；v2 已补齐基础 4 个 table 级公开读取入口，并已新增 4 个高级聚合 contract + Nest adapter 接线，执行层仍复用 v1 service | V1 有 `openapi/src/aggregation/*`、`search/*` + backend feature；V2 当前已新增 `packages/v2/contract-http/src/table/getRowCount.ts`、`getRecordIndex.ts`、`getSearchCount.ts`、`getSearchIndex.ts`、`getAggregation.ts`、`getGroupPoints.ts`、`getCalendarDailyCollection.ts`、`getTaskStatusCollection.ts`，并在 `contract.ts` 与 Nest `api/v2` 中公开对应入口；当前 generic router 的 DI 版高级聚合执行层仍未单独下沉 |
+| Admin / Setting / Billing | 完整 | 局部 | V1 主导，setting 已完成本轮 v2 公开层和输出契约收口，billing & usage 当前受仓库边界限制 | V1 有 `openapi/src/admin/setting/*`、`billing/subscription/*`、`usage/*`；V2 当前已新增 `packages/v2/contract-http/src/setting/getSetting.ts`、`getPublicSetting.ts` 与 Nest `api/v2` `settings.get`、`settings.getPublic` 入口，setting handler 已完成显式 DTO 输出校验；billing & usage 在主仓仅有 openapi 契约与前端 Cloud / EE 门控，backend 未定位到对应稳定 controller / service |
 
 ## 4. 领域级详细说明
 
@@ -179,6 +179,7 @@
   - generic `createV2OrpcRouter` 当前保留 share / template / published adapter 边界，真实执行由 Nest `api/v2` 承载
 - 判断
   - 这是用户面能力成熟、V2 统一度仍偏低的典型领域；share 只读公开面、核心交互面、template published 公开入口与 published runtime 的 manifest / navigation / node runtime 三层都已完成本轮公开契约收口，且 template publish 与 published runtime 已共享 `defaultUrl` 语义。
+  - 当前更准确的剩余缺口是：`authenticated/template` mode 仍未落地，`nodeId/defaultNodeId/defaultActiveNodeId` 命名仍待收敛，share view 与 published app 仍缺统一 runtime 访问模型。
 
 ### 4.8 Workflow
 
@@ -186,24 +187,28 @@
   - OpenAPI：`packages/openapi/src/automation/workflow/*`
   - Backend：`apps/nestjs-backend/src/features/workflow/*`
 - V2
+  - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/aiCreateDraftWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/listWorkflows.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/createWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/updateWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/deleteWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/duplicateWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/activateWorkflow.ts`
+  - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/applyUpdateWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/deactivateWorkflow.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/getWorkflowCapabilities.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/getWorkflowById.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/listWorkflowRuns.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/getWorkflowRun.ts`
   - 已新增独立契约文件：`packages/v2/contract-http/src/workflow/testRunWorkflow.ts`
+  - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.aiCreateDraft`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.list`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.create`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.update`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.delete`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.duplicate`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.activate`
+  - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.applyUpdate`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.deactivate`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.getCapabilities`
   - `packages/v2/contract-http/src/contract.ts` 已新增 `workflows.getById`
@@ -213,7 +218,7 @@
   - `apps/nestjs-backend/src/features/v2/v2.controller.ts` 已公开对应入口
   - generic `createV2OrpcRouter` 当前保留 workflow adapter 边界，真实执行由 Nest `api/v2` 承载
 - 判断
-   - Workflow 功能完整，本轮已完成新架构公开契约主链路收口，整体剩余差异进入路线图治理。
+   - Workflow 功能完整，本轮已完成新架构公开契约主链路收口，且 AI draft、apply-update、最小 trigger runner 与 step history 已进入稳定主链路；整体剩余差异集中在剩余 trigger、前端工作区与更深治理。
 
 ### 4.9 Undo / Redo
 

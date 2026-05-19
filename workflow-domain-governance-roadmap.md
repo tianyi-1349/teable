@@ -24,6 +24,7 @@
 
 ### 2.2 已有 V2 公开面
 
+- `packages/v2/contract-http/src/workflow/aiCreateDraftWorkflow.ts`
 - `packages/v2/contract-http/src/workflow/listWorkflows.ts`
 - `packages/v2/contract-http/src/workflow/createWorkflow.ts`
 - `packages/v2/contract-http/src/workflow/activateWorkflow.ts`
@@ -37,6 +38,7 @@
 - `packages/v2/contract-http/src/workflow/getWorkflowRun.ts`
 - `packages/v2/contract-http/src/workflow/testRunWorkflow.ts`
 - `apps/nestjs-backend/src/features/v2/v2.controller.ts`
+  - `workflows.aiCreateDraft`
   - `workflows.activate`
   - `workflows.create`
   - `workflows.deactivate`
@@ -68,12 +70,19 @@
 
 ### 第二层：主写入链路补齐
 
-本层当前已完成主写入入口：
+本层当前已完成主写入入口，并补入第一批 draft authoring 入口：
 
+1. `workflows.aiCreateDraft`
 1. `workflows.create`
 2. `workflows.update`
 3. `workflows.delete`
 4. `workflows.duplicate`
+5. `workflows.applyUpdate`
+
+当前仍未进入本层的能力：
+
+1. 更细粒度的 draft authoring contract 分层
+2. apply-update 的前端 UX 与差异展示
 
 ### 第三层：运行态与生命周期统一
 
@@ -83,6 +92,8 @@
 2. `workflows.deactivate`
 
 3. `workflows.testRun`
+4. `recordCreated` / `recordUpdated` / `recordMatchesConditions` 最小 trigger runner
+5. action 级 `workflowRunStep` history 写入
 
 ## 4. 推荐实施顺序
 
@@ -108,6 +119,9 @@
 当前状态：
 
 - 已完成 `create`、`update`、`delete`、`duplicate` 四条主写入入口
+- 已完成 `aiCreateDraft` 入口接线，直接复用 `WorkflowService.aiCreateWorkflowDraft(...)`
+- `updateWorkflow` 已承载 draft node editing 语义，当前通过 `ro.nodes` 完成草稿节点增删改
+- 已完成 `applyUpdate` 独立入口接线，用于将当前 draft 发布为新的 active snapshot，并保持 workflow 激活态
 
 ### 4.3 最后统一前端入口
 
@@ -115,6 +129,25 @@
 
 - 当前前端 automation 仍受占位页和企业版能力边界影响
 - 应在后端契约稳定后再做前端领域工作区收口
+
+当前状态：
+
+- 已形成 list / detail / test / history 的最小 workflow 工作区
+- 已补 `Apply update` 页面入口，用于把当前 draft 发布到 active snapshot
+- 已补 `recordMatchesConditions` 的前端创建与编辑入口，当前 record trigger 页面能力已与后端最小 trigger runner 对齐
+- 已补 `updateRecords` / `createRecords` / `queryRecords` 的结构化 editor + JSON editor，当前 record actions 页面能力已与后端现有 runtime 对齐
+- 已补 `test run` 自定义 JSON input editor，当前 workflow test 已可覆盖不同输入载荷
+- 已补节点级 `testStatus / testOutput` 与最近一次选中节点运行结果展示，当前 node debug 可见性已形成最小闭环
+- 已补页面内 `Test node` 入口与后端 `manualNodeTest` 链路，当前可直接对选中 action node 执行节点测试并回写节点调试状态
+- 已补 `schedule` 的最小后端运行入口与前端 draft 创建/页面触发入口，当前可从 workflow 页面创建并手动触发 schedule workflow
+- 已补 `schedule` 的最小正式调度基础设施，当前 active workflow 已可按 `manual / interval / cron` 配置同步 backend repeat job
+- 已补 `webhook` 的最小后端运行入口与前端 draft 创建/URL 展示/页面触发入口，当前可从 workflow 页面创建并调试 webhook workflow
+- 已补 `webhook` 的最小安全面与 v2 主契约接线，当前已具备可选 secret、workflow 级速率限制与 `workflows.triggerWebhook` v2 入口
+- 已补 `webhook` 的最小正式契约面，当前已具备可选 HMAC-SHA256 signature 校验、时间窗校验、公开 header 契约说明与 workflow 级 body size limit / rate limit / 分层错误语义
+- 已补 `formSubmitted` 的最小后端运行入口与前端 draft 创建/页面触发入口，当前可从 workflow 页面创建并手动触发 form-submitted workflow
+- 已补 `emailReceived` 的最小后端运行入口与前端 draft 创建/页面触发入口，当前可从 workflow 页面创建并手动触发 email-received workflow
+- 已补 `sendEmail`、`httpRequest`、`condition`、`loop` 四类新增最小 action runtime，并与前端 workflow 工作区形成可编辑闭环；当前 logic/loop 已具备最小编排表达
+- 已补 AI authoring 最小多形态草稿生成，当前 AI draft 已可生成多类 trigger/action 组合、最小多节点 actions、`fieldMappings` 与 activation-ready `testPlan`，而非固定 `buttonClick + runScript`
 
 ## 5. 完成判定
 
@@ -137,4 +170,4 @@ Workflow 当前最合适的执行口径是：
 
 - 继续保留 `generic router` 的 adapter 边界
 - 通过 `Nest api/v2` 维持稳定公开入口
-- 在读取与主写入面已经完整的基础上，将更深的 port 化和前端工作区统一转入后续专项治理
+- 在读取、主写入面、draft editing、apply-update 与最小 runner/history 已经稳定、AI draft 入口已公开的基础上，将剩余 trigger、前端工作区与更深的 port 化统一转入后续专项治理

@@ -12,7 +12,8 @@
 
 1. `GPT-5.5` 作为唯一主模型，负责读取本地仓库代码与已有盘点文档，输出正式收口稿。
 2. `DeepSeek v4pro` 只复核边界项和高不确定域。
-3. 主模型吸收复核结果，输出唯一正式版。
+3. `GPT-codex5.3` 负责将正式结论拆成可执行工程任务、最小改动批次与验证方案。
+4. 主模型吸收边界复核与工程拆解结果，输出唯一正式版。
 
 ## 2. 适用范围
 
@@ -105,12 +106,21 @@
 
 只复核以下高不确定区域：
 
-1. `billing/subscription`
-2. `usage`
-3. `Aggregation / Search`
-4. `Undo / Redo`
-5. `Share / Published` 的边界语义
-6. 命名不直观且容易误判的外围域
+1. `billing & usage`
+2. `Aggregation / Search`
+3. `Undo / Redo`
+4. `Share / Published` 的边界语义
+5. 命名不直观且容易误判的外围域
+
+### 5.3 GPT-codex5.3 工程拆解职责
+
+负责以下事项：
+
+1. 将主稿中的 P0 / P1 / P2 事项转成工程任务。
+2. 为每项任务标注最小改动切口。
+3. 给出建议修改文件范围。
+4. 给出建议验证命令。
+5. 给出建议提交批次边界，避免把真实语义改动和规则化收尾混在一起。
 
 ## 6. 执行步骤
 
@@ -172,29 +182,49 @@
 复核问题固定为：
 
 1. `billing / usage` 是否仍然只能判定为主仓边界受限项。
-2. `Aggregation / Search` 是否仍然未形成稳定 v2 contract 公共层。
-3. `Undo / Redo` 是否仍然缺统一公开契约层。
-4. `Share / Published` 是否还存在未收口的语义断层。
+2. `Aggregation / Search` 是否应细化为“基础 4 个公开入口已闭环，高级聚合仍停留在 v1”。
+3. `Undo / Redo` 是否已经形成完整公开契约层，剩余差异是否只在 SSE stream。
+4. `Share / Published` 是否仍存在 `authenticated/template` mode 未落地、`defaultNodeId` 命名未统一与统一 runtime 访问模型未成型的缺口。
 
 准出标准：
 
 1. 复核范围限制在边界项。
 2. 不生成新的全量主稿。
 
-### Step 4：主模型吸收复核结果
+### Step 4：GPT-codex5.3 工程化拆解
+
+执行内容：
+
+1. 读取 GPT-5.5 主稿与 DeepSeek 边界复核说明。
+2. 只对仍成立的未完成项做工程化拆解。
+3. 对每项给出：
+   - 最小改动切口
+   - 涉及文件范围
+   - 依赖前置条件
+   - 建议验证命令
+   - 建议提交边界
+
+准出标准：
+
+1. 每项任务都可直接进入工程执行。
+2. 没有把边界说明项误拆成代码任务。
+3. 没有把多个高风险域无界限地混成一个大任务。
+
+### Step 5：主模型吸收复核与拆解结果
 
 执行内容：
 
 1. 逐条处理复核意见。
-2. 只修订存在明确代码证据支撑的结论。
-3. 保持主稿唯一口径。
+2. 吸收工程拆解中有代码证据支撑的任务边界建议。
+3. 只修订存在明确代码证据支撑的结论。
+4. 保持主稿唯一口径。
 
 准出标准：
 
 1. 主稿中不存在彼此冲突的结论。
 2. 边界项结论和 `billing-usage-boundary-note.md` 一致。
 
-### Step 5：矩阵状态回写
+### Step 6：矩阵状态回写
 
 执行内容：
 
@@ -202,6 +232,7 @@
 2. 更新 `capability-gap-task-matrix.md`。
 3. 更新 `v1-v2-coverage-matrix.md`。
 4. 如有必要，更新专项路线图。
+5. 如有必要，更新工程拆解清单或 backlog 文档。
 
 准出标准：
 
@@ -218,6 +249,7 @@
 4. `share-published-governance-roadmap.md`
 5. `peripheral-domain-roadmap.md`
 6. `billing-usage-boundary-note.md`
+7. 面向工程执行的 backlog / task 拆解文档
 
 ## 8. 统一成熟度口径
 
@@ -239,8 +271,7 @@
 
 当前已确认的边界项：
 
-1. `billing/subscription`
-2. `usage`
+1. `billing & usage`
 
 ## 10. 执行命令建议
 
