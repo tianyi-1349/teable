@@ -3,6 +3,8 @@ import { BaseNodeResourceType } from '@teable/openapi';
 import { BaseNodeService } from '../base-node/base-node.service';
 import { BaseShareAuthService } from '../base-share/base-share-auth.service';
 
+const publishedRuntimeMode = 'share' as const;
+
 type IPublishedRuntimeNode = {
   nodeId: string;
   resourceId: string;
@@ -90,7 +92,9 @@ export class V2PublishedAppService {
       shareMeta: {
         passwordRestricted,
       },
-      mode: 'share' as const,
+      // The current contract only accepts `shareId` and resolves from `base_share`,
+      // so the implemented runtime mode is explicitly the share runtime.
+      mode: publishedRuntimeMode,
       runtimeTargets: ['desktop-web', 'tablet-web', 'mobile-web', 'embed', 'pwa'] as const,
     };
   }

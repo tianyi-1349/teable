@@ -15,12 +15,16 @@ export interface PublishedAppValidationResult {
   hasErrors: boolean;
 }
 
-export const validatePublishedAppConfig = (props: {
+type IPublishedAppConfigValidationProps = {
   selectedNodeIds: string[];
-  defaultActiveNodeId?: string | null;
-  treeItems: Record<string, TreeItemData>;
-}): PublishedAppValidationResult => {
-  const { defaultActiveNodeId, selectedNodeIds, treeItems } = props;
+  // Source publish config still uses `defaultActiveNodeId`, while runtime manifest uses `defaultNodeId`.
+  defaultNodeId?: string | null;
+};
+
+export const validatePublishedAppConfig = (
+  props: IPublishedAppConfigValidationProps & { treeItems: Record<string, TreeItemData> }
+): PublishedAppValidationResult => {
+  const { defaultNodeId, selectedNodeIds, treeItems } = props;
   const selectedNodes = selectedNodeIds.map((nodeId) => treeItems[nodeId]).filter(Boolean);
   const renderableNodes = selectedNodes.filter(
     (node) => node.resourceType !== BaseNodeResourceType.Folder
@@ -41,19 +45,19 @@ export const validatePublishedAppConfig = (props: {
     });
   }
 
-  if (defaultActiveNodeId) {
-    const defaultNode = treeItems[defaultActiveNodeId];
-    if (!selectedNodeIds.includes(defaultActiveNodeId) || !defaultNode) {
+  if (defaultNodeId) {
+    const defaultNode = treeItems[defaultNodeId];
+    if (!selectedNodeIds.includes(defaultNodeId) || !defaultNode) {
       issues.push({
         severity: 'error',
         message: 'The default page must be included in the published nodes.',
-        nodeId: defaultActiveNodeId,
+        nodeId: defaultNodeId,
       });
     } else if (defaultNode.resourceType === BaseNodeResourceType.Folder) {
       issues.push({
         severity: 'error',
         message: 'The default page cannot be a folder.',
-        nodeId: defaultActiveNodeId,
+        nodeId: defaultNodeId,
       });
     }
   }

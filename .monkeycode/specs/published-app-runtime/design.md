@@ -33,7 +33,7 @@ The authenticated route currently renders Table, Dashboard, Workflow, and a plac
 - `apps/nextjs-app/src/features/app/blocks/share/base/share-base-ssr.ts`
 - `apps/nextjs-app/src/features/app/layouts/ShareBaseLayout.tsx`
 
-Base publishing already persists published nodes, default active node, default URL, and permalink. The share layout still uses editor-style sidebar composition.
+Base publishing already persists published nodes, source default-node selection, default URL, and permalink. The share layout still uses editor-style sidebar composition.
 
 ### Existing Responsive Foundations
 
@@ -214,7 +214,8 @@ All shells consume the same navigation model.
 Navigation is derived from published nodes.
 
 - `publishInfo.nodes` defines visibility.
-- `defaultActiveNodeId` defines default entry when valid.
+- Runtime consumers use `defaultNodeId` as the canonical default entry field.
+- Source publish configuration may still persist `defaultActiveNodeId` and must be normalized into runtime `defaultNodeId`.
 - Invalid default node falls back to first renderable node.
 - Folder nodes become groups.
 - Direct access outside published nodes returns a clear access state.
