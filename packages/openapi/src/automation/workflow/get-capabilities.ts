@@ -6,6 +6,7 @@ export const workflowActionUnavailableReasonSchema = z.enum([
   'requiresSandbox',
   'notImplemented',
   'missingPermission',
+  'requiresReview',
 ]);
 
 export const workflowActionCapabilitySchema = z.object({

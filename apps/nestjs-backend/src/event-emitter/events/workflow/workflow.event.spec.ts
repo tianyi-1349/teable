@@ -25,4 +25,11 @@ describe('WorkflowEventFactory', () => {
     expect(event?.name).toBe(Events.WORKFLOW_DEACTIVATE);
     expect(event?.payload).toEqual(payload);
   });
+
+  it('creates workflow apply update event', () => {
+    const event = WorkflowEventFactory.create(Events.WORKFLOW_APPLY_UPDATE, payload, context);
+
+    expect(event?.name).toBe(Events.WORKFLOW_APPLY_UPDATE);
+    expect(event?.payload).toEqual(payload);
+  });
 });

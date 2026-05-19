@@ -18,12 +18,52 @@ export interface IRecordQueryActionConfig {
   take?: number;
 }
 
+export interface ISendEmailActionConfig {
+  to: string[];
+  subject: string;
+  text?: string;
+  html?: string;
+}
+
+export interface IHttpRequestActionConfig {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  url: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  timeoutMs?: number;
+}
+
+export interface IConditionActionConfig {
+  expression: string;
+  output?: unknown;
+}
+
+export interface ILoopActionConfig {
+  itemsPath: string;
+  maxIterations?: number;
+}
+
 export type WorkflowActionKind =
   | 'runScript'
   | 'aiGenerate'
   | 'updateRecords'
   | 'createRecords'
-  | 'queryRecords';
+  | 'queryRecords'
+  | 'sendEmail'
+  | 'httpRequest'
+  | 'condition'
+  | 'loop';
+
+export type WorkflowRecordTriggerKind =
+  | 'recordCreated'
+  | 'recordUpdated'
+  | 'recordMatchesConditions';
+
+const workflowRecordTriggerKinds: WorkflowRecordTriggerKind[] = [
+  'recordCreated',
+  'recordUpdated',
+  'recordMatchesConditions',
+];
 
 const triggerInputTableIdTemplate = '{{ input.tableId }}';
 
@@ -47,22 +87,34 @@ export const getAiGeneratePrompt = (workflow?: IWorkflowDetailVo, nodeId?: strin
 
 export const getRecordTriggerTableId = (workflow?: IWorkflowDetailVo) => {
   const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+    (node) =>
+      node.nodeType === 'trigger' &&
+      workflowRecordTriggerKinds.includes(node.kind as WorkflowRecordTriggerKind)
   );
   const config = recordTriggerNode?.config as { tableId?: string } | undefined;
   return config?.tableId ?? '';
 };
 
-export const getRecordTriggerKind = (workflow?: IWorkflowDetailVo) => {
+export const getRecordTriggerKind = (workflow?: IWorkflowDetailVo): WorkflowRecordTriggerKind => {
   const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+    (node) =>
+      node.nodeType === 'trigger' &&
+      workflowRecordTriggerKinds.includes(node.kind as WorkflowRecordTriggerKind)
   );
-  return recordTriggerNode?.kind === 'recordUpdated' ? 'recordUpdated' : 'recordCreated';
+  if (recordTriggerNode?.kind === 'recordUpdated') {
+    return 'recordUpdated';
+  }
+  if (recordTriggerNode?.kind === 'recordMatchesConditions') {
+    return 'recordMatchesConditions';
+  }
+  return 'recordCreated';
 };
 
 export const getRecordTriggerFilterText = (workflow?: IWorkflowDetailVo) => {
   const recordTriggerNode = workflow?.nodes.find(
-    (node) => node.nodeType === 'trigger' && ['recordCreated', 'recordUpdated'].includes(node.kind)
+    (node) =>
+      node.nodeType === 'trigger' &&
+      workflowRecordTriggerKinds.includes(node.kind as WorkflowRecordTriggerKind)
   );
   const config = recordTriggerNode?.config as { filter?: unknown } | undefined;
   return config?.filter ? JSON.stringify(config.filter, null, 2) : '';
@@ -81,6 +133,10 @@ export const appendActionNode = (
     | IRecordUpdateActionConfig
     | IRecordCreateActionConfig
     | IRecordQueryActionConfig
+    | ISendEmailActionConfig
+    | IHttpRequestActionConfig
+    | IConditionActionConfig
+    | ILoopActionConfig
     | { script: string }
     | { prompt: string };
   switch (kind) {
@@ -106,6 +162,34 @@ export const appendActionNode = (
       break;
     case 'queryRecords':
       config = { tableId: triggerInputTableIdTemplate, filter: {}, take: 10 };
+      break;
+    case 'sendEmail':
+      config = {
+        to: ['{{ input.record.email }}'],
+        subject: 'Workflow notification',
+        text: 'Triggered by {{ input }}',
+      };
+      break;
+    case 'httpRequest':
+      config = {
+        method: 'POST',
+        url: 'https://example.com/webhook',
+        headers: { 'content-type': 'application/json' },
+        body: { payload: '{{ input }}' },
+        timeoutMs: 10000,
+      };
+      break;
+    case 'condition':
+      config = {
+        expression: 'approved',
+        output: { approved: true },
+      };
+      break;
+    case 'loop':
+      config = {
+        itemsPath: '{{ input.items }}',
+        maxIterations: 20,
+      };
       break;
   }
 

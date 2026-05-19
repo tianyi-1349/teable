@@ -36,10 +36,11 @@ export class WorkflowRunListener {
   @OnEvent(Events.TABLE_RECORD_UPDATE, { async: true })
   async handleRecordUpdate(event: RecordUpdateEvent): Promise<void> {
     await this.handleRecordTrigger('recordUpdated', event.payload.tableId, event.payload);
+    await this.handleRecordTrigger('recordMatchesConditions', event.payload.tableId, event.payload);
   }
 
   private async handleRecordTrigger(
-    triggerType: 'recordCreated' | 'recordUpdated',
+    triggerType: 'recordCreated' | 'recordUpdated' | 'recordMatchesConditions',
     tableId: string,
     input: unknown
   ) {

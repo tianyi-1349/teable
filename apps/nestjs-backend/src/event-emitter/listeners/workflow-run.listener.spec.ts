@@ -47,19 +47,27 @@ describe('WorkflowRunListener', () => {
   });
 
   it('creates and executes workflow runs from record update event', async () => {
-    workflowService.createRecordTriggerRuns.mockResolvedValue([
-      { runId: 'wrun123', workflowId: 'wfl123' },
-    ]);
+    workflowService.createRecordTriggerRuns
+      .mockResolvedValueOnce([{ runId: 'wrun123', workflowId: 'wfl123' }])
+      .mockResolvedValueOnce([{ runId: 'wrun456', workflowId: 'wfl456' }]);
     const payload = { tableId: 'tbl123', record: { id: 'rec123', fields: { fld123: 'next' } } };
 
     await listener.handleRecordUpdate({ payload } as never);
 
-    expect(workflowService.createRecordTriggerRuns).toHaveBeenCalledWith(
+    expect(workflowService.createRecordTriggerRuns).toHaveBeenNthCalledWith(
+      1,
       'tbl123',
       'recordUpdated',
       payload
     );
-    expect(workflowRunnerService.executeWorkflowRun).toHaveBeenCalledWith('wrun123');
+    expect(workflowService.createRecordTriggerRuns).toHaveBeenNthCalledWith(
+      2,
+      'tbl123',
+      'recordMatchesConditions',
+      payload
+    );
+    expect(workflowRunnerService.executeWorkflowRun).toHaveBeenNthCalledWith(1, 'wrun123');
+    expect(workflowRunnerService.executeWorkflowRun).toHaveBeenNthCalledWith(2, 'wrun456');
   });
 
   it('keeps record event handling errors inside listener', async () => {

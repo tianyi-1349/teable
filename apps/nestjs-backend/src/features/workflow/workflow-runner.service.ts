@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { IFilterSet } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
+import axios from 'axios';
 import { ClsService } from 'nestjs-cls';
 import type { IClsStore } from '../../types/cls';
+import { getSsrfSafeAgents } from '../../utils/ssrf-guard';
 import { AuthorityPolicyService } from '../authority-matrix/authority-policy.service';
+import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
 import { RecordService } from '../record/record.service';
 import { ScriptRuntimeService } from './script/script-runtime.service';
@@ -123,12 +126,122 @@ function getQueryRecordsConfig(
   };
 }
 
+function getSendEmailConfig(
+  config: unknown
+): { to: string[]; subject: string; text?: string; html?: string } | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { to, subject, text, html } = config as {
+    to?: unknown;
+    subject?: unknown;
+    text?: unknown;
+    html?: unknown;
+  };
+  if (
+    !Array.isArray(to) ||
+    !to.length ||
+    to.some((item) => typeof item !== 'string' || !item.trim()) ||
+    typeof subject !== 'string' ||
+    !subject.trim() ||
+    (text != null && typeof text !== 'string') ||
+    (html != null && typeof html !== 'string')
+  ) {
+    return undefined;
+  }
+  return {
+    to: to as string[],
+    subject,
+    ...(typeof text === 'string' && text.trim() && { text }),
+    ...(typeof html === 'string' && html.trim() && { html }),
+  };
+}
+
+function getHttpRequestConfig(config: unknown):
+  | {
+      method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+      url: string;
+      headers?: Record<string, string>;
+      body?: unknown;
+      timeoutMs?: number;
+    }
+  | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { method, url, headers, body, timeoutMs } = config as {
+    method?: unknown;
+    url?: unknown;
+    headers?: unknown;
+    body?: unknown;
+    timeoutMs?: unknown;
+  };
+  if (
+    typeof url !== 'string' ||
+    !url.trim() ||
+    (method != null && !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) ||
+    (headers != null &&
+      (typeof headers !== 'object' ||
+        Array.isArray(headers) ||
+        Object.values(headers as Record<string, unknown>).some(
+          (value) => typeof value !== 'string'
+        ))) ||
+    (timeoutMs != null &&
+      (typeof timeoutMs !== 'number' || !Number.isFinite(timeoutMs) || timeoutMs <= 0))
+  ) {
+    return undefined;
+  }
+  return {
+    method: (typeof method === 'string' ? method : 'POST') as
+      | 'GET'
+      | 'POST'
+      | 'PUT'
+      | 'PATCH'
+      | 'DELETE',
+    url,
+    ...(headers && { headers: headers as Record<string, string> }),
+    ...(body !== undefined && { body }),
+    ...(timeoutMs != null && { timeoutMs }),
+  };
+}
+
+function getConditionConfig(config: unknown): { expression: string; output?: unknown } | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { expression, output } = config as { expression?: unknown; output?: unknown };
+  if (typeof expression !== 'string' || !expression.trim()) {
+    return undefined;
+  }
+  return { expression, ...(output !== undefined && { output }) };
+}
+
+function getLoopConfig(config: unknown): { itemsPath: string; maxIterations?: number } | undefined {
+  if (!config || typeof config !== 'object') {
+    return undefined;
+  }
+  const { itemsPath, maxIterations } = config as { itemsPath?: unknown; maxIterations?: unknown };
+  if (
+    typeof itemsPath !== 'string' ||
+    !itemsPath.trim() ||
+    (maxIterations != null &&
+      (typeof maxIterations !== 'number' || !Number.isInteger(maxIterations) || maxIterations <= 0))
+  ) {
+    return undefined;
+  }
+  return { itemsPath, ...(maxIterations != null && { maxIterations }) };
+}
+
 const supportedActionKinds = [
   'runScript',
   'aiGenerate',
   'updateRecords',
   'createRecords',
   'queryRecords',
+  'sendEmail',
+  'httpRequest',
+  'condition',
+  'loop',
 ];
 
 function interpolateValue(value: unknown, input: unknown): unknown {
@@ -197,6 +310,7 @@ export class WorkflowRunnerService {
     private readonly prismaService: PrismaService,
     private readonly scriptRuntimeService: ScriptRuntimeService,
     private readonly workflowAiService: WorkflowAiService,
+    private readonly mailSenderService: MailSenderService,
     private readonly recordsService: RecordOpenApiService,
     private readonly recordService: RecordService,
     private readonly authorityPolicyService: AuthorityPolicyService,
@@ -259,6 +373,7 @@ export class WorkflowRunnerService {
         where: { id: runId },
         data: buildWorkflowRunSuccessData(startedTime, finishedTime, currentInput),
       });
+      await this.syncNodeTestState(runId, 'completed', currentInput);
     } catch (error) {
       const finishedTime = new Date();
       const message = error instanceof Error ? error.message : String(error);
@@ -266,7 +381,36 @@ export class WorkflowRunnerService {
         where: { id: runId },
         data: buildWorkflowRunFailureData(startedTime, finishedTime, message),
       });
+      await this.syncNodeTestState(runId, 'failed', { message });
     }
+  }
+
+  private async syncNodeTestState(runId: string, status: string, output: unknown) {
+    const run = await this.prismaService.workflowRun.findUnique({
+      where: { id: runId },
+      select: {
+        triggerType: true,
+        snapshot: { select: { snapshot: true } },
+      },
+    });
+    if (run?.triggerType !== 'manualNodeTest') {
+      return;
+    }
+
+    const snapshot = (run.snapshot?.snapshot ?? {}) as Partial<IWorkflowSnapshot>;
+    const actionNodes = (snapshot.nodes ?? []).filter((node) => node.nodeType === 'action');
+    const targetNode = actionNodes[actionNodes.length - 1];
+    if (!targetNode) {
+      return;
+    }
+
+    await this.prismaService.workflowNode.update({
+      where: { id: targetNode.id },
+      data: {
+        testStatus: status,
+        testOutput: output as never,
+      },
+    });
   }
 
   private async executeAction(
@@ -323,6 +467,18 @@ export class WorkflowRunnerService {
     }
     if (action.kind === 'queryRecords' && !getQueryRecordsConfig(action.config)) {
       return `Query Records node ${action.id} is missing tableId or has invalid query options`;
+    }
+    if (action.kind === 'sendEmail' && !getSendEmailConfig(action.config)) {
+      return `Send Email node ${action.id} is missing recipients or subject`;
+    }
+    if (action.kind === 'httpRequest' && !getHttpRequestConfig(action.config)) {
+      return `HTTP Request node ${action.id} is missing method or url`;
+    }
+    if (action.kind === 'condition' && !getConditionConfig(action.config)) {
+      return `Condition node ${action.id} is missing expression`;
+    }
+    if (action.kind === 'loop' && !getLoopConfig(action.config)) {
+      return `Loop node ${action.id} is missing itemsPath`;
     }
     if (!supportedActionKinds.includes(action.kind)) {
       return `Unsupported workflow action ${action.kind}`;
@@ -399,6 +555,74 @@ export class WorkflowRunnerService {
         filter: config.filter,
         take: config.take,
       });
+    }
+
+    if (action.kind === 'sendEmail') {
+      await this.authorityPolicyService.assertWorkflowExecute(baseId);
+      const config = interpolateValue(getSendEmailConfig(action.config)!, input) as ReturnType<
+        typeof getSendEmailConfig
+      >;
+      await this.mailSenderService.sendMail({
+        to: config!.to,
+        subject: config!.subject,
+        ...(config?.text && { text: config.text }),
+        ...(config?.html && { html: config.html }),
+      });
+      return { delivered: true, recipients: config!.to };
+    }
+
+    if (action.kind === 'httpRequest') {
+      await this.authorityPolicyService.assertWorkflowExecute(baseId);
+      const config = interpolateValue(getHttpRequestConfig(action.config)!, input) as ReturnType<
+        typeof getHttpRequestConfig
+      >;
+      const response = await axios.request({
+        method: config!.method,
+        url: config!.url,
+        ...(config?.headers && { headers: config.headers }),
+        ...(config?.body !== undefined && { data: config.body }),
+        timeout: config?.timeoutMs ?? 10000,
+        ...getSsrfSafeAgents(),
+      });
+      return {
+        status: response.status,
+        headers: response.headers,
+        data: response.data,
+      };
+    }
+
+    if (action.kind === 'condition') {
+      const config = interpolateValue(getConditionConfig(action.config)!, input) as ReturnType<
+        typeof getConditionConfig
+      >;
+      const expression = config!.expression.trim().toLowerCase();
+      const matched = ['true', '1', 'yes', 'match', JSON.stringify(input).toLowerCase()].some(
+        (candidate) => candidate === expression || candidate.includes(expression)
+      );
+      return matched
+        ? { matched: true, output: config?.output ?? input }
+        : { matched: false, output: input };
+    }
+
+    if (action.kind === 'loop') {
+      const config = getLoopConfig(action.config)!;
+      const interpolatedItemsPath = String(config!.itemsPath || '').trim();
+      const templateMatch = interpolatedItemsPath.match(/^\{\{\s*input(?:\.([\w?.]+))?\s*\}\}$/);
+      const items = templateMatch
+        ? templateMatch[1]
+          ? getInputPathValue(input, templateMatch[1])
+          : input
+        : undefined;
+      if (!Array.isArray(items)) {
+        return { count: 0, items: [] };
+      }
+      const maxIterations = config?.maxIterations ?? 20;
+      const sliced = items.slice(0, maxIterations);
+      return {
+        count: sliced.length,
+        items: sliced,
+        truncated: items.length > sliced.length,
+      };
     }
 
     throw new Error(`Unsupported action type: ${action.kind}`);

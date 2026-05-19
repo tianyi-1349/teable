@@ -1,6 +1,6 @@
 import type { IWorkflowDetailVo } from '@teable/openapi';
 import { describe, expect, it } from 'vitest';
-import { appendActionNode, removeActionNode } from './workflowNodes';
+import { appendActionNode, getRecordTriggerKind, removeActionNode } from './workflowNodes';
 
 describe('workflowNodes', () => {
   const workflow = {
@@ -59,5 +59,31 @@ describe('workflowNodes', () => {
     expect(nodes.some((node) => node.id === 'wac123')).toBe(false);
     expect(nodes.find((node) => node.id === 'wtr123')?.nextNodeId).toBe('wac456');
     expect(nodes.find((node) => node.id === 'wac456')?.parentNodeId).toBe('wtr123');
+  });
+
+  it('detects recordMatchesConditions trigger kind', () => {
+    const triggerKind = getRecordTriggerKind({
+      id: 'wfl456',
+      nodes: [
+        {
+          id: 'wtr456',
+          workflowId: 'wfl456',
+          nodeType: 'trigger',
+          kind: 'recordMatchesConditions',
+        },
+      ],
+    } as IWorkflowDetailVo);
+
+    expect(triggerKind).toBe('recordMatchesConditions');
+  });
+
+  it('appends loop action with default config', () => {
+    const nodes = appendActionNode(workflow, 'loop');
+    const loopNode = nodes.find((node) => node.kind === 'loop');
+
+    expect(loopNode).toMatchObject({
+      nodeType: 'action',
+      config: { itemsPath: '{{ input.items }}', maxIterations: 20 },
+    });
   });
 });

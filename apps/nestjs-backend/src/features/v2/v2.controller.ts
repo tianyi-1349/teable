@@ -15,11 +15,17 @@ import type {
   IGetShareViewResponseDataDto,
 } from '@teable/v2-contract-http';
 import {
+  executeGetAggregationEndpoint,
+  executeGetCalendarDailyCollectionEndpoint,
+  executeGetGroupPointsEndpoint,
   executeGetRecordIndexEndpoint,
   executeGetRowCountEndpoint,
   executeGetSearchCountEndpoint,
   executeGetSearchIndexEndpoint,
+  executeGetTaskStatusCollectionEndpoint,
   executeActivateWorkflowEndpoint,
+  executeAiCreateDraftWorkflowEndpoint,
+  executeApplyUpdateWorkflowEndpoint,
   executeButtonClickShareViewEndpoint,
   executeCommentSubscribeEndpoint,
   executeCommentUnsubscribeEndpoint,
@@ -63,7 +69,12 @@ import {
   executeListWorkflowsEndpoint,
   executeReorderRecordsEndpoint,
   executeRedoEndpoint,
+  executeTestNodeWorkflowEndpoint,
   executeTestRunWorkflowEndpoint,
+  executeTriggerEmailReceivedWorkflowEndpoint,
+  executeTriggerFormSubmittedWorkflowEndpoint,
+  executeTriggerScheduleWorkflowEndpoint,
+  executeTriggerWebhookWorkflowEndpoint,
   executeUndoEndpoint,
   executeUpdateRecordsEndpoint,
   executeUpdateViewColumnMetaCommandEndpoint,
@@ -236,6 +247,10 @@ export class V2Controller {
     getRecordIndex: v2Contract.tables.getRecordIndex,
     getSearchCount: v2Contract.tables.getSearchCount,
     getSearchIndex: v2Contract.tables.getSearchIndex,
+    getAggregation: v2Contract.tables.getAggregation,
+    getGroupPoints: v2Contract.tables.getGroupPoints,
+    getCalendarDailyCollection: v2Contract.tables.getCalendarDailyCollection,
+    getTaskStatusCollection: v2Contract.tables.getTaskStatusCollection,
     deleteRecords: v2Contract.tables.deleteRecords,
     undo: v2Contract.tables.undo,
     redo: v2Contract.tables.redo,
@@ -307,6 +322,52 @@ export class V2Controller {
 
         return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
       }),
+      getAggregation: implement(v2Contract.tables.getAggregation).handler(async ({ input }) => {
+        const result = await executeGetAggregationEndpoint(
+          input,
+          this.aggregationOpenApiService.getAggregation.bind(this.aggregationOpenApiService)
+        );
+
+        if (result.status === 200) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      getGroupPoints: implement(v2Contract.tables.getGroupPoints).handler(async ({ input }) => {
+        const result = await executeGetGroupPointsEndpoint(
+          input,
+          this.aggregationOpenApiService.getGroupPoints.bind(this.aggregationOpenApiService)
+        );
+
+        if (result.status === 200) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      getCalendarDailyCollection: implement(v2Contract.tables.getCalendarDailyCollection).handler(
+        async ({ input }) => {
+          const result = await executeGetCalendarDailyCollectionEndpoint(
+            input,
+            this.aggregationOpenApiService.getCalendarDailyCollection.bind(
+              this.aggregationOpenApiService
+            )
+          );
+
+          if (result.status === 200) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
+      getTaskStatusCollection: implement(v2Contract.tables.getTaskStatusCollection).handler(
+        async ({ input }) => {
+          const result = await executeGetTaskStatusCollectionEndpoint(
+            input,
+            async (tableId) => await this.aggregationOpenApiService.getTaskStatusCollection(tableId)
+          );
+
+          if (result.status === 200) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
       deleteRecords: implement(v2Contract.tables.deleteRecords).handler(async ({ input }) => {
         const container = await this.v2Container.getContainer();
         const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
@@ -948,6 +1009,8 @@ export class V2Controller {
   }
 
   @Implement({
+    aiCreateDraft: v2Contract.workflows.aiCreateDraft,
+    applyUpdate: v2Contract.workflows.applyUpdate,
     activate: v2Contract.workflows.activate,
     create: v2Contract.workflows.create,
     deactivate: v2Contract.workflows.deactivate,
@@ -959,10 +1022,35 @@ export class V2Controller {
     getCapabilities: v2Contract.workflows.getCapabilities,
     listRuns: v2Contract.workflows.listRuns,
     getRun: v2Contract.workflows.getRun,
+    testNode: v2Contract.workflows.testNode,
+    triggerWebhook: v2Contract.workflows.triggerWebhook,
+    triggerSchedule: v2Contract.workflows.triggerSchedule,
+    triggerFormSubmitted: v2Contract.workflows.triggerFormSubmitted,
+    triggerEmailReceived: v2Contract.workflows.triggerEmailReceived,
     testRun: v2Contract.workflows.testRun,
   })
   workflows() {
     return {
+      aiCreateDraft: implement(v2Contract.workflows.aiCreateDraft).handler(async ({ input }) => {
+        const result = await executeAiCreateDraftWorkflowEndpoint(
+          input,
+          this.workflowService.aiCreateWorkflowDraft.bind(this.workflowService)
+        );
+
+        if (result.status === 201) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      applyUpdate: implement(v2Contract.workflows.applyUpdate).handler(async ({ input }) => {
+        const result = await executeApplyUpdateWorkflowEndpoint(
+          input,
+          this.workflowService.applyUpdateWorkflow.bind(this.workflowService)
+        );
+
+        if (result.status === 200) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
       activate: implement(v2Contract.workflows.activate).handler(async ({ input }) => {
         const result = await executeActivateWorkflowEndpoint(
           input,
@@ -1075,6 +1163,99 @@ export class V2Controller {
 
         return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
       }),
+      testNode: implement(v2Contract.workflows.testNode).handler(async ({ input }) => {
+        const result = await executeTestNodeWorkflowEndpoint(
+          input,
+          async (baseId, workflowId, nodeId, runInput) => {
+            const run = await this.workflowService.createTestNodeRun(
+              baseId,
+              workflowId,
+              nodeId,
+              runInput
+            );
+            await this.workflowRunnerService.executeWorkflowRun(run.id);
+            return normalizeWorkflowRunDetail(
+              await this.workflowService.getWorkflowRun(baseId, workflowId, run.id)
+            );
+          }
+        );
+
+        if (result.status === 201) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      triggerWebhook: implement(v2Contract.workflows.triggerWebhook).handler(async ({ input }) => {
+        const result = await executeTriggerWebhookWorkflowEndpoint(
+          input,
+          async (baseId, workflowId, body, webhookSecret) => {
+            const run = await this.workflowService.createWebhookRun(workflowId, body, {
+              secret: webhookSecret,
+            });
+            await this.workflowRunnerService.executeWorkflowRun(run.runId);
+            return normalizeWorkflowRunDetail(
+              await this.workflowService.getWorkflowRun(baseId, workflowId, run.runId)
+            );
+          }
+        );
+
+        if (result.status === 201) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      triggerSchedule: implement(v2Contract.workflows.triggerSchedule).handler(
+        async ({ input }) => {
+          const result = await executeTriggerScheduleWorkflowEndpoint(
+            input,
+            async (baseId, workflowId, body) => {
+              const run = await this.workflowService.createScheduleRun(workflowId, body);
+              await this.workflowRunnerService.executeWorkflowRun(run.runId);
+              return normalizeWorkflowRunDetail(
+                await this.workflowService.getWorkflowRun(baseId, workflowId, run.runId)
+              );
+            }
+          );
+
+          if (result.status === 201) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
+      triggerFormSubmitted: implement(v2Contract.workflows.triggerFormSubmitted).handler(
+        async ({ input }) => {
+          const result = await executeTriggerFormSubmittedWorkflowEndpoint(
+            input,
+            async (baseId, workflowId, body) => {
+              const run = await this.workflowService.createFormSubmittedRun(workflowId, body);
+              await this.workflowRunnerService.executeWorkflowRun(run.runId);
+              return normalizeWorkflowRunDetail(
+                await this.workflowService.getWorkflowRun(baseId, workflowId, run.runId)
+              );
+            }
+          );
+
+          if (result.status === 201) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
+      triggerEmailReceived: implement(v2Contract.workflows.triggerEmailReceived).handler(
+        async ({ input }) => {
+          const result = await executeTriggerEmailReceivedWorkflowEndpoint(
+            input,
+            async (baseId, workflowId, body) => {
+              const run = await this.workflowService.createEmailReceivedRun(workflowId, body);
+              await this.workflowRunnerService.executeWorkflowRun(run.runId);
+              return normalizeWorkflowRunDetail(
+                await this.workflowService.getWorkflowRun(baseId, workflowId, run.runId)
+              );
+            }
+          );
+
+          if (result.status === 201) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
       testRun: implement(v2Contract.workflows.testRun).handler(async ({ input }) => {
         const result = await executeTestRunWorkflowEndpoint(
           input,

@@ -12,10 +12,14 @@ describe('WorkflowRunnerService', () => {
   const prismaService = {
     workflowRun: {
       findUniqueOrThrow: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
     workflowRunStep: {
       create: vi.fn(),
+      update: vi.fn(),
+    },
+    workflowNode: {
       update: vi.fn(),
     },
   };
@@ -24,6 +28,9 @@ describe('WorkflowRunnerService', () => {
   };
   const workflowAiService = {
     generateText: vi.fn(),
+  };
+  const mailSenderService = {
+    sendMail: vi.fn(),
   };
   const recordsService = {
     updateRecord: vi.fn(),
@@ -50,6 +57,7 @@ describe('WorkflowRunnerService', () => {
       prismaService as never,
       scriptRuntimeService as never,
       workflowAiService as never,
+      mailSenderService as never,
       recordsService as never,
       recordService as never,
       authorityPolicyService as never,
@@ -76,6 +84,47 @@ describe('WorkflowRunnerService', () => {
       data: expect.objectContaining({
         status: 'completed',
         output: { skipped: true, reason: 'No workflow runner actions are configured yet' },
+      }),
+    });
+  });
+
+  it('writes node test state back for manual node test runs', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { recordId },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa123',
+              nodeType: 'action',
+              kind: 'runScript',
+              config: { script: 'return input;' },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRun.findUnique.mockResolvedValue({
+      triggerType: 'manualNodeTest',
+      snapshot: {
+        snapshot: {
+          nodes: [{ id: 'wa123', nodeType: 'action', kind: 'runScript' }],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step123', startedTime });
+    scriptRuntimeService.execute.mockResolvedValue({ ok: true });
+
+    await service.executeWorkflowRun(runId);
+
+    expect(prismaService.workflowNode.update).toHaveBeenCalledWith({
+      where: { id: 'wa123' },
+      data: expect.objectContaining({
+        testStatus: 'completed',
+        testOutput: { ok: true },
       }),
     });
   });
@@ -175,6 +224,118 @@ describe('WorkflowRunnerService', () => {
       data: expect.objectContaining({
         status: 'completed',
         output: { text: 'second output' },
+      }),
+    });
+  });
+
+  it('executes sendEmail action and returns delivery metadata', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { email: 'user@example.com' },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-mail',
+              nodeType: 'action',
+              kind: 'sendEmail',
+              config: {
+                to: ['{{ input.email }}'],
+                subject: 'Hello',
+                text: 'Payload {{ input }}',
+              },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-mail', startedTime });
+    mailSenderService.sendMail.mockResolvedValue(true);
+
+    await service.executeWorkflowRun(runId);
+
+    expect(mailSenderService.sendMail).toHaveBeenCalledWith({
+      to: ['user@example.com'],
+      subject: 'Hello',
+      text: 'Payload {"email":"user@example.com"}',
+    });
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { delivered: true, recipients: ['user@example.com'] },
+      }),
+    });
+  });
+
+  it('executes condition action and returns matched output', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { status: 'approved' },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-condition',
+              nodeType: 'action',
+              kind: 'condition',
+              config: {
+                expression: 'approved',
+                output: { ok: true },
+              },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-condition', startedTime });
+
+    await service.executeWorkflowRun(runId);
+
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { matched: true, output: { ok: true } },
+      }),
+    });
+  });
+
+  it('executes loop action and returns sliced items', async () => {
+    prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
+      id: runId,
+      input: { items: [1, 2, 3, 4] },
+      workflow: { baseId },
+      snapshot: {
+        snapshot: {
+          baseId,
+          nodes: [
+            {
+              id: 'wa-loop',
+              nodeType: 'action',
+              kind: 'loop',
+              config: {
+                itemsPath: '{{ input.items }}',
+                maxIterations: 2,
+              },
+            },
+          ],
+        },
+      },
+    });
+    prismaService.workflowRunStep.create.mockResolvedValue({ id: 'step-loop', startedTime });
+
+    await service.executeWorkflowRun(runId);
+
+    expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
+      where: { id: runId },
+      data: expect.objectContaining({
+        status: 'completed',
+        output: { count: 2, items: [1, 2], truncated: true },
       }),
     });
   });

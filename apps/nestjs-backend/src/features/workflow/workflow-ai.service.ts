@@ -5,6 +5,11 @@ export const workflowAiProviderToken = Symbol('WORKFLOW_AI_PROVIDER');
 
 export interface IWorkflowAiService {
   generateText(baseId: string, aiGenerateRo: IAiGenerateRo): Promise<string>;
+  createWorkflowDraft(
+    baseId: string,
+    prompt: string,
+    context?: Record<string, unknown>
+  ): Promise<string>;
 }
 
 @Injectable()
@@ -13,5 +18,13 @@ export class WorkflowAiService implements IWorkflowAiService {
 
   async generateText(baseId: string, aiGenerateRo: IAiGenerateRo): Promise<string> {
     return this.aiProvider.generateText(baseId, aiGenerateRo);
+  }
+
+  async createWorkflowDraft(
+    baseId: string,
+    prompt: string,
+    context?: Record<string, unknown>
+  ): Promise<string> {
+    return this.aiProvider.createWorkflowDraft(baseId, prompt, context);
   }
 }

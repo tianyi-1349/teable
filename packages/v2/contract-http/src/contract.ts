@@ -107,6 +107,11 @@ import {
   getShareViewRowCountOkResponseSchema,
 } from './share/getShareViewRowCount';
 import { clearOkResponseSchema } from './table/clear';
+import { getAggregationInputSchema, getAggregationOkResponseSchema } from './table/getAggregation';
+import {
+  getCalendarDailyCollectionInputSchema,
+  getCalendarDailyCollectionOkResponseSchema,
+} from './table/getCalendarDailyCollection';
 import { createFieldOkResponseSchema } from './table/createField';
 import { createRecordOkResponseSchema } from './table/createRecord';
 import { createRecordsOkResponseSchema } from './table/createRecords';
@@ -131,9 +136,14 @@ import {
 } from './table/explainCommand';
 import { getRecordByIdOkResponseSchema } from './table/getRecordById';
 import { getRecordIndexInputSchema, getRecordIndexOkResponseSchema } from './table/getRecordIndex';
+import { getGroupPointsInputSchema, getGroupPointsOkResponseSchema } from './table/getGroupPoints';
 import { getRowCountInputSchema, getRowCountOkResponseSchema } from './table/getRowCount';
 import { getSearchCountInputSchema, getSearchCountOkResponseSchema } from './table/getSearchCount';
 import { getSearchIndexInputSchema, getSearchIndexOkResponseSchema } from './table/getSearchIndex';
+import {
+  getTaskStatusCollectionInputSchema,
+  getTaskStatusCollectionOkResponseSchema,
+} from './table/getTaskStatusCollection';
 import { getTableByIdOkResponseSchema } from './table/getTableById';
 import { importCsvOkResponseSchema } from './table/importCsv';
 import { importRecordsOkResponseSchema } from './table/importRecords';
@@ -155,9 +165,17 @@ import {
   activateWorkflowOkResponseSchema,
 } from './workflow/activateWorkflow';
 import {
+  aiCreateDraftWorkflowInputSchema,
+  aiCreateDraftWorkflowOkResponseSchema,
+} from './workflow/aiCreateDraftWorkflow';
+import {
   createWorkflowInputSchema,
   createWorkflowOkResponseSchema,
 } from './workflow/createWorkflow';
+import {
+  applyUpdateWorkflowInputSchema,
+  applyUpdateWorkflowOkResponseSchema,
+} from './workflow/applyUpdateWorkflow';
 import {
   deactivateWorkflowInputSchema,
   deactivateWorkflowOkResponseSchema,
@@ -189,9 +207,29 @@ import {
   listWorkflowRunsOkResponseSchema,
 } from './workflow/listWorkflowRuns';
 import {
+  testNodeWorkflowInputSchema,
+  testNodeWorkflowOkResponseSchema,
+} from './workflow/testNodeWorkflow';
+import {
   testRunWorkflowInputSchema,
   testRunWorkflowOkResponseSchema,
 } from './workflow/testRunWorkflow';
+import {
+  triggerEmailReceivedWorkflowInputSchema,
+  triggerEmailReceivedWorkflowOkResponseSchema,
+} from './workflow/triggerEmailReceivedWorkflow';
+import {
+  triggerFormSubmittedWorkflowInputSchema,
+  triggerFormSubmittedWorkflowOkResponseSchema,
+} from './workflow/triggerFormSubmittedWorkflow';
+import {
+  triggerScheduleWorkflowInputSchema,
+  triggerScheduleWorkflowOkResponseSchema,
+} from './workflow/triggerScheduleWorkflow';
+import {
+  triggerWebhookWorkflowInputSchema,
+  triggerWebhookWorkflowOkResponseSchema,
+} from './workflow/triggerWebhookWorkflow';
 import {
   updateWorkflowInputSchema,
   updateWorkflowOkResponseSchema,
@@ -278,6 +316,10 @@ const TABLES_GET_ROW_COUNT_PATH = '/tables/getRowCount';
 const TABLES_GET_RECORD_INDEX_PATH = '/tables/getRecordIndex';
 const TABLES_GET_SEARCH_COUNT_PATH = '/tables/getSearchCount';
 const TABLES_GET_SEARCH_INDEX_PATH = '/tables/getSearchIndex';
+const TABLES_GET_AGGREGATION_PATH = '/tables/getAggregation';
+const TABLES_GET_GROUP_POINTS_PATH = '/tables/getGroupPoints';
+const TABLES_GET_CALENDAR_DAILY_COLLECTION_PATH = '/tables/getCalendarDailyCollection';
+const TABLES_GET_TASK_STATUS_COLLECTION_PATH = '/tables/getTaskStatusCollection';
 const TABLES_UNDO_PATH = '/tables/undo';
 const TABLES_REDO_PATH = '/tables/redo';
 const VIEWS_GET_BY_ID_PATH = '/views/getById';
@@ -323,6 +365,8 @@ const TEMPLATES_GET_PERMALINK_PATH = '/templates/getPermalink';
 const TEMPLATES_INCREMENT_VISIT_PATH = '/templates/incrementVisit';
 const TEMPLATES_LIST_PUBLISHED_PATH = '/templates/listPublished';
 const WORKFLOWS_ACTIVATE_PATH = '/workflows/activate';
+const WORKFLOWS_AI_CREATE_DRAFT_PATH = '/workflows/aiCreateDraft';
+const WORKFLOWS_APPLY_UPDATE_PATH = '/workflows/applyUpdate';
 const WORKFLOWS_LIST_PATH = '/workflows/list';
 const WORKFLOWS_CREATE_PATH = '/workflows/create';
 const WORKFLOWS_DEACTIVATE_PATH = '/workflows/deactivate';
@@ -333,6 +377,10 @@ const WORKFLOWS_GET_BY_ID_PATH = '/workflows/getById';
 const WORKFLOWS_GET_CAPABILITIES_PATH = '/workflows/getCapabilities';
 const WORKFLOWS_LIST_RUNS_PATH = '/workflows/listRuns';
 const WORKFLOWS_GET_RUN_PATH = '/workflows/getRun';
+const WORKFLOWS_TRIGGER_WEBHOOK_PATH = '/workflows/triggerWebhook';
+const WORKFLOWS_TRIGGER_SCHEDULE_PATH = '/workflows/triggerSchedule';
+const WORKFLOWS_TRIGGER_FORM_SUBMITTED_PATH = '/workflows/triggerFormSubmitted';
+const WORKFLOWS_TRIGGER_EMAIL_RECEIVED_PATH = '/workflows/triggerEmailReceived';
 const WORKFLOWS_TEST_RUN_PATH = '/workflows/testRun';
 
 export const v2Contract = {
@@ -579,6 +627,46 @@ export const v2Contract = {
       })
       .input(getSearchIndexInputSchema)
       .output(getSearchIndexOkResponseSchema),
+    getAggregation: oc
+      .route({
+        method: 'GET',
+        path: TABLES_GET_AGGREGATION_PATH,
+        successStatus: 200,
+        summary: 'Get aggregation',
+        tags: ['tables'],
+      })
+      .input(getAggregationInputSchema)
+      .output(getAggregationOkResponseSchema),
+    getGroupPoints: oc
+      .route({
+        method: 'GET',
+        path: TABLES_GET_GROUP_POINTS_PATH,
+        successStatus: 200,
+        summary: 'Get group points',
+        tags: ['tables'],
+      })
+      .input(getGroupPointsInputSchema)
+      .output(getGroupPointsOkResponseSchema),
+    getCalendarDailyCollection: oc
+      .route({
+        method: 'GET',
+        path: TABLES_GET_CALENDAR_DAILY_COLLECTION_PATH,
+        successStatus: 200,
+        summary: 'Get calendar daily collection',
+        tags: ['tables'],
+      })
+      .input(getCalendarDailyCollectionInputSchema)
+      .output(getCalendarDailyCollectionOkResponseSchema),
+    getTaskStatusCollection: oc
+      .route({
+        method: 'GET',
+        path: TABLES_GET_TASK_STATUS_COLLECTION_PATH,
+        successStatus: 200,
+        summary: 'Get task status collection',
+        tags: ['tables'],
+      })
+      .input(getTaskStatusCollectionInputSchema)
+      .output(getTaskStatusCollectionOkResponseSchema),
     importCsv: oc
       .route({
         method: 'POST',
@@ -1193,6 +1281,26 @@ export const v2Contract = {
       .output(listPublishedTemplatesOkResponseSchema),
   },
   workflows: {
+    aiCreateDraft: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_AI_CREATE_DRAFT_PATH,
+        successStatus: 201,
+        summary: 'Create workflow draft with AI',
+        tags: ['workflows'],
+      })
+      .input(aiCreateDraftWorkflowInputSchema)
+      .output(aiCreateDraftWorkflowOkResponseSchema),
+    applyUpdate: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_APPLY_UPDATE_PATH,
+        successStatus: 200,
+        summary: 'Apply workflow draft update',
+        tags: ['workflows'],
+      })
+      .input(applyUpdateWorkflowInputSchema)
+      .output(applyUpdateWorkflowOkResponseSchema),
     activate: oc
       .route({
         method: 'POST',
@@ -1303,6 +1411,56 @@ export const v2Contract = {
       })
       .input(getWorkflowRunInputSchema)
       .output(getWorkflowRunOkResponseSchema),
+    testNode: oc
+      .route({
+        method: 'POST',
+        path: '/workflows/{workflowId}/test-node',
+        successStatus: 201,
+        summary: 'Test workflow node',
+        tags: ['workflows'],
+      })
+      .input(testNodeWorkflowInputSchema)
+      .output(testNodeWorkflowOkResponseSchema),
+    triggerWebhook: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_TRIGGER_WEBHOOK_PATH,
+        successStatus: 201,
+        summary: 'Trigger webhook workflow',
+        tags: ['workflows'],
+      })
+      .input(triggerWebhookWorkflowInputSchema)
+      .output(triggerWebhookWorkflowOkResponseSchema),
+    triggerSchedule: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_TRIGGER_SCHEDULE_PATH,
+        successStatus: 201,
+        summary: 'Trigger schedule workflow',
+        tags: ['workflows'],
+      })
+      .input(triggerScheduleWorkflowInputSchema)
+      .output(triggerScheduleWorkflowOkResponseSchema),
+    triggerFormSubmitted: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_TRIGGER_FORM_SUBMITTED_PATH,
+        successStatus: 201,
+        summary: 'Trigger form submitted workflow',
+        tags: ['workflows'],
+      })
+      .input(triggerFormSubmittedWorkflowInputSchema)
+      .output(triggerFormSubmittedWorkflowOkResponseSchema),
+    triggerEmailReceived: oc
+      .route({
+        method: 'POST',
+        path: WORKFLOWS_TRIGGER_EMAIL_RECEIVED_PATH,
+        successStatus: 201,
+        summary: 'Trigger email received workflow',
+        tags: ['workflows'],
+      })
+      .input(triggerEmailReceivedWorkflowInputSchema)
+      .output(triggerEmailReceivedWorkflowOkResponseSchema),
     testRun: oc
       .route({
         method: 'POST',
