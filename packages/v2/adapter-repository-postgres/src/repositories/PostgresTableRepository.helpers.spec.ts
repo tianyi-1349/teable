@@ -1,13 +1,4 @@
-import {
-  BaseId,
-  DefaultTableMapper,
-  FieldId,
-  FieldName,
-  Table,
-  TableId,
-  TableName,
-  getRandomString,
-} from '@teable/v2-core';
+import { BaseId, DefaultTableMapper, FieldName, Table, TableId, TableName } from '@teable/v2-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PostgresTableRepository } from './PostgresTableRepository';
@@ -58,14 +49,6 @@ const createRepository = () =>
 const asTestableRepository = (
   repository: PostgresTableRepository
 ): TestablePostgresTableRepository => repository as unknown as TestablePostgresTableRepository;
-
-const createMappedTable = () =>
-  Table.builder()
-    .withBaseId(BaseId.create(`bse${'a'.repeat(16)}`)._unsafeUnwrap())
-    .withId(TableId.create(`tbl${'a'.repeat(16)}`)._unsafeUnwrap())
-    .withName(TableName.create('Projects')._unsafeUnwrap())
-    .field()
-    .singleLineText();
 
 describe('PostgresTableRepository helpers', () => {
   it('normalizes legacy select options and resolves sort columns', () => {

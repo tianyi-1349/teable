@@ -21,9 +21,7 @@ interface IDraggableBaseRowsProps {
 
 export const DraggableBaseRows = (props: IDraggableBaseRowsProps) => {
   const { className, items, onDragEnd, renderRow } = props;
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  const activeItem = activeId ? items.find((item) => item.id === activeId) : null;
+  const [, setActiveId] = useState<string | null>(null);
 
   return (
     <DndKitContext

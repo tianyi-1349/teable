@@ -73,7 +73,7 @@ interface IConditionalRollupValueProps {
 const ConditionalRollupValue = (props: IConditionalRollupValueProps) => {
   const { literalComponent, value, onSelect, operator, referenceSource, modal, field } = props;
   const { t } = useTranslation();
-  const referenceFields = referenceSource?.fields ?? [];
+  const referenceFields = useMemo(() => referenceSource?.fields ?? [], [referenceSource?.fields]);
   const referenceTableId = referenceSource?.tableId ?? referenceFields[0]?.tableId;
   const isFieldMode = isFieldReferenceValue(value);
   const [lastLiteralValue, setLastLiteralValue] = useState<IFilterItem['value'] | null>(

@@ -131,7 +131,7 @@ export class RecordUpdateBuilder {
     recordId: string;
     context: RecordUpdateBuilderContext;
   }): Promise<Result<RecordUpdateSqlResult, DomainError>> {
-    const { table, tableName, tableDisplayName, mutateSpec, recordId, context } = params;
+    const { tableName, tableDisplayName, recordId } = params;
     const builder = this;
 
     return safeTry<RecordUpdateSqlResult, DomainError>(async function* () {

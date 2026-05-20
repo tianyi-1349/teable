@@ -48,5 +48,5 @@ export const useSettingRoute = (): ISidebarContentRoute[] => {
       //   pathTo: '/setting/plugin',
       // },
     ];
-  }, [t]);
+  }, [isDeveloperToolQueryBuilder, t]);
 };

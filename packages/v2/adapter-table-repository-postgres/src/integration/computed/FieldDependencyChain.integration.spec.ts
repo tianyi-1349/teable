@@ -413,7 +413,7 @@ describe('FieldDependencyChain Integration Tests', () => {
       const personNameId = personFields.get('Name')!;
 
       // Add self-referential link (not one-way, so it creates symmetric field)
-      const { fieldIds: personFieldsWithLink } = await createTable(commandBus, baseId, {
+      await createTable(commandBus, baseId, {
         name: 'PeopleWithFriends',
         fields: [
           { type: 'singleLineText', name: 'Name', isPrimary: true },
@@ -476,8 +476,6 @@ describe('FieldDependencyChain Integration Tests', () => {
           { type: 'number', id: taskPointsId, name: 'Points' },
         ],
       });
-      const taskNameId = taskFields.get('Name')!;
-
       // Projects table: Name, ConditionalRollup (SUM of Points where Status = Done)
       const { fieldIds: projectFields } = await createTable(commandBus, baseId, {
         name: 'Projects',
@@ -615,7 +613,7 @@ describe('FieldDependencyChain Integration Tests', () => {
       const aNameId = aFields.get('Name')!;
 
       // TableB: Name, Link, Lookup (lookups A.Computed)
-      const { fieldIds: bFields } = await createTable(commandBus, baseId, {
+      await createTable(commandBus, baseId, {
         name: 'TargetLookupComputed',
         fields: [
           { type: 'singleLineText', name: 'Name', isPrimary: true },
@@ -767,7 +765,7 @@ describe('FieldDependencyChain Integration Tests', () => {
       });
       const aNameId = aFields.get('Name')!;
 
-      const { fieldIds: bFields } = await createTable(commandBus, baseId, {
+      await createTable(commandBus, baseId, {
         name: 'EdgeDedup_B',
         fields: [
           { type: 'singleLineText', name: 'Name', isPrimary: true },
@@ -1185,8 +1183,6 @@ describe('FieldDependencyChain Integration Tests', () => {
           { type: 'number', id: taskPointsId, name: 'Points' },
         ],
       });
-      const taskNameId = taskFields.get('Name')!;
-
       // Projects table: Name, ConditionalRollup (SUM of Points where Status = Done)
       const { fieldIds: projectFields } = await createTable(commandBus, baseId, {
         name: 'Projects',

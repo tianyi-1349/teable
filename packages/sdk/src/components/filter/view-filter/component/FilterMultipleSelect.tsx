@@ -1,5 +1,4 @@
 import { ColorUtils } from '@teable/core';
-import { cn } from '@teable/ui-lib';
 import { useMemo } from 'react';
 import type { MultipleSelectField, SingleSelectField } from '../../../../model';
 import type { IColorOption } from './base';

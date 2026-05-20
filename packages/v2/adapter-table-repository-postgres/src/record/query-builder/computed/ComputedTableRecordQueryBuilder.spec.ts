@@ -7,7 +7,6 @@ import {
   DbFieldType,
   NumberFormatting,
   NumberFormattingType,
-  FieldType,
   TimeFormatting,
   createDateField,
   createNumberField,

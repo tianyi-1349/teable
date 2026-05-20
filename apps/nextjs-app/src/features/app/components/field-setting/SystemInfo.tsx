@@ -51,11 +51,6 @@ const ToggleButton: React.FC<{
   setShow: (value: boolean) => void;
 }> = ({ show, setShow }) => {
   const { t } = useTranslation(['table']);
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      setShow(!show);
-    }
-  };
 
   return (
     <Button

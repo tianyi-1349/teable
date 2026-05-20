@@ -1,11 +1,4 @@
-import {
-  BaseId,
-  domainError,
-  FieldId,
-  TableId,
-  type DomainError,
-  type IHasher,
-} from '@teable/v2-core';
+import { BaseId, FieldId, TableId, type DomainError, type IHasher } from '@teable/v2-core';
 import { err, ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
