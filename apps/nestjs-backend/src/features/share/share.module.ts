@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DbProvider } from '../../db-provider/db.provider';
 import { AggregationModule } from '../aggregation/aggregation.module';
 import { AuthModule } from '../auth/auth.module';
@@ -18,7 +18,7 @@ import { ShareService } from './share.service';
     AuthModule,
     FieldModule,
     RecordModule,
-    RecordOpenApiModule,
+    forwardRef(() => RecordOpenApiModule),
     SelectionModule,
     AggregationModule,
     ShareAuthModule,

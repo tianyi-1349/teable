@@ -6,6 +6,10 @@ describe('WorkflowRunnerService', () => {
   const baseId = 'bse123';
   const recordId = 'rec123';
   const generatedSummary = 'Generated summary';
+  const runScriptKind = 'runScript';
+  const userEmail = 'user@example.com';
+  const runScriptActionNodeId = 'wa123';
+  const returnInputScript = 'return input;';
   const disabledScriptRuntimeMessage =
     'Run Script workflow actions are disabled until a process-isolated sandbox is available';
   const startedTime = new Date('2026-05-11T00:00:00.000Z');
@@ -98,10 +102,10 @@ describe('WorkflowRunnerService', () => {
           baseId,
           nodes: [
             {
-              id: 'wa123',
+              id: runScriptActionNodeId,
               nodeType: 'action',
-              kind: 'runScript',
-              config: { script: 'return input;' },
+              kind: runScriptKind,
+              config: { script: returnInputScript },
             },
           ],
         },
@@ -111,7 +115,7 @@ describe('WorkflowRunnerService', () => {
       triggerType: 'manualNodeTest',
       snapshot: {
         snapshot: {
-          nodes: [{ id: 'wa123', nodeType: 'action', kind: 'runScript' }],
+          nodes: [{ id: runScriptActionNodeId, nodeType: 'action', kind: runScriptKind }],
         },
       },
     });
@@ -121,7 +125,7 @@ describe('WorkflowRunnerService', () => {
     await service.executeWorkflowRun(runId);
 
     expect(prismaService.workflowNode.update).toHaveBeenCalledWith({
-      where: { id: 'wa123' },
+      where: { id: runScriptActionNodeId },
       data: expect.objectContaining({
         testStatus: 'completed',
         testOutput: { ok: true },
@@ -139,10 +143,10 @@ describe('WorkflowRunnerService', () => {
           baseId,
           nodes: [
             {
-              id: 'wa123',
+              id: runScriptActionNodeId,
               nodeType: 'action',
-              kind: 'runScript',
-              config: { script: 'return input;' },
+              kind: runScriptKind,
+              config: { script: returnInputScript },
             },
           ],
         },
@@ -153,7 +157,7 @@ describe('WorkflowRunnerService', () => {
 
     await service.executeWorkflowRun(runId);
 
-    expect(scriptRuntimeService.execute).toHaveBeenCalledWith('return input;', {
+    expect(scriptRuntimeService.execute).toHaveBeenCalledWith(returnInputScript, {
       baseId,
       input: { recordId },
     });
@@ -231,7 +235,7 @@ describe('WorkflowRunnerService', () => {
   it('executes sendEmail action and returns delivery metadata', async () => {
     prismaService.workflowRun.findUniqueOrThrow.mockResolvedValue({
       id: runId,
-      input: { email: 'user@example.com' },
+      input: { email: userEmail },
       workflow: { baseId },
       snapshot: {
         snapshot: {
@@ -257,15 +261,15 @@ describe('WorkflowRunnerService', () => {
     await service.executeWorkflowRun(runId);
 
     expect(mailSenderService.sendMail).toHaveBeenCalledWith({
-      to: ['user@example.com'],
+      to: [userEmail],
       subject: 'Hello',
-      text: 'Payload {"email":"user@example.com"}',
+      text: `Payload {"email":"${userEmail}"}`,
     });
     expect(prismaService.workflowRun.update).toHaveBeenLastCalledWith({
       where: { id: runId },
       data: expect.objectContaining({
         status: 'completed',
-        output: { delivered: true, recipients: ['user@example.com'] },
+        output: { delivered: true, recipients: [userEmail] },
       }),
     });
   });
@@ -350,9 +354,9 @@ describe('WorkflowRunnerService', () => {
           baseId,
           nodes: [
             {
-              id: 'wa123',
+              id: runScriptActionNodeId,
               nodeType: 'action',
-              kind: 'runScript',
+              kind: runScriptKind,
               config: { script: 'throw error;' },
             },
           ],

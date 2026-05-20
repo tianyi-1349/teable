@@ -2351,6 +2351,9 @@ importers:
       typescript:
         specifier: 5.4.3
         version: 5.4.3
+      vitest:
+        specifier: 4.0.17
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@22.18.0)(happy-dom@15.11.6)(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(terser@5.37.0)(tsx@4.19.4)(yaml@2.6.1)
 
   packages/v2/adapter-db-postgres-pglite:
     dependencies:
@@ -3185,6 +3188,9 @@ importers:
       '@orpc/contract':
         specifier: 1.13.0
         version: 1.13.0(@opentelemetry/api@1.9.0)
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-core':
         specifier: workspace:*
         version: link:../core
@@ -3237,6 +3243,9 @@ importers:
       '@orpc/openapi-client':
         specifier: 1.13.0
         version: 1.13.0(@opentelemetry/api@1.9.0)
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -3274,6 +3283,9 @@ importers:
 
   packages/v2/contract-http-express:
     dependencies:
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -3326,6 +3338,9 @@ importers:
 
   packages/v2/contract-http-fastify:
     dependencies:
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -3375,6 +3390,9 @@ importers:
 
   packages/v2/contract-http-hono:
     dependencies:
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -3427,6 +3445,9 @@ importers:
       '@orpc/server':
         specifier: 1.13.0
         version: 1.13.0(@opentelemetry/api@1.9.0)(crossws@0.4.4(srvx@0.11.2))(ws@8.18.3)
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-command-explain':
         specifier: workspace:*
         version: link:../command-explain
@@ -3482,6 +3503,9 @@ importers:
       '@orpc/server':
         specifier: 1.13.0
         version: 1.13.0(@opentelemetry/api@1.9.0)(crossws@0.4.4(srvx@0.11.2))(ws@8.18.3)
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -4136,6 +4160,9 @@ importers:
 
   packages/v2/table-templates:
     dependencies:
+      '@teable/openapi':
+        specifier: workspace:*
+        version: link:../../openapi
       '@teable/v2-contract-http':
         specifier: workspace:*
         version: link:../contract-http
@@ -19671,10 +19698,6 @@ packages:
     resolution: {integrity: sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postcss@8.5.6:
-    resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.8:
     resolution: {integrity: sha512-OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg==}
     engines: {node: ^10 || ^12 || >=14}
@@ -26671,7 +26694,7 @@ snapshots:
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:
       '@jridgewell/set-array': 1.2.1
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
       '@jridgewell/trace-mapping': 0.3.25
 
   '@jridgewell/resolve-uri@3.1.2': {}
@@ -26690,17 +26713,17 @@ snapshots:
   '@jridgewell/trace-mapping@0.3.25':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
@@ -31783,7 +31806,7 @@ snapshots:
 
   '@types/acorn@4.0.6':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   '@types/archiver@6.0.3':
     dependencies:
@@ -32018,12 +32041,12 @@ snapshots:
 
   '@types/eslint@9.6.1':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
 
   '@types/estree-jsx@1.0.5':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   '@types/estree@0.0.39': {}
 
@@ -33450,7 +33473,7 @@ snapshots:
       '@vue/shared': 3.5.13
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.6
+      postcss: 8.5.8
       source-map-js: 1.2.1
     optional: true
 
@@ -38727,7 +38750,7 @@ snapshots:
 
   is-reference@1.2.1:
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   is-regex@1.2.1:
     dependencies:
@@ -39553,7 +39576,7 @@ snapshots:
 
   magic-string@0.30.17:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   magic-string@0.30.21:
     dependencies:
@@ -39561,11 +39584,11 @@ snapshots:
 
   magic-string@0.30.5:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   magic-string@0.30.8:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   magicast@0.5.1:
     dependencies:
@@ -40050,7 +40073,7 @@ snapshots:
 
   micromark-extension-mdx-expression@3.0.0:
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       devlop: 1.1.0
       micromark-factory-mdx-expression: 2.0.2
       micromark-factory-space: 2.0.1
@@ -40062,7 +40085,7 @@ snapshots:
   micromark-extension-mdx-jsx@3.0.1:
     dependencies:
       '@types/acorn': 4.0.6
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       devlop: 1.1.0
       estree-util-is-identifier-name: 3.0.0
       micromark-factory-mdx-expression: 2.0.2
@@ -40079,7 +40102,7 @@ snapshots:
 
   micromark-extension-mdxjs-esm@3.0.0:
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.2
       micromark-util-character: 2.1.1
@@ -40115,7 +40138,7 @@ snapshots:
 
   micromark-factory-mdx-expression@2.0.2:
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       devlop: 1.1.0
       micromark-factory-space: 2.0.1
       micromark-util-character: 2.1.1
@@ -40180,7 +40203,7 @@ snapshots:
   micromark-util-events-to-acorn@2.0.2:
     dependencies:
       '@types/acorn': 4.0.6
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@types/unist': 3.0.3
       devlop: 1.1.0
       estree-util-visit: 2.0.0
@@ -42397,12 +42420,6 @@ snapshots:
     dependencies:
       nanoid: 3.3.7
       picocolors: 1.0.0
-      source-map-js: 1.2.1
-
-  postcss@8.5.6:
-    dependencies:
-      nanoid: 3.3.11
-      picocolors: 1.1.1
       source-map-js: 1.2.1
 
   postcss@8.5.8:
@@ -46216,7 +46233,7 @@ snapshots:
   vite@5.4.21(@types/node@22.18.0)(lightningcss@1.30.2)(terser@5.37.0):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.5.6
+      postcss: 8.5.8
       rollup: 4.55.1
     optionalDependencies:
       '@types/node': 22.18.0
@@ -46229,7 +46246,7 @@ snapshots:
       esbuild: 0.27.2
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
-      postcss: 8.5.6
+      postcss: 8.5.8
       rollup: 4.55.1
       tinyglobby: 0.2.15
     optionalDependencies:

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ShareDbModule } from '../../../share-db/share-db.module';
 import { CanaryModule } from '../../canary/canary.module';
 import { FieldCalculateModule } from '../../field/field-calculate/field-calculate.module';
@@ -19,7 +19,7 @@ import { ViewOpenApiService } from './view-open-api.service';
     FieldModule,
     FieldCalculateModule,
     TableDomainQueryModule,
-    V2Module,
+    forwardRef(() => V2Module),
     CanaryModule,
   ],
   controllers: [ViewOpenApiController],

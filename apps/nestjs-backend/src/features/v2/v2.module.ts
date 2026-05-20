@@ -8,7 +8,10 @@ import { AggregationOpenApiModule } from '../aggregation/open-api/aggregation-op
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
 import { BaseNodeModule } from '../base-node/base-node.module';
 import { BaseShareModule } from '../base-share/base-share.module';
+import { CommentOpenApiModule } from '../comment/comment-open-api.module';
+import { OrganizationModule } from '../organization/organization.module';
 import { SettingOpenApiModule } from '../setting/open-api/setting-open-api.module';
+import { ShareAuthModule } from '../share/share-auth.module';
 import { ShareModule } from '../share/share.module';
 import { TemplateOpenApiModule } from '../template/template-open-api.module';
 import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
@@ -108,8 +111,11 @@ const toErrorMessage = (body: unknown): string => {
     AttachmentsStorageModule,
     BaseNodeModule,
     BaseShareModule,
+    CommentOpenApiModule,
     ShareDbModule,
     ShareModule,
+    ShareAuthModule,
+    OrganizationModule,
     SettingOpenApiModule,
     TemplateOpenApiModule,
     UndoRedoStackModule,

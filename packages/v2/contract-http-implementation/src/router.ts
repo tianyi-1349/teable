@@ -25,6 +25,8 @@ import {
   type IQueryBus,
   v2CoreTokens,
 } from '@teable/v2-core';
+import { RequestRouter, type IFeatureFlags } from './internal/request-router';
+import type { IV1Adapter } from './internal/v1-adapter';
 
 import { executeCreateBaseEndpoint } from './handlers/bases/createBase';
 import { executeListBasesEndpoint } from './handlers/bases/listBases';
@@ -86,6 +88,8 @@ import { executeUpdateViewSortCommandEndpoint } from './handlers/views/updateVie
 export interface IV2OrpcRouterOptions {
   createContainer?: () => IHandlerResolver | Promise<IHandlerResolver>;
   createExecutionContext?: () => IExecutionContext | Promise<IExecutionContext>;
+  featureFlags?: IFeatureFlags;
+  v1Adapter?: IV1Adapter;
 }
 
 type OrpcHandlerOptions = { input: unknown };
@@ -119,6 +123,118 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       return { actorId: actorIdResult.value };
     });
 
+  const requestRouter = new RequestRouter({
+    featureFlags: options.featureFlags,
+    capability: {
+      tables: {
+        create: 'full',
+        createTables: 'full',
+        duplicateTable: 'full',
+        createField: 'full',
+        updateField: 'full',
+        createRecord: 'full',
+        submitRecord: 'full',
+        createRecords: 'full',
+        updateRecord: 'full',
+        updateRecords: 'full',
+        reorderRecords: 'full',
+        duplicateField: 'full',
+        duplicateRecord: 'full',
+        paste: 'full',
+        clear: 'full',
+        deleteByRange: 'full',
+        deleteRecords: 'full',
+        deleteField: 'full',
+        delete: 'full',
+        restore: 'full',
+        getById: 'full',
+        getRowCount: 'full',
+        getRecordIndex: 'full',
+        getRecord: 'full',
+        getSearchCount: 'full',
+        getSearchIndex: 'full',
+        importCsv: 'full',
+        importRecords: 'full',
+        list: 'full',
+        listRecords: 'full',
+        rename: 'full',
+        undo: 'full',
+        redo: 'full',
+      },
+      views: {
+        list: 'full',
+        getById: 'full',
+        updateName: 'full',
+        updateDescription: 'full',
+        updateLocked: 'full',
+        updateShareMeta: 'full',
+        updateOptions: 'full',
+        updateOrder: 'full',
+        updateFilter: 'full',
+        updateSort: 'full',
+        updateGroup: 'full',
+        updateColumnMeta: 'full',
+        reorderRecords: 'full',
+      },
+      bases: { create: 'full', list: 'full' },
+      workflows: {
+        activate: 'partial',
+        create: 'partial',
+        deactivate: 'partial',
+        list: 'partial',
+        update: 'partial',
+        delete: 'partial',
+        duplicate: 'partial',
+        getById: 'partial',
+        getCapabilities: 'partial',
+        listRuns: 'partial',
+        getRun: 'partial',
+        testRun: 'partial',
+      },
+      comments: {
+        list: 'v1',
+        getRecordCount: 'v1',
+        getSubscribeDetail: 'v1',
+        subscribe: 'v1',
+        unsubscribe: 'v1',
+        getTableCount: 'v1',
+        getById: 'v1',
+      },
+      organization: {
+        getMe: 'v1',
+        getDepartmentUsers: 'v1',
+        getDepartmentList: 'v1',
+      },
+      share: {
+        getView: 'v1',
+        getViewAggregations: 'v1',
+        getViewGroupPoints: 'v1',
+        getViewCalendarDailyCollection: 'v1',
+        getViewLinkRecords: 'v1',
+        getViewCollaborators: 'v1',
+        getViewRowCount: 'v1',
+        getViewRecords: 'v1',
+        getViewSearchCount: 'v1',
+        getViewSearchIndex: 'v1',
+        buttonClickView: 'v1',
+        copyView: 'v1',
+        formSubmitView: 'v1',
+      },
+      publishedApps: {
+        getRuntimeManifest: 'v1',
+        getNavigationModel: 'v1',
+        getNodeRuntime: 'v1',
+      },
+      settings: { get: 'v1', getPublic: 'v1' },
+      templates: {
+        listPublished: 'v1',
+        getById: 'v1',
+        getPermalink: 'v1',
+        incrementVisit: 'v1',
+      },
+    },
+  });
+
   const containerErrorMessage = 'Failed to create container';
   const executionContextErrorMessage = 'Failed to resolve execution context';
 
@@ -134,6 +250,64 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message });
   };
 
+  const resolveExecutionContext = async (): Promise<IExecutionContext> => {
+    try {
+      return await createExecutionContext();
+    } catch {
+      throw new ORPCError('INTERNAL_SERVER_ERROR', {
+        message: executionContextErrorMessage,
+      });
+    }
+  };
+
+  const mapEndpointError = (result: {
+    status: number;
+    body: {
+      error: {
+        message: string;
+        code: string;
+        tags: readonly string[];
+        details?: Record<string, unknown>;
+      };
+    };
+  }) => {
+    if (result.status === 400) {
+      throwDomainError('BAD_REQUEST', result.body.error);
+    }
+
+    if (result.status === 403) {
+      throwDomainError('FORBIDDEN', result.body.error);
+    }
+
+    if (result.status === 404) {
+      throwDomainError('NOT_FOUND', result.body.error);
+    }
+
+    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+  };
+
+  const executeWithExecutionContext = async <TResult>(
+    input: unknown,
+    executor: (
+      executionContext: IExecutionContext,
+      input: unknown,
+      container: IHandlerResolver
+    ) => Promise<TResult>
+  ): Promise<unknown> => {
+    const container = await resolveContainer();
+    const executionContext = await resolveExecutionContext();
+    const result = (await executor(executionContext, input, container)) as {
+      status: number;
+      body: unknown;
+    };
+
+    if (result.status === 200 || result.status === 201) {
+      return result.body;
+    }
+
+    mapEndpointError(result as never);
+  };
+
   const resolveContainer = async (): Promise<IHandlerResolver> => {
     try {
       return await Promise.resolve(createContainer());
@@ -144,6 +318,33 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
 
   const createNestAdapterRequiredHandler = (message: string) => async (): Promise<never> => {
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message });
+  };
+
+  const createV1AdapterHandler = (
+    domain: keyof IV1Adapter,
+    operation: string,
+    message: string
+  ): ((input: unknown) => Promise<unknown>) => {
+    const domainAdapter = options.v1Adapter?.[domain];
+    const handler =
+      domainAdapter && operation in domainAdapter
+        ? (domainAdapter as unknown as Record<string, (input: unknown) => Promise<unknown>>)[
+            operation
+          ]
+        : undefined;
+    if (!handler) {
+      return createNestAdapterRequiredHandler(message);
+    }
+    return async (input: unknown) => {
+      return requestRouter.route(
+        domain,
+        operation,
+        async () => {
+          throw new ORPCError('INTERNAL_SERVER_ERROR', { message });
+        },
+        handler
+      )(input);
+    };
   };
 
   /**
@@ -175,6 +376,10 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       { handler: (handler: (options: { input: unknown }) => Promise<unknown>) => unknown }
     >;
     comments: Record<
+      string,
+      { handler: (handler: (options: { input: unknown }) => Promise<unknown>) => unknown }
+    >;
+    organization: Record<
       string,
       { handler: (handler: (options: { input: unknown }) => Promise<unknown>) => unknown }
     >;
@@ -664,30 +869,13 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     ) => Promise<TResult>
   ) => {
     const container = await resolveContainer();
-
-    let executionContext: IExecutionContext;
-    try {
-      executionContext = await createExecutionContext();
-    } catch {
-      throw new ORPCError('INTERNAL_SERVER_ERROR', {
-        message: executionContextErrorMessage,
-      });
-    }
-
+    const executionContext = await resolveExecutionContext();
     const commandBus = container.resolve<ICommandBus>(v2CoreTokens.commandBus);
     const result = await executor(executionContext, input, commandBus);
 
     if (result.status === 200) return result.body;
 
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-
-    if (result.status === 404) {
-      throwDomainError('NOT_FOUND', result.body.error);
-    }
-
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
+    mapEndpointError(result);
   };
 
   const viewsUpdateName = os.views.updateName.handler(async ({ input }: OrpcHandlerOptions) =>
@@ -737,25 +925,38 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     'Comment endpoints in generic v2 router require a Nest backend adapter';
 
   const commentsList = os.comments.list.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'list', commentAdapterMessage)
   );
   const commentsGetRecordCount = os.comments.getRecordCount.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'getRecordCount', commentAdapterMessage)
   );
   const commentsGetSubscribeDetail = os.comments.getSubscribeDetail.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'getSubscribeDetail', commentAdapterMessage)
   );
   const commentsSubscribe = os.comments.subscribe.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'subscribe', commentAdapterMessage)
   );
   const commentsUnsubscribe = os.comments.unsubscribe.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'unsubscribe', commentAdapterMessage)
   );
   const commentsGetTableCount = os.comments.getTableCount.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'getTableCount', commentAdapterMessage)
   );
   const commentsGetById = os.comments.getById.handler(
-    createNestAdapterRequiredHandler(commentAdapterMessage)
+    createV1AdapterHandler('comments', 'getById', commentAdapterMessage)
+  );
+
+  const organizationAdapterMessage =
+    'Organization endpoints in generic v2 router require a Nest backend adapter';
+
+  const organizationGetMe = os.organization.getMe.handler(
+    createV1AdapterHandler('organization', 'getMe', organizationAdapterMessage)
+  );
+  const organizationGetDepartmentUsers = os.organization.getDepartmentUsers.handler(
+    createV1AdapterHandler('organization', 'getDepartmentUsers', organizationAdapterMessage)
+  );
+  const organizationGetDepartmentList = os.organization.getDepartmentList.handler(
+    createV1AdapterHandler('organization', 'getDepartmentList', organizationAdapterMessage)
   );
 
   const shareAdapterMessage = 'Share endpoints in generic v2 router require a Nest backend adapter';
@@ -764,53 +965,53 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     'Published app endpoints in generic v2 router require a Nest backend adapter';
 
   const shareGetView = os.share.getView.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getView', shareAdapterMessage)
   );
   const shareGetViewAggregations = os.share.getViewAggregations.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewAggregations', shareAdapterMessage)
   );
   const shareGetViewGroupPoints = os.share.getViewGroupPoints.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewGroupPoints', shareAdapterMessage)
   );
   const shareGetViewCalendarDailyCollection = os.share.getViewCalendarDailyCollection.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewCalendarDailyCollection', shareAdapterMessage)
   );
   const shareGetViewLinkRecords = os.share.getViewLinkRecords.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewLinkRecords', shareAdapterMessage)
   );
   const shareGetViewCollaborators = os.share.getViewCollaborators.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewCollaborators', shareAdapterMessage)
   );
   const shareGetViewRowCount = os.share.getViewRowCount.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewRowCount', shareAdapterMessage)
   );
   const shareGetViewRecords = os.share.getViewRecords.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewRecords', shareAdapterMessage)
   );
   const shareGetViewSearchCount = os.share.getViewSearchCount.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewSearchCount', shareAdapterMessage)
   );
   const shareGetViewSearchIndex = os.share.getViewSearchIndex.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'getViewSearchIndex', shareAdapterMessage)
   );
   const shareButtonClickView = os.share.buttonClickView.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'buttonClickView', shareAdapterMessage)
   );
   const shareCopyView = os.share.copyView.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'copyView', shareAdapterMessage)
   );
   const shareFormSubmitView = os.share.formSubmitView.handler(
-    createNestAdapterRequiredHandler(shareAdapterMessage)
+    createV1AdapterHandler('share', 'formSubmitView', shareAdapterMessage)
   );
 
   const publishedAppsGetRuntimeManifest = os.publishedApps.getRuntimeManifest.handler(
-    createNestAdapterRequiredHandler(publishedAppAdapterMessage)
+    createV1AdapterHandler('publishedApps', 'getRuntimeManifest', publishedAppAdapterMessage)
   );
   const publishedAppsGetNavigationModel = os.publishedApps.getNavigationModel.handler(
-    createNestAdapterRequiredHandler(publishedAppAdapterMessage)
+    createV1AdapterHandler('publishedApps', 'getNavigationModel', publishedAppAdapterMessage)
   );
   const publishedAppsGetNodeRuntime = os.publishedApps.getNodeRuntime.handler(
-    createNestAdapterRequiredHandler(publishedAppAdapterMessage)
+    createV1AdapterHandler('publishedApps', 'getNodeRuntime', publishedAppAdapterMessage)
   );
 
   const templateAdapterMessage =
@@ -820,152 +1021,128 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
     'Setting endpoints in generic v2 router require a Nest backend adapter';
 
   const settingsGet = os.settings.get.handler(
-    createNestAdapterRequiredHandler(settingAdapterMessage)
+    createV1AdapterHandler('settings', 'get', settingAdapterMessage)
   );
   const settingsGetPublic = os.settings.getPublic.handler(
-    createNestAdapterRequiredHandler(settingAdapterMessage)
+    createV1AdapterHandler('settings', 'getPublic', settingAdapterMessage)
   );
   const templatesListPublished = os.templates.listPublished.handler(
-    createNestAdapterRequiredHandler(templateAdapterMessage)
+    createV1AdapterHandler('templates', 'listPublished', templateAdapterMessage)
   );
   const templatesGetById = os.templates.getById.handler(
-    createNestAdapterRequiredHandler(templateAdapterMessage)
+    createV1AdapterHandler('templates', 'getById', templateAdapterMessage)
   );
   const templatesGetPermalink = os.templates.getPermalink.handler(
-    createNestAdapterRequiredHandler(templateAdapterMessage)
+    createV1AdapterHandler('templates', 'getPermalink', templateAdapterMessage)
   );
   const templatesIncrementVisit = os.templates.incrementVisit.handler(
-    createNestAdapterRequiredHandler(templateAdapterMessage)
+    createV1AdapterHandler('templates', 'incrementVisit', templateAdapterMessage)
   );
 
   const workflowAdapterMessage =
     'Workflow endpoints in generic v2 router require a Nest backend adapter';
 
   const workflowsActivate = os.workflows.activate.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'activate', workflowAdapterMessage)
   );
   const workflowsCreate = os.workflows.create.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'create', workflowAdapterMessage)
   );
   const workflowsDeactivate = os.workflows.deactivate.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'deactivate', workflowAdapterMessage)
   );
   const workflowsList = os.workflows.list.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'list', workflowAdapterMessage)
   );
   const workflowsUpdate = os.workflows.update.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'update', workflowAdapterMessage)
   );
   const workflowsDelete = os.workflows.delete.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'delete', workflowAdapterMessage)
   );
   const workflowsDuplicate = os.workflows.duplicate.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'duplicate', workflowAdapterMessage)
   );
   const workflowsGetById = os.workflows.getById.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'getById', workflowAdapterMessage)
   );
   const workflowsGetCapabilities = os.workflows.getCapabilities.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'getCapabilities', workflowAdapterMessage)
   );
   const workflowsListRuns = os.workflows.listRuns.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'listRuns', workflowAdapterMessage)
   );
   const workflowsGetRun = os.workflows.getRun.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'getRun', workflowAdapterMessage)
   );
   const workflowsTestRun = os.workflows.testRun.handler(
-    createNestAdapterRequiredHandler(workflowAdapterMessage)
+    createV1AdapterHandler('workflows', 'testRun', workflowAdapterMessage)
   );
 
   const tablesGetRowCount = os.tables.getRowCount.handler(async ({ input }: OrpcHandlerOptions) => {
-    const container = await resolveContainer();
-    const getRowCount = container.resolve<(tableId: string, query?: unknown) => Promise<unknown>>(
-      Symbol.for('v2.tables.getRowCount') as never
+    return executeWithExecutionContext(
+      input,
+      async (_executionContext, endpointInput, container) => {
+        const getRowCount = container.resolve<
+          (tableId: string, query?: unknown) => Promise<unknown>
+        >(Symbol.for('v2.tables.getRowCount') as never);
+        return executeGetRowCountEndpoint(endpointInput, getRowCount as never);
+      }
     );
-    const result = await executeGetRowCountEndpoint(input, getRowCount as never);
-
-    if (result.status === 200) return result.body;
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
   const tablesGetRecordIndex = os.tables.getRecordIndex.handler(
-    async ({ input }: OrpcHandlerOptions) => {
-      const container = await resolveContainer();
-      const getRecordIndex = container.resolve<
-        (tableId: string, query: unknown) => Promise<unknown>
-      >(Symbol.for('v2.tables.getRecordIndex') as never);
-      const result = await executeGetRecordIndexEndpoint(input, getRecordIndex as never);
-
-      if (result.status === 200) return result.body;
-      if (result.status === 400) {
-        throwDomainError('BAD_REQUEST', result.body.error);
-      }
-      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-    }
+    async ({ input }: OrpcHandlerOptions) =>
+      executeWithExecutionContext(input, async (_executionContext, endpointInput, container) => {
+        const getRecordIndex = container.resolve<
+          (tableId: string, query: unknown) => Promise<unknown>
+        >(Symbol.for('v2.tables.getRecordIndex') as never);
+        return executeGetRecordIndexEndpoint(endpointInput, getRecordIndex as never);
+      })
   );
 
   const tablesGetSearchCount = os.tables.getSearchCount.handler(
-    async ({ input }: OrpcHandlerOptions) => {
-      const container = await resolveContainer();
-      const getSearchCount = container.resolve<
-        (tableId: string, query: unknown) => Promise<unknown>
-      >(Symbol.for('v2.tables.getSearchCount') as never);
-      const result = await executeGetSearchCountEndpoint(input, getSearchCount as never);
-
-      if (result.status === 200) return result.body;
-      if (result.status === 400) {
-        throwDomainError('BAD_REQUEST', result.body.error);
-      }
-      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-    }
+    async ({ input }: OrpcHandlerOptions) =>
+      executeWithExecutionContext(input, async (_executionContext, endpointInput, container) => {
+        const getSearchCount = container.resolve<
+          (tableId: string, query: unknown) => Promise<unknown>
+        >(Symbol.for('v2.tables.getSearchCount') as never);
+        return executeGetSearchCountEndpoint(endpointInput, getSearchCount as never);
+      })
   );
 
   const tablesGetSearchIndex = os.tables.getSearchIndex.handler(
-    async ({ input }: OrpcHandlerOptions) => {
-      const container = await resolveContainer();
-      const getSearchIndex = container.resolve<
-        (tableId: string, query: unknown) => Promise<unknown>
-      >(Symbol.for('v2.tables.getSearchIndex') as never);
-      const result = await executeGetSearchIndexEndpoint(input, getSearchIndex as never);
-
-      if (result.status === 200) return result.body;
-      if (result.status === 400) {
-        throwDomainError('BAD_REQUEST', result.body.error);
-      }
-      throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
-    }
+    async ({ input }: OrpcHandlerOptions) =>
+      executeWithExecutionContext(input, async (_executionContext, endpointInput, container) => {
+        const getSearchIndex = container.resolve<
+          (tableId: string, query: unknown) => Promise<unknown>
+        >(Symbol.for('v2.tables.getSearchIndex') as never);
+        return executeGetSearchIndexEndpoint(endpointInput, getSearchIndex as never);
+      })
   );
 
   const tablesUndo = os.tables.undo.handler(async ({ input }: OrpcHandlerOptions) => {
-    const container = await resolveContainer();
-    const undo = container.resolve<(tableId: string, windowId: string) => Promise<unknown>>(
-      Symbol.for('v2.tables.undo') as never
+    return executeWithExecutionContext(
+      input,
+      async (_executionContext, endpointInput, container) => {
+        const undo = container.resolve<(tableId: string, windowId: string) => Promise<unknown>>(
+          Symbol.for('v2.tables.undo') as never
+        );
+        return executeUndoEndpoint(endpointInput, undo as never);
+      }
     );
-    const result = await executeUndoEndpoint(input, undo as never);
-
-    if (result.status === 200) return result.body;
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
   const tablesRedo = os.tables.redo.handler(async ({ input }: OrpcHandlerOptions) => {
-    const container = await resolveContainer();
-    const redo = container.resolve<(tableId: string, windowId: string) => Promise<unknown>>(
-      Symbol.for('v2.tables.redo') as never
+    return executeWithExecutionContext(
+      input,
+      async (_executionContext, endpointInput, container) => {
+        const redo = container.resolve<(tableId: string, windowId: string) => Promise<unknown>>(
+          Symbol.for('v2.tables.redo') as never
+        );
+        return executeRedoEndpoint(endpointInput, redo as never);
+      }
     );
-    const result = await executeRedoEndpoint(input, redo as never);
-
-    if (result.status === 200) return result.body;
-    if (result.status === 400) {
-      throwDomainError('BAD_REQUEST', result.body.error);
-    }
-    throwDomainError('INTERNAL_SERVER_ERROR', result.body.error);
   });
 
   const tablesDuplicateRecord = os.tables.duplicateRecord.handler(
@@ -1748,6 +1925,11 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       getTableCount: commentsGetTableCount,
       list: commentsList,
       getById: commentsGetById,
+    },
+    organization: {
+      getMe: organizationGetMe,
+      getDepartmentUsers: organizationGetDepartmentUsers,
+      getDepartmentList: organizationGetDepartmentList,
     },
     publishedApps: {
       getNavigationModel: publishedAppsGetNavigationModel,

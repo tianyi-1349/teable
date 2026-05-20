@@ -232,18 +232,6 @@ function getLoopConfig(config: unknown): { itemsPath: string; maxIterations?: nu
   return { itemsPath, ...(maxIterations != null && { maxIterations }) };
 }
 
-const supportedActionKinds = [
-  'runScript',
-  'aiGenerate',
-  'updateRecords',
-  'createRecords',
-  'queryRecords',
-  'sendEmail',
-  'httpRequest',
-  'condition',
-  'loop',
-];
-
 function interpolateValue(value: unknown, input: unknown): unknown {
   if (typeof value === 'string') {
     return interpolateTemplate(value, input);
@@ -453,36 +441,38 @@ export class WorkflowRunnerService {
   }
 
   private getInvalidActionMessage(action: IWorkflowSnapshotNode) {
-    if (action.kind === 'runScript' && !getScript(action.config)) {
-      return `Run Script node ${action.id} is missing script content`;
-    }
-    if (action.kind === 'aiGenerate' && !getAiGenerateConfig(action.config)) {
-      return `AI Generate node ${action.id} is missing prompt`;
-    }
-    if (action.kind === 'updateRecords' && !getUpdateRecordsConfig(action.config)) {
-      return `Update Records node ${action.id} is missing tableId, recordId, or fields`;
-    }
-    if (action.kind === 'createRecords' && !getCreateRecordsConfig(action.config)) {
-      return `Create Records node ${action.id} is missing tableId or records`;
-    }
-    if (action.kind === 'queryRecords' && !getQueryRecordsConfig(action.config)) {
-      return `Query Records node ${action.id} is missing tableId or has invalid query options`;
-    }
-    if (action.kind === 'sendEmail' && !getSendEmailConfig(action.config)) {
-      return `Send Email node ${action.id} is missing recipients or subject`;
-    }
-    if (action.kind === 'httpRequest' && !getHttpRequestConfig(action.config)) {
-      return `HTTP Request node ${action.id} is missing method or url`;
-    }
-    if (action.kind === 'condition' && !getConditionConfig(action.config)) {
-      return `Condition node ${action.id} is missing expression`;
-    }
-    if (action.kind === 'loop' && !getLoopConfig(action.config)) {
-      return `Loop node ${action.id} is missing itemsPath`;
-    }
-    if (!supportedActionKinds.includes(action.kind)) {
+    const validators: Record<string, () => boolean> = {
+      runScript: () => Boolean(getScript(action.config)),
+      aiGenerate: () => Boolean(getAiGenerateConfig(action.config)),
+      updateRecords: () => Boolean(getUpdateRecordsConfig(action.config)),
+      createRecords: () => Boolean(getCreateRecordsConfig(action.config)),
+      queryRecords: () => Boolean(getQueryRecordsConfig(action.config)),
+      sendEmail: () => Boolean(getSendEmailConfig(action.config)),
+      httpRequest: () => Boolean(getHttpRequestConfig(action.config)),
+      condition: () => Boolean(getConditionConfig(action.config)),
+      loop: () => Boolean(getLoopConfig(action.config)),
+    };
+    const messages: Record<string, string> = {
+      runScript: `Run Script node ${action.id} is missing script content`,
+      aiGenerate: `AI Generate node ${action.id} is missing prompt`,
+      updateRecords: `Update Records node ${action.id} is missing tableId, recordId, or fields`,
+      createRecords: `Create Records node ${action.id} is missing tableId or records`,
+      queryRecords: `Query Records node ${action.id} is missing tableId or has invalid query options`,
+      sendEmail: `Send Email node ${action.id} is missing recipients or subject`,
+      httpRequest: `HTTP Request node ${action.id} is missing method or url`,
+      condition: `Condition node ${action.id} is missing expression`,
+      loop: `Loop node ${action.id} is missing itemsPath`,
+    };
+
+    const validate = validators[action.kind];
+    if (!validate) {
       return `Unsupported workflow action ${action.kind}`;
     }
+
+    if (!validate()) {
+      return messages[action.kind];
+    }
+
     return undefined;
   }
 
@@ -491,141 +481,172 @@ export class WorkflowRunnerService {
     action: IWorkflowSnapshotNode,
     input: unknown
   ) {
-    if (action.kind === 'runScript') {
-      await this.authorityPolicyService.assertWorkflowExecute(baseId);
-      return this.scriptRuntimeService.execute(getScript(action.config)!, { baseId, input });
-    }
+    const handlers: Record<string, () => Promise<unknown>> = {
+      runScript: () => this.executeRunScriptAction(baseId, action, input),
+      aiGenerate: () => this.executeAiGenerateAction(baseId, action, input),
+      updateRecords: () => this.executeUpdateRecordsAction(action, input),
+      createRecords: () => this.executeCreateRecordsAction(action, input),
+      queryRecords: () => this.executeQueryRecordsAction(action, input),
+      sendEmail: () => this.executeSendEmailAction(baseId, action, input),
+      httpRequest: () => this.executeHttpRequestAction(baseId, action, input),
+      condition: () => this.executeConditionAction(action, input),
+      loop: () => this.executeLoopAction(action, input),
+    };
 
-    if (action.kind === 'aiGenerate') {
-      await this.authorityPolicyService.assertWorkflowExecute(baseId);
-      const text = await this.workflowAiService.generateText(baseId, {
-        prompt: this.interpolatePrompt(getAiGenerateConfig(action.config)!.prompt, input),
-        ...(getAiGenerateConfig(action.config)!.modelKey && {
-          modelKey: getAiGenerateConfig(action.config)!.modelKey,
-        }),
-      });
-      return { text };
-    }
-
-    // Handle record actions
-    if (action.kind === 'updateRecords') {
-      const config = interpolateValue(getUpdateRecordsConfig(action.config)!, input) as ReturnType<
-        typeof getUpdateRecordsConfig
-      >;
-      if (!config?.tableId || !config.recordId) {
-        throw new Error(`Update Records node ${action.id} resolved empty tableId or recordId`);
-      }
-      await this.authorityPolicyService.assertRecordUpdate(config.tableId);
-      return this.recordsService.updateRecord(
-        config.tableId,
-        config.recordId,
-        {
-          record: { fields: config.fields },
-        },
-        undefined,
-        'true'
-      );
-    }
-
-    if (action.kind === 'createRecords') {
-      const config = interpolateValue(getCreateRecordsConfig(action.config)!, input) as ReturnType<
-        typeof getCreateRecordsConfig
-      >;
-      if (!config?.tableId) {
-        throw new Error(`Create Records node ${action.id} resolved empty tableId`);
-      }
-      await this.authorityPolicyService.assertRecordCreate(config.tableId);
-      return this.recordsService.multipleCreateRecords(
-        config.tableId,
-        { records: config.records.map((fields) => ({ fields })) },
-        false,
-        'true'
-      );
-    }
-
-    if (action.kind === 'queryRecords') {
-      const config = interpolateValue(getQueryRecordsConfig(action.config)!, input) as ReturnType<
-        typeof getQueryRecordsConfig
-      >;
-      if (!config?.tableId) {
-        throw new Error(`Query Records node ${action.id} resolved empty tableId`);
-      }
-      await this.authorityPolicyService.assertRecordRead(config.tableId);
-      return this.recordService.getRecords(config.tableId, {
-        filter: config.filter,
-        take: config.take,
-      });
-    }
-
-    if (action.kind === 'sendEmail') {
-      await this.authorityPolicyService.assertWorkflowExecute(baseId);
-      const config = interpolateValue(getSendEmailConfig(action.config)!, input) as ReturnType<
-        typeof getSendEmailConfig
-      >;
-      await this.mailSenderService.sendMail({
-        to: config!.to,
-        subject: config!.subject,
-        ...(config?.text && { text: config.text }),
-        ...(config?.html && { html: config.html }),
-      });
-      return { delivered: true, recipients: config!.to };
-    }
-
-    if (action.kind === 'httpRequest') {
-      await this.authorityPolicyService.assertWorkflowExecute(baseId);
-      const config = interpolateValue(getHttpRequestConfig(action.config)!, input) as ReturnType<
-        typeof getHttpRequestConfig
-      >;
-      const response = await axios.request({
-        method: config!.method,
-        url: config!.url,
-        ...(config?.headers && { headers: config.headers }),
-        ...(config?.body !== undefined && { data: config.body }),
-        timeout: config?.timeoutMs ?? 10000,
-        ...getSsrfSafeAgents(),
-      });
-      return {
-        status: response.status,
-        headers: response.headers,
-        data: response.data,
-      };
-    }
-
-    if (action.kind === 'condition') {
-      const config = interpolateValue(getConditionConfig(action.config)!, input) as ReturnType<
-        typeof getConditionConfig
-      >;
-      const expression = config!.expression.trim().toLowerCase();
-      const matched = ['true', '1', 'yes', 'match', JSON.stringify(input).toLowerCase()].some(
-        (candidate) => candidate === expression || candidate.includes(expression)
-      );
-      return matched
-        ? { matched: true, output: config?.output ?? input }
-        : { matched: false, output: input };
-    }
-
-    if (action.kind === 'loop') {
-      const config = getLoopConfig(action.config)!;
-      const interpolatedItemsPath = String(config!.itemsPath || '').trim();
-      const templateMatch = interpolatedItemsPath.match(/^\{\{\s*input(?:\.([\w?.]+))?\s*\}\}$/);
-      const items = templateMatch
-        ? templateMatch[1]
-          ? getInputPathValue(input, templateMatch[1])
-          : input
-        : undefined;
-      if (!Array.isArray(items)) {
-        return { count: 0, items: [] };
-      }
-      const maxIterations = config?.maxIterations ?? 20;
-      const sliced = items.slice(0, maxIterations);
-      return {
-        count: sliced.length,
-        items: sliced,
-        truncated: items.length > sliced.length,
-      };
+    const handler = handlers[action.kind];
+    if (handler) {
+      return handler();
     }
 
     throw new Error(`Unsupported action type: ${action.kind}`);
+  }
+
+  private async executeRunScriptAction(
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ) {
+    await this.authorityPolicyService.assertWorkflowExecute(baseId);
+    return this.scriptRuntimeService.execute(getScript(action.config)!, { baseId, input });
+  }
+
+  private async executeAiGenerateAction(
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ) {
+    await this.authorityPolicyService.assertWorkflowExecute(baseId);
+    const config = getAiGenerateConfig(action.config)!;
+    const text = await this.workflowAiService.generateText(baseId, {
+      prompt: this.interpolatePrompt(config.prompt, input),
+      ...(config.modelKey && { modelKey: config.modelKey }),
+    });
+    return { text };
+  }
+
+  private async executeUpdateRecordsAction(action: IWorkflowSnapshotNode, input: unknown) {
+    const config = interpolateValue(getUpdateRecordsConfig(action.config)!, input) as ReturnType<
+      typeof getUpdateRecordsConfig
+    >;
+    if (!config?.tableId || !config.recordId) {
+      throw new Error(`Update Records node ${action.id} resolved empty tableId or recordId`);
+    }
+    await this.authorityPolicyService.assertRecordUpdate(config.tableId);
+    return this.recordsService.updateRecord(
+      config.tableId,
+      config.recordId,
+      {
+        record: { fields: config.fields },
+      },
+      undefined,
+      'true'
+    );
+  }
+
+  private async executeCreateRecordsAction(action: IWorkflowSnapshotNode, input: unknown) {
+    const config = interpolateValue(getCreateRecordsConfig(action.config)!, input) as ReturnType<
+      typeof getCreateRecordsConfig
+    >;
+    if (!config?.tableId) {
+      throw new Error(`Create Records node ${action.id} resolved empty tableId`);
+    }
+    await this.authorityPolicyService.assertRecordCreate(config.tableId);
+    return this.recordsService.multipleCreateRecords(
+      config.tableId,
+      { records: config.records.map((fields) => ({ fields })) },
+      false,
+      'true'
+    );
+  }
+
+  private async executeQueryRecordsAction(action: IWorkflowSnapshotNode, input: unknown) {
+    const config = interpolateValue(getQueryRecordsConfig(action.config)!, input) as ReturnType<
+      typeof getQueryRecordsConfig
+    >;
+    if (!config?.tableId) {
+      throw new Error(`Query Records node ${action.id} resolved empty tableId`);
+    }
+    await this.authorityPolicyService.assertRecordRead(config.tableId);
+    return this.recordService.getRecords(config.tableId, {
+      filter: config.filter,
+      take: config.take,
+    });
+  }
+
+  private async executeSendEmailAction(
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ) {
+    await this.authorityPolicyService.assertWorkflowExecute(baseId);
+    const config = interpolateValue(getSendEmailConfig(action.config)!, input) as ReturnType<
+      typeof getSendEmailConfig
+    >;
+    await this.mailSenderService.sendMail({
+      to: config!.to,
+      subject: config!.subject,
+      ...(config?.text && { text: config.text }),
+      ...(config?.html && { html: config.html }),
+    });
+    return { delivered: true, recipients: config!.to };
+  }
+
+  private async executeHttpRequestAction(
+    baseId: string,
+    action: IWorkflowSnapshotNode,
+    input: unknown
+  ) {
+    await this.authorityPolicyService.assertWorkflowExecute(baseId);
+    const config = interpolateValue(getHttpRequestConfig(action.config)!, input) as ReturnType<
+      typeof getHttpRequestConfig
+    >;
+    const response = await axios.request({
+      method: config!.method,
+      url: config!.url,
+      ...(config?.headers && { headers: config.headers }),
+      ...(config?.body !== undefined && { data: config.body }),
+      timeout: config?.timeoutMs ?? 10000,
+      ...getSsrfSafeAgents(),
+    });
+    return {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
+    };
+  }
+
+  private async executeConditionAction(action: IWorkflowSnapshotNode, input: unknown) {
+    const config = interpolateValue(getConditionConfig(action.config)!, input) as ReturnType<
+      typeof getConditionConfig
+    >;
+    const expression = config!.expression.trim().toLowerCase();
+    const matched = ['true', '1', 'yes', 'match', JSON.stringify(input).toLowerCase()].some(
+      (candidate) => candidate === expression || candidate.includes(expression)
+    );
+    return matched
+      ? { matched: true, output: config?.output ?? input }
+      : { matched: false, output: input };
+  }
+
+  private async executeLoopAction(action: IWorkflowSnapshotNode, input: unknown) {
+    const config = getLoopConfig(action.config)!;
+    const interpolatedItemsPath = String(config.itemsPath || '').trim();
+    const templateMatch = interpolatedItemsPath.match(/^\{\{\s*input(?:\.([\w?.]+))?\s*\}\}$/);
+    const items = templateMatch
+      ? templateMatch[1]
+        ? getInputPathValue(input, templateMatch[1])
+        : input
+      : undefined;
+    if (!Array.isArray(items)) {
+      return { count: 0, items: [] };
+    }
+    const maxIterations = config.maxIterations ?? 20;
+    const sliced = items.slice(0, maxIterations);
+    return {
+      count: sliced.length,
+      items: sliced,
+      truncated: items.length > sliced.length,
+    };
   }
 
   private interpolatePrompt(prompt: string, input: unknown) {

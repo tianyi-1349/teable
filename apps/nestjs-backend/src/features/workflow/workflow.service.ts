@@ -29,8 +29,9 @@ import type { IClsStore } from '../../types/cls';
 import { RecordService } from '../record/record.service';
 import { getWorkflowActionCapability } from './actions/action-capability';
 import { WorkflowAiService } from './workflow-ai.service';
-import { WorkflowScheduleService } from './workflow-schedule.service';
 import { buildWorkflowRunSuccessData } from './workflow-run-state';
+import type { IWorkflowScheduleFacade } from './workflow-schedule.facade';
+import { WorkflowScheduleService } from './workflow-schedule.service';
 
 type IRecordTriggerType = 'recordCreated' | 'recordUpdated' | 'recordMatchesConditions';
 type IDirectTriggerType =
@@ -117,7 +118,7 @@ const workflowNotFoundLocalization = {
 const workflowNotFoundMessage = 'Workflow not found';
 
 @Injectable()
-export class WorkflowService {
+export class WorkflowService implements IWorkflowScheduleFacade {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly cls: ClsService<IClsStore>,
@@ -468,35 +469,9 @@ export class WorkflowService {
         parsed.actionConfig,
         fallback.actionConfig
       );
-      const actions = Array.isArray(parsed.actions)
-        ? parsed.actions
-            .map((action) => {
-              if (!action || typeof action !== 'object' || Array.isArray(action)) {
-                return null;
-              }
-              const candidate = action as { kind?: unknown; config?: unknown };
-              const kind = this.normalizeDraftActionKind(candidate.kind, actionKind);
-              return {
-                kind,
-                config: this.normalizeDraftActionConfig(kind, candidate.config, actionConfig),
-              };
-            })
-            .filter((action): action is IGeneratedWorkflowDraftAction => Boolean(action))
-        : undefined;
-      const fieldMappings =
-        parsed.fieldMappings &&
-        typeof parsed.fieldMappings === 'object' &&
-        !Array.isArray(parsed.fieldMappings)
-          ? Object.fromEntries(
-              Object.entries(parsed.fieldMappings as Record<string, unknown>).filter(
-                (entry): entry is [string, string] => typeof entry[1] === 'string'
-              )
-            )
-          : undefined;
-      const testPlan =
-        parsed.testPlan && typeof parsed.testPlan === 'object' && !Array.isArray(parsed.testPlan)
-          ? (parsed.testPlan as IWorkflowTestPlan)
-          : undefined;
+      const actions = this.normalizeGeneratedDraftActions(parsed.actions, actionKind, actionConfig);
+      const fieldMappings = this.normalizeGeneratedDraftFieldMappings(parsed.fieldMappings);
+      const testPlan = this.normalizeGeneratedDraftTestPlan(parsed.testPlan);
 
       return {
         name: name.slice(0, 100),
@@ -512,6 +487,50 @@ export class WorkflowService {
     } catch {
       return fallback;
     }
+  }
+
+  private normalizeGeneratedDraftActions(
+    actions: unknown,
+    fallbackKind: IAiDraftActionKind,
+    fallbackConfig: Record<string, unknown>
+  ): IGeneratedWorkflowDraftAction[] | undefined {
+    if (!Array.isArray(actions)) {
+      return undefined;
+    }
+
+    return actions
+      .map((action) => {
+        if (!action || typeof action !== 'object' || Array.isArray(action)) {
+          return null;
+        }
+        const candidate = action as { kind?: unknown; config?: unknown };
+        const kind = this.normalizeDraftActionKind(candidate.kind, fallbackKind);
+        return {
+          kind,
+          config: this.normalizeDraftActionConfig(kind, candidate.config, fallbackConfig),
+        };
+      })
+      .filter((action): action is IGeneratedWorkflowDraftAction => Boolean(action));
+  }
+
+  private normalizeGeneratedDraftFieldMappings(fieldMappings: unknown) {
+    if (!fieldMappings || typeof fieldMappings !== 'object' || Array.isArray(fieldMappings)) {
+      return undefined;
+    }
+
+    return Object.fromEntries(
+      Object.entries(fieldMappings as Record<string, unknown>).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string'
+      )
+    );
+  }
+
+  private normalizeGeneratedDraftTestPlan(testPlan: unknown) {
+    if (!testPlan || typeof testPlan !== 'object' || Array.isArray(testPlan)) {
+      return undefined;
+    }
+
+    return testPlan as IWorkflowTestPlan;
   }
 
   private createFallbackDraft(prompt: string) {
@@ -741,7 +760,7 @@ export class WorkflowService {
         );
       }
 
-      const updated = await prisma.workflow.update({
+      return await prisma.workflow.update({
         where: { id: workflowId },
         data: {
           ...(ro.name !== undefined && { name: ro.name }),
@@ -750,8 +769,6 @@ export class WorkflowService {
         },
         select: this.selectWorkflow(),
       });
-
-      return updated;
     });
 
     if (result.isActive) {

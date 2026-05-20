@@ -1,5 +1,4 @@
 import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Req } from '@nestjs/common';
-import type { Request } from 'express';
 import type {
   IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
@@ -19,6 +18,7 @@ import {
   updateWorkflowRoSchema,
   workflowRoSchema,
 } from '@teable/openapi';
+import type { Request } from 'express';
 import { EmitControllerEvent } from '../../event-emitter/decorators/emit-controller-event.decorator';
 import { Events } from '../../event-emitter/events';
 import { ZodValidationPipe } from '../../zod.validation.pipe';

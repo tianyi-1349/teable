@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { IWorkflowScheduleFacade } from './workflow-schedule.facade';
 import { WORKFLOW_SCHEDULE_JOB, WorkflowScheduleService } from './workflow-schedule.service';
 
 describe('WorkflowScheduleService', () => {
+  const workflowJobId = 'workflow:schedule:wfl123';
   const queue = {
     add: vi.fn(),
     getRepeatableJobs: vi.fn(),
     removeRepeatableByKey: vi.fn(),
   };
 
-  const workflowService = {
-    listActiveScheduleWorkflows: vi.fn(),
+  const workflowService: IWorkflowScheduleFacade = {
+    listActiveScheduleWorkflows: vi.fn(async () => []),
     getScheduleTriggerConfig: vi.fn(),
   };
 
@@ -17,12 +19,11 @@ describe('WorkflowScheduleService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    workflowService.listActiveScheduleWorkflows.mockResolvedValue([]);
     service = new WorkflowScheduleService(workflowService as never, queue as never);
   });
 
   it('registers interval schedule jobs for active workflows', async () => {
-    workflowService.getScheduleTriggerConfig.mockReturnValue({
+    vi.mocked(workflowService.getScheduleTriggerConfig).mockReturnValue({
       mode: 'interval',
       intervalSeconds: 30,
     });
@@ -39,7 +40,7 @@ describe('WorkflowScheduleService', () => {
       WORKFLOW_SCHEDULE_JOB,
       { workflowId: 'wfl123', baseId: 'bse123' },
       expect.objectContaining({
-        jobId: 'workflow:schedule:wfl123',
+        jobId: workflowJobId,
         repeat: { every: 30000 },
       })
     );
@@ -58,10 +59,19 @@ describe('WorkflowScheduleService', () => {
   });
 
   it('restores active schedules on module init', async () => {
-    workflowService.listActiveScheduleWorkflows.mockResolvedValue([
-      { id: 'wfl123', baseId: 'bse123', isActive: true, nodes: [] },
+    vi.mocked(workflowService.listActiveScheduleWorkflows).mockResolvedValue([
+      {
+        id: 'wfl123',
+        baseId: 'bse123',
+        name: 'workflow-1',
+        order: 1,
+        isActive: true,
+        createdBy: 'usr123',
+        createdTime: new Date(),
+        nodes: [],
+      },
     ]);
-    workflowService.getScheduleTriggerConfig.mockReturnValue({
+    vi.mocked(workflowService.getScheduleTriggerConfig).mockReturnValue({
       mode: 'cron',
       cron: '*/5 * * * *',
     });
@@ -73,7 +83,7 @@ describe('WorkflowScheduleService', () => {
       WORKFLOW_SCHEDULE_JOB,
       { workflowId: 'wfl123', baseId: 'bse123' },
       expect.objectContaining({
-        jobId: 'workflow:schedule:wfl123',
+        jobId: workflowJobId,
         repeat: { pattern: '*/5 * * * *' },
       })
     );

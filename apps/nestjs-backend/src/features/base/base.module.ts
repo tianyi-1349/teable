@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DbProvider } from '../../db-provider/db.provider';
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
 import { StorageModule } from '../attachments/plugins/storage.module';
@@ -33,12 +33,12 @@ import { DbConnectionService } from './db-connection.service';
     CanaryModule,
     CollaboratorModule,
     FieldModule,
-    FieldOpenApiModule,
-    FieldDuplicateModule,
+    forwardRef(() => FieldOpenApiModule),
+    forwardRef(() => FieldDuplicateModule),
     TableModule,
-    ViewOpenApiModule,
+    forwardRef(() => ViewOpenApiModule),
     InvitationModule,
-    TableOpenApiModule,
+    forwardRef(() => TableOpenApiModule),
     RecordModule,
     ComputedModule,
     StorageModule,

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ShareDbModule } from '../../../share-db/share-db.module';
 import { CanaryModule } from '../../canary/canary.module';
 import { FieldOpenApiModule } from '../../field/open-api/field-open-api.module';
@@ -14,13 +14,13 @@ import { ImportOpenApiService } from './import-open-api.service';
 
 @Module({
   imports: [
-    TableOpenApiModule,
-    RecordOpenApiModule,
+    forwardRef(() => TableOpenApiModule),
+    forwardRef(() => RecordOpenApiModule),
     NotificationModule,
     ShareDbModule,
     ImportCsvChunkModule,
-    FieldOpenApiModule,
-    V2Module,
+    forwardRef(() => FieldOpenApiModule),
+    forwardRef(() => V2Module),
     CanaryModule,
     ImportMetricsModule,
   ],

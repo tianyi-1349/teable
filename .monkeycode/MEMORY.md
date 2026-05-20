@@ -31,6 +31,20 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[当前轮次需持续执行剩余 P0 任务直至全部完成]
+- Date: 2026-05-18
+- Context: 用户再次要求继续执行当前所有剩下未完成的任务，直到全部正确完成为止，中间不必停留
+- Instructions:
+  - 当前轮次围绕剩余 P0 任务持续推进实现、验证和文档回写，直到该批任务全部完成
+  - 执行过程中优先直接落代码和验证，只有在真实冲突、阻塞或信息缺失时停下
+
+[剩余任务默认一次性连续执行到完成]
+- Date: 2026-05-19
+- Context: 用户要求把剩下的任务一次性全部执行完成，中间不必停留
+- Instructions:
+  - 对当前已识别的剩余任务按完整链路连续执行到完成，覆盖实现、验证和文档回写
+  - 中间进度更新只用于同步事实，不作为暂停点
+
 [收到继续执行指令后持续推进直至任务完成]
 - Date: 2026-05-17
 - Context: 用户多次要求继续执行并直至剩余任务全部正确完成，中间不必停留
@@ -38,6 +52,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 收到继续执行指令后，持续推进后续修复、验证和收口，直到当前任务完整完成
   - 中途仅在真实阻塞、冲突或信息不足时停下询问
   - 对之前未完成的任务继续执行，直到全部正确完成为止
+
+[继续执行时优先推进，遇到真实不确定再提问]
+- Date: 2026-05-20
+- Context: 用户再次要求继续执行当前任务，并说明有下一步就继续，不确定时再询问
+- Instructions:
+  - 当仍有明确下一步时，直接继续推进任务
+  - 仅在真实不确定或需要澄清关键决策时再停下询问
 
 [修复与提交前必须先满足全局性一致性稳定性]
 - Date: 2026-05-17
@@ -48,6 +69,22 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 对准备提交的改动先做稳定性检查，确认关键 typecheck、测试和运行门禁已经验证通过
   - 在上述三项约束满足前，不进入提交阶段
   - 对已确认的后续任务持续执行直至全部精准高效完成，中途不重复询问是否继续
+
+[V2 路由收口优先抽统一执行辅助]
+- Date: 2026-05-19
+- Context: Agent 在收敛 `packages/v2/contract-http-implementation/src/router.ts` 时发现
+- Category: 代码模式
+- Instructions:
+  - 面对大量重复的 V2 handler 适配逻辑时，优先抽出统一执行辅助层，统一容器解析、执行上下文创建和错误映射
+  - 保持各 endpoint 的输入输出和状态码语义不变，只收口重复控制流
+  - 抽象后立即运行对应包的 typecheck，确认 helper 的泛型边界与既有端点兼容
+
+[先做方案不落代码]
+- Date: 2026-05-19
+- Context: 用户要求基于全局性、一致性、稳定性先产出工程化拆解实施方案，确认后再进入代码实现
+- Instructions:
+  - 接到此类任务时，先输出方案拆解、依赖关系、实施顺序和验收门禁，不直接改代码
+  - 方案确认后再进入实现阶段，按模块逐步落地
 
 [能力缺口修复需优先满足全局性、一致性、稳定性]
 - Date: 2026-05-15
@@ -113,6 +150,92 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 本地开发按 `pnpm install` -> `make switch-db-mode` -> `cd apps/nestjs-backend && pnpm dev` 走，前端由 backend dev 流程自动拉起
   - CI 的 lint/type 顺序是 Prisma generate -> `pnpm -F "./packages/**" run build` -> `pnpm g:typecheck` -> `pnpm g:lint` -> `pnpm g:lint-styles`
   - backend e2e 依赖 `pre-test-e2e` 先执行 Prisma seed，重型集成链路走 `make postgres.integration.test`
+  - `packages/v2` 入口导出面收敛后，可用 `pnpm -r --filter "./packages/v2/**" typecheck` 做一次性全量验证，适合在大批量导出重构后确认跨包类型链路是否稳定
+
+[后端开发服务需在子目录启动]
+- Date: 2026-05-20
+- Context: Agent 在本地预览启动过程中发现
+- Category: 构建方法
+- Instructions:
+  - 启动后端开发服务时使用 `pnpm -C apps/nestjs-backend dev`
+  - 在仓库根目录直接执行 `pnpm dev` 会找不到对应脚本
+
+[后端启动循环需按模块图逐层拆解]
+- Date: 2026-05-20
+- Context: Agent 在排查 `pnpm -C apps/nestjs-backend start` 启动失败时发现
+- Category: 依赖关系
+- Instructions:
+  - 后端启动时如果出现 `Cannot access ... before initialization`，优先按 Nest 模块图逐层拆解循环引用
+  - 入口模块之间的 `imports` 可优先改成 `forwardRef(() => XxxModule)`，再复测启动
+  - 需要持续跑 `pnpm --filter @teable/backend typecheck` 和 `pnpm -C apps/nestjs-backend start`，直到启动链稳定
+
+[v2Contract 大对象导出需保留精确路由形状]
+- Date: 2026-05-20
+- Context: Agent 在收敛 `packages/v2/contract-http/src/contract.ts` 时发现
+- Category: 构建方法
+- Instructions:
+  - `v2Contract` 这类大路由对象适合先定义内部 `const`，再导出单独的 `type` 别名和同名值，兼顾 `tsdown` 序列化限制和下游精确类型访问
+  - 当对象体积过大触发 `TS7056` 时，优先收紧导出面而不是直接把类型宽化成 `AnyContractRouter`
+  - 下游 controller 和 router 依赖精确嵌套路由属性，导出类型需要保留这些属性可见性
+
+[v2 contract-http 当前优先用 JS 构建]
+- Date: 2026-05-20
+- Context: Agent 在排查 `packages/v2/contract-http` 构建失败时发现
+- Category: 构建方法
+- Instructions:
+  - `packages/v2/contract-http` 当前先关闭 `tsdown` 的 d.ts 生成，优先保证 JS 构建和运行时可用
+  - 这个包的类型入口仍由源码 `src/index.ts` 提供，后续再单独收口声明生成
+
+[后端本地启动需要 SECRET_KEY]
+- Date: 2026-05-20
+- Context: Agent 在重启 `apps/nestjs-backend` 开发服务时发现
+- Category: 环境配置
+- Instructions:
+  - 后端开发启动会读取 `SECRET_KEY`，并将其作为 `BACKEND_JWT_SECRET`、`BACKEND_SESSION_SECRET`、`BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY` 和 `BACKEND_ACCESS_TOKEN_ENCRYPTION_IV` 的默认回退值
+  - 本地调试时只要注入一个稳定的开发密钥即可通过 auth 配置校验
+
+[ShareAuthModule 需要显式引入 PermissionModule]
+- Date: 2026-05-20
+- Context: Agent 在修复 `V2Module` 对 `ShareAuthService` 的 Nest DI 链路时发现
+- Category: 依赖关系
+- Instructions:
+  - `ShareAuthService` 直接依赖 `PermissionService`，`ShareAuthModule` 需要显式引入 `PermissionModule`
+  - 即使 `AuthModule` 也导入了 `PermissionModule`，当前模块自己的 provider 依赖仍应在本模块 imports 中声明，避免 `V2Module` 这类直接消费 `ShareAuthService` 的场景出现依赖解析缺口
+
+[当前后端启动门槛已从模块图切换到本地数据库]
+- Date: 2026-05-20
+- Context: Agent 在修复 `ShareAuthService` 依赖链后复跑 `pnpm -C apps/nestjs-backend dev` 时发现
+- Category: 环境配置
+- Instructions:
+  - 当 Nest 已完成路由映射且启动最终失败在 `PrismaClientInitializationError: Can't reach database server at 127.0.0.1:5432`，说明当前代码侧模块图阻塞已清空
+  - 这一步之后的本地启动前置条件是确保 PostgreSQL 已运行并可从 `127.0.0.1:5432` 访问
+
+[本地数据库可直接用系统 PostgreSQL 15 集群]
+- Date: 2026-05-20
+- Context: Agent 在处理本地后端启动环境时发现
+- Category: 环境配置
+- Instructions:
+  - 当前环境可直接使用系统安装的 PostgreSQL 15 集群，路径为 `/var/lib/postgresql/15/main`
+  - `service postgresql start` 或 `pg_ctlcluster 15 main start` 可把集群拉起到 `127.0.0.1:5432`
+  - 当服务状态显示 `15/main (port 5432): online` 后，后端 `pnpm dev` 能继续完成初始化并进入 `Ready on http://localhost:3000`
+
+[本地后端启动验证命令与成功判据已确认]
+- Date: 2026-05-20
+- Context: Agent 在完成 Nest 模块图修复和数据库拉起后验证启动结果时发现
+- Category: 构建方法
+- Instructions:
+  - 后端本地验证命令使用 `SECRET_KEY=defaultSecretKey BACKEND_JWT_SECRET=defaultSecretKey BACKEND_SESSION_SECRET=defaultSecretKey BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY=defaultSecretKey BACKEND_ACCESS_TOKEN_ENCRYPTION_IV=defaultSecretKey pnpm -C apps/nestjs-backend dev`
+  - 成功判据是日志出现 `Nest application successfully started` 和 `Ready on http://localhost:3000`
+  - 当前环境里的 `ELIFECYCLE` 出现在工具超时发送 `SIGTERM` 之后，不代表启动失败
+
+[本地联调可直接复用后台后端与预览地址]
+- Date: 2026-05-20
+- Context: Agent 在完成后端类型检查并以后台方式常驻启动服务时发现
+- Category: 构建方法
+- Instructions:
+  - 后端可通过后台命令常驻运行：`SECRET_KEY=defaultSecretKey BACKEND_JWT_SECRET=defaultSecretKey BACKEND_SESSION_SECRET=defaultSecretKey BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY=defaultSecretKey BACKEND_ACCESS_TOKEN_ENCRYPTION_IV=defaultSecretKey pnpm -C /workspace/apps/nestjs-backend dev`
+  - 本次后台终端日志确认服务稳定进入 `Ready on http://localhost:3000`
+  - 当前平台可为 `3000` 端口申请在线预览地址用于联调验证
 
 [Teable 适合以项目自有 DESIGN.md 驱动页面改造]
 - Date: 2026-05-06
@@ -313,11 +436,14 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 [最终收口任务需直接执行直至远端 PR 完整建立]
 - Date: 2026-05-17
-- Context: 用户要求继续执行全部任务直到完成所有任务为止，中间不必询问不必停留，并强调必须高度正确
+- Context: 用户要求继续执行全部任务直到完成所有任务为止，中间不必询问不必停留，并强调必须高度正确；随后进一步要求把主线功能中的真实语义改动继续压成最小提交候选，并把规则化收尾单独归组
 - Instructions:
   - 对本轮剩余收口任务直接执行到远端分支与 PR 状态完整闭环
   - 优先保证全局性、一致性、稳定性，必要时先补全校验再执行分支拆分、推送和建 PR
   - 中间不必停留询问，除非出现真实冲突、权限问题或外部平台阻塞
+  - 对主线功能批次继续拆分，优先抽出真实语义改动形成最小提交候选
+  - 将命名、导入顺序、lint 规约、测试夹具整理等规则化收尾改动单独归组，避免混入功能提交
+  - 在每轮分组后保持 typecheck 与聚焦测试结果稳定，直到剩余改动全部具备清晰提交边界
 
 [lint 校验使用低并发方式执行]
 - Date: 2026-05-17
@@ -332,3 +458,45 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 根 `package.json` 中会并发跑 workspace 任务的脚本优先使用 `pnpm --workspace-concurrency=2`
   - 对长期运行、lint、typecheck、test-unit、build、clean 等全仓脚本，默认将并发上限控制在 2
+
+[未进 PR 的内容需按全局性一致性稳定性重检后再决定是否提交]
+- Date: 2026-05-18
+- Context: 用户要求对所有尚未提交到远端 PR 的内容重新检测、准确修复，并以全局性、一致性、稳定性为前提判断是否达到提交 PR 标准
+- Instructions:
+  - 先识别哪些内容尚未进入远端 PR，再逐项判断是否属于业务改动、记忆文件或调试产物
+  - 对未进 PR 的业务改动，按全局性、一致性、稳定性重新检测并修复，直到达到提交 PR 标准
+  - 对记忆文件和调试产物，先确认其角色与必要性，再决定是否保留在提交之外
+
+[能力盘点改为三模型串行：主稿、边界复核、工程拆解]
+- Date: 2026-05-18
+- Context: 用户明确指定后续全盘重新分析评估采用 `GPT-5.5 -> DeepSeek V4pro -> GPT-codex5.3` 的串行分工，并要求继续按该方案拆解实施
+- Instructions:
+  - `GPT-5.5` 负责主稿，统一全局口径、成熟度判断和缺口结论
+  - `DeepSeek V4pro` 只复核边界项和高不确定域，不生成第二套全量主稿
+  - `GPT-codex5.3` 只负责把仍成立的缺口拆成工程任务、最小切口、验证命令和提交边界
+  - 最终正式输出仍由主模型统一收口，避免多套正式口径并存
+
+[需要手动切换模型时必须提前明确告知用户]
+- Date: 2026-05-19
+- Context: 用户要求在任何需要切换 `GPT-5.5` 和 `GPT-codex5.3` 的时点先提前提示，等待其手动切换完成后，再通知进入下一步
+- Instructions:
+  - 任何需要切换到其他模型执行下一阶段任务时，必须先明确告诉用户当前应切换到哪个模型
+  - 在用户完成手动切换前，不假设模型已经切换成功
+  - 对模型切换提示使用直接、清楚、面向新手的表述
+  - 用户确认已完成手动切换后，再发送下一步执行通知并继续实施
+
+[串行多模型执行前先给出完整阶段与切换提示]
+- Date: 2026-05-18
+- Context: 用户要求把每一阶段需要使用什么模型都先提前告知，等用户手动切换模型后再继续实施
+- Instructions:
+  - 在开始串行多模型任务前，先列出完整阶段顺序、每阶段对应模型和该阶段目标
+
+[billing/usage 当前是外围边界项]
+- Date: 2026-05-19
+- Context: 在继续推进 P0 收口时发现
+- Category: 依赖关系
+- Instructions:
+  - `billing/subscription` 和 `usage` 在主仓只存在 OpenAPI 契约，当前没有稳定后端事实源
+  - 这两类能力应先作为外围域边界项处理，除非补到真实 backend controller/service 位置，否则不做猜测式接线
+  - 每进入下一阶段前，先单独提醒用户切换到指定模型
+  - 用户未确认切换完成前，不进入下一阶段实施

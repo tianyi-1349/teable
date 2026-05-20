@@ -1,17 +1,15 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { OnModuleInit } from '@nestjs/common';
 import type { IWorkflowDetailVo } from '@teable/openapi';
-import type { JobsOptions, Queue } from 'bullmq';
-import { WorkflowService } from './workflow.service';
+import { Queue } from 'bullmq';
+import type { JobsOptions } from 'bullmq';
+
+import { workflowScheduleFacadeToken } from './workflow-schedule.facade';
+import { type IWorkflowScheduleConfig, IWorkflowScheduleFacade } from './workflow-schedule.facade';
 
 export const WORKFLOW_SCHEDULE_QUEUE = 'workflowScheduleQueue';
 export const WORKFLOW_SCHEDULE_JOB = 'workflowScheduleTick';
-
-type IWorkflowScheduleConfig = {
-  mode?: 'manual' | 'interval' | 'cron';
-  intervalSeconds?: number;
-  cron?: string;
-};
 
 type IWorkflowScheduleJobData = {
   workflowId: string;
@@ -23,18 +21,19 @@ export class WorkflowScheduleService implements OnModuleInit {
   private readonly logger = new Logger(WorkflowScheduleService.name);
 
   constructor(
-    private readonly workflowService: WorkflowService,
+    @Inject(workflowScheduleFacadeToken)
+    private readonly workflowFacade: IWorkflowScheduleFacade,
     @InjectQueue(WORKFLOW_SCHEDULE_QUEUE)
     private readonly queue: Queue<IWorkflowScheduleJobData>
   ) {}
 
   async onModuleInit() {
-    const workflows = await this.workflowService.listActiveScheduleWorkflows();
+    const workflows = await this.workflowFacade.listActiveScheduleWorkflows();
     await Promise.all(workflows.map((workflow) => this.syncWorkflowSchedule(workflow)));
   }
 
   async syncWorkflowSchedule(workflow: IWorkflowDetailVo) {
-    const config = this.workflowService.getScheduleTriggerConfig(workflow);
+    const config = this.workflowFacade.getScheduleTriggerConfig(workflow);
     const jobId = this.getJobId(workflow.id);
     await this.removeWorkflowSchedule(workflow.id);
 

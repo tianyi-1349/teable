@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EventJobModule } from '../../../event-emitter/event-job/event-job.module';
 import { ShareDbModule } from '../../../share-db/share-db.module';
@@ -13,7 +13,7 @@ import { ImportTableCsvQueueProcessor, TABLE_IMPORT_CSV_QUEUE } from './import-c
     EventJobModule.registerQueue(TABLE_IMPORT_CSV_QUEUE),
     ShareDbModule,
     NotificationModule,
-    RecordOpenApiModule,
+    forwardRef(() => RecordOpenApiModule),
     StorageModule,
     EventEmitterModule,
   ],

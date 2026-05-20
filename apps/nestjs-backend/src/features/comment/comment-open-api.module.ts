@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ShareDbModule } from '../../share-db/share-db.module';
 import { AttachmentsStorageModule } from '../attachments/attachments-storage.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -10,7 +10,7 @@ import { CommentOpenApiService } from './comment-open-api.service';
 @Module({
   imports: [
     NotificationModule,
-    RecordOpenApiModule,
+    forwardRef(() => RecordOpenApiModule),
     AttachmentsStorageModule,
     RecordModule,
     ShareDbModule,

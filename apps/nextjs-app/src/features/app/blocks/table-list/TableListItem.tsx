@@ -113,7 +113,7 @@ export const TableListItem: React.FC<IProps> = ({
           type="text"
           placeholder="name"
           defaultValue={table.name}
-          className="rounded-none absolute left-0 top-0 size-full cursor-text px-4"
+          className="absolute left-0 top-0 size-full cursor-text rounded-none px-4"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               if (e.currentTarget.value && e.currentTarget.value !== table.name) {

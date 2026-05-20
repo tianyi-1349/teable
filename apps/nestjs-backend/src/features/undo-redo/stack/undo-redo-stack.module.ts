@@ -13,7 +13,7 @@ import { UndoRedoStackService } from './undo-redo-stack.service';
     RecordModule,
     forwardRef(() => RecordOpenApiModule),
     ViewModule,
-    ViewOpenApiModule,
+    forwardRef(() => ViewOpenApiModule),
     forwardRef(() => FieldOpenApiModule),
     TableDomainQueryModule,
   ],

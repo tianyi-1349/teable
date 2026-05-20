@@ -3216,6 +3216,7 @@ export type I18nTranslations = {
                 "generateFailed": string;
                 "unsupportedActionType": string;
                 "gatewayApiKeyNotSet": string;
+                "generateStopped": string;
                 "geminiImageNotSupportedViaGateway": string;
             };
             "role": {

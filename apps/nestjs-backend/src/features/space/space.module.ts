@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PermissionModule } from '../auth/permission.module';
 import { BaseModule } from '../base/base.module';
 import { CollaboratorModule } from '../collaborator/collaborator.module';
@@ -18,7 +18,7 @@ import { TemplateSpaceInitService } from './template-space-init/template-space.i
     SettingOpenApiModule,
     CollaboratorModule,
     InvitationModule,
-    BaseModule,
+    forwardRef(() => BaseModule),
     PermissionModule,
   ],
 })

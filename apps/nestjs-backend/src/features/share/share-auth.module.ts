@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { authConfig, type IAuthConfig } from '../../configs/auth.config';
 import { DbProvider } from '../../db-provider/db.provider';
 import { AuthModule } from '../auth/auth.module';
+import { PermissionModule } from '../auth/permission.module';
 import { ShareAuthGuard } from './guard/auth.guard';
 import { ShareAuthService } from './share-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -11,6 +12,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     AuthModule,
+    PermissionModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: (config: IAuthConfig) => ({
