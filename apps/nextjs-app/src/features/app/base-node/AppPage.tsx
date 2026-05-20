@@ -7,7 +7,8 @@ import type { IBaseResourceParsed } from '@/features/app/hooks/useBaseResource';
 import { getDefaultNodeUrl, redirect } from './helper';
 import type { IAppPageProps, ISSRContext, SSRResult } from './types';
 
-const APP_IFRAME_SANDBOX = 'allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts';
+const APP_IFRAME_SANDBOX =
+  'allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-downloads';
 
 export const getAppServerSideProps = async (
   ctx: ISSRContext,

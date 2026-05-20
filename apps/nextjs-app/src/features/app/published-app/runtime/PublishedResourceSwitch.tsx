@@ -1,5 +1,6 @@
 import { BaseNodeResourceType } from '@teable/openapi';
 import type { ReactNode } from 'react';
+import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { usePublishedApp } from '../context';
 import { PublishedResourceState } from './PublishedResourceState';
 import { AppResourcePage } from './resources/AppResourcePage';
@@ -10,9 +11,19 @@ import { WorkflowResourcePage } from './resources/WorkflowResourcePage';
 
 export const PublishedResourceSwitch = ({ children }: { children: ReactNode }) => {
   const { currentNode, defaultNode, isShare } = usePublishedApp();
+  const resource = useBaseResource();
   const node = currentNode ?? defaultNode;
 
   if (!node) {
+    if (resource.resourceType) {
+      return (
+        <PublishedResourceState
+          title="Access denied"
+          description="This page is outside the published scope for this app."
+        />
+      );
+    }
+
     if (isShare) {
       return <>{children}</>;
     }

@@ -41,7 +41,10 @@ import { AlertCircle, Camera, Send, Copy, ExternalLink, Info } from 'lucide-reac
 import { useTranslation } from 'next-i18next';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useIsCloud } from '@/features/app/hooks/useIsCloud';
-import { validatePublishedAppConfig } from '@/features/app/published-app';
+import {
+  PublishedAppDevicePreview,
+  validatePublishedAppConfig,
+} from '@/features/app/published-app';
 import { ROOT_ID } from '../../../base/base-node/hooks';
 import { useBaseNodeContext } from '../../../base/base-node/hooks/useBaseNodeContext';
 import { useAppPublishContext } from './AppPublishContext';
@@ -134,6 +137,9 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
   const visibleValidationIssues = validationResult.issues.filter(
     (issue) => issue.severity !== 'info' || selectedNodeIds.length > 0
   );
+  const defaultNodeTitle = defaultActiveNodeId
+    ? treeItems[defaultActiveNodeId]?.resourceMeta?.name
+    : '';
 
   // Handle template data changes (replaces onSuccess callback removed in React Query v5)
   useEffect(() => {
@@ -387,7 +393,10 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
     }
 
     if (validationResult.hasErrors) {
-      toast.error(validationResult.issues.find((issue) => issue.severity === 'error')?.message);
+      toast.error(
+        validationResult.issues.find((issue) => issue.severity === 'error')?.message ||
+          t('publishBase.tips.publishValidation')
+      );
       return;
     }
 
@@ -503,6 +512,12 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                   ))}
                 </div>
               )}
+
+              <PublishedAppDevicePreview
+                selectedNodeCount={selectedNodeIds.length}
+                defaultNodeTitle={defaultNodeTitle}
+                issues={visibleValidationIssues}
+              />
 
               <div className="absolute inset-x-0 bottom-0 flex w-full gap-3">
                 {templateDetail && (

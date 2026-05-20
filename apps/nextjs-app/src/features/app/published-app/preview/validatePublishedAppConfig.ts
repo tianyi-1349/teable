@@ -15,6 +15,29 @@ export interface PublishedAppValidationResult {
   hasErrors: boolean;
 }
 
+const getSelectedNodes = (selectedNodeIds: string[], treeItems: Record<string, TreeItemData>) => {
+  return selectedNodeIds
+    .map((nodeId) => treeItems[nodeId])
+    .filter((node): node is TreeItemData => Boolean(node));
+};
+
+const addDashboardWarning = (
+  issues: PublishedAppValidationIssue[],
+  renderableNodes: TreeItemData[]
+) => {
+  const hasDashboardNode = renderableNodes.some(
+    (node) => node.resourceType === BaseNodeResourceType.Dashboard
+  );
+
+  if (hasDashboardNode) {
+    issues.push({
+      severity: 'warning',
+      message:
+        'Dashboard pages may require mobile layout verification to avoid overflow on narrow screens.',
+    });
+  }
+};
+
 type IPublishedAppConfigValidationProps = {
   selectedNodeIds: string[];
   // Source publish config still uses `defaultActiveNodeId`, while runtime manifest uses `defaultNodeId`.
@@ -25,7 +48,7 @@ export const validatePublishedAppConfig = (
   props: IPublishedAppConfigValidationProps & { treeItems: Record<string, TreeItemData> }
 ): PublishedAppValidationResult => {
   const { defaultNodeId, selectedNodeIds, treeItems } = props;
-  const selectedNodes = selectedNodeIds.map((nodeId) => treeItems[nodeId]).filter(Boolean);
+  const selectedNodes = getSelectedNodes(selectedNodeIds, treeItems);
   const renderableNodes = selectedNodes.filter(
     (node) => node.resourceType !== BaseNodeResourceType.Folder
   );
@@ -80,6 +103,8 @@ export const validatePublishedAppConfig = (
       message: 'Multiple pages will use the published app navigation model.',
     });
   }
+
+  addDashboardWarning(issues, renderableNodes);
 
   return {
     issues,

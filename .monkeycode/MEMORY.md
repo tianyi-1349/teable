@@ -38,6 +38,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 当前轮次围绕剩余 P0 任务持续推进实现、验证和文档回写，直到该批任务全部完成
   - 执行过程中优先直接落代码和验证，只有在真实冲突、阻塞或信息缺失时停下
 
+[published-app 预览与 shell 收口优先保证发布拦截和离线体验]
+- Date: 2026-05-20
+- Context: 用户要求继续执行 published-app 剩余任务并推进 PR7/PR8/PR9 收口
+- Instructions:
+  - 处理 published-app 预览与 shell 收口时，优先保证 fatal 校验能阻断发布、越界访问有明确拒绝态、PWA standalone 有安全区和离线提示
+  - 同一轮任务优先把 preview、runtime、shell、dialog 的联动链路一起收口，再做 typecheck 验证
+
 [剩余任务默认一次性连续执行到完成]
 - Date: 2026-05-19
 - Context: 用户要求把剩下的任务一次性全部执行完成，中间不必停留
@@ -338,6 +345,15 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 对已识别的问题持续执行修复、验证和收口，直到全部处理完成
   - 中间不必重复询问用户是否继续，除非遇到真实阻塞或冲突
+
+[published-app shell 具有显式回滚开关]
+- Date: 2026-05-20
+- Context: Agent 在收口 published-app runtime 与 PWA shell 时发现
+- Category: 代码模式
+- Instructions:
+  - `NEXT_PUBLIC_PUBLISHED_APP_SHELL_DISABLED` 用作 published app shell 的显式回滚开关
+  - 开关关闭时使用 published app shell，开关打开时回退到原有 share/base 布局
+  - 新增 published app runtime 行为时应保留该回滚路径，方便快速止血
 
 [v2-contract-http 跨包类型依赖需要显式补 path 与 DOM iterable]
 - Date: 2026-05-16
