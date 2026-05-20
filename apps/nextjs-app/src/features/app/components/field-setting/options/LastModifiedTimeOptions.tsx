@@ -49,10 +49,6 @@ export const LastModifiedTimeOptions = ({ options = {}, onChange }: IProps) => {
     }
   };
 
-  const selectAll = () => {
-    onChange?.({ trackedFieldIds: [] });
-  };
-
   const addField = (fieldId: string) => {
     if (trackedFieldIds.includes(fieldId)) return;
     onChange?.({ trackedFieldIds: [...trackedFieldIds, fieldId] });

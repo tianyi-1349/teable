@@ -420,7 +420,7 @@ const createConditionalLookupErrorTable = () => {
 };
 
 describe('FieldReferenceSqlVisitor', () => {
-  const { table, foreignTable } = createTestTable();
+  const { table } = createTestTable();
   const mockLateral = new MockLateralContext();
 
   const createVisitor = () => {

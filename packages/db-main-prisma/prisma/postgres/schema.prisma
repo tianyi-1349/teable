@@ -534,6 +534,23 @@ model RecordHistory {
   @@map("record_history")
 }
 
+model AuditLog {
+  id           String   @id
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  actorId      String   @map("actor_id")
+  actorName    String   @map("actor_name")
+  recordCount  Int?     @map("record_count")
+  metadata     Json?
+  createdTime  DateTime @default(now()) @map("created_time")
+
+  @@index([action, createdTime])
+  @@index([resourceType, createdTime])
+  @@index([resourceId, createdTime])
+  @@map("audit_log")
+}
+
 model Trash {
   id           String   @id @default(cuid())
   resourceType String   @map("resource_type")

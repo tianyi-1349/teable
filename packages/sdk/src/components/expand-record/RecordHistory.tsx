@@ -186,7 +186,7 @@ export const RecordHistory = (props: IRecordHistoryProps) => {
         cell: () => {
           return (
             <div className="-mx-4 flex w-[calc(100%+2rem)] justify-center">
-              <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
             </div>
           );
         },

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DbProvider } from '../../../db-provider/db.provider';
 import { ShareDbModule } from '../../../share-db/share-db.module';
 import { CalculationModule } from '../../calculation/calculation.module';
@@ -25,15 +25,15 @@ import { V2TableMutationCacheInvalidatorService } from './v2-table-mutation-cach
   imports: [
     FieldCalculateModule,
     RecordModule,
-    RecordOpenApiModule,
-    ViewOpenApiModule,
-    FieldOpenApiModule,
-    FieldDuplicateModule,
+    forwardRef(() => RecordOpenApiModule),
+    forwardRef(() => ViewOpenApiModule),
+    forwardRef(() => FieldOpenApiModule),
+    forwardRef(() => FieldDuplicateModule),
     TableModule,
     ShareDbModule,
     CalculationModule,
     GraphModule,
-    V2Module,
+    forwardRef(() => V2Module),
     CanaryModule,
     ViewModule,
   ],

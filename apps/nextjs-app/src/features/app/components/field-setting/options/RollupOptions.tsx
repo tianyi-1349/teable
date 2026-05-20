@@ -136,16 +136,6 @@ export const RollupOptions = (props: {
     [formatting, onChange, typedValue]
   );
 
-  const setTimeZone = useCallback(
-    (newTimeZone: string) => {
-      if (newTimeZone === options.timeZone) {
-        return;
-      }
-      onChange?.({ timeZone: newTimeZone });
-    },
-    [options.timeZone, onChange]
-  );
-
   const onShowAsChange = useCallback(
     (newShowAs?: IUnionShowAs) => {
       const { cellValueType, isMultipleCellValue } = typedValue;

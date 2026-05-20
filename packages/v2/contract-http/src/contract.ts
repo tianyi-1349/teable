@@ -52,6 +52,18 @@ import {
 } from './comment/getCommentCounts';
 import { listCommentsInputSchema, listCommentsOkResponseSchema } from './comment/listComments';
 import {
+  getDepartmentListInputSchema,
+  getDepartmentListOkResponseSchema,
+} from './organization/getDepartmentList';
+import {
+  getDepartmentUsersInputSchema,
+  getDepartmentUsersOkResponseSchema,
+} from './organization/getDepartmentUsers';
+import {
+  getOrganizationMeInputSchema,
+  getOrganizationMeOkResponseSchema,
+} from './organization/getOrganizationMe';
+import {
   getPublishedAppNavigationModelInputSchema,
   getPublishedAppNavigationModelOkResponseSchema,
 } from './published-app/getNavigationModel';
@@ -342,6 +354,9 @@ const COMMENTS_GET_TABLE_COUNT_PATH = '/comments/getTableCount';
 const COMMENTS_GET_SUBSCRIBE_PATH = '/comments/getSubscribeDetail';
 const COMMENTS_SUBSCRIBE_PATH = '/comments/subscribe';
 const COMMENTS_UNSUBSCRIBE_PATH = '/comments/unsubscribe';
+const ORGANIZATION_GET_ME_PATH = '/organization/getMe';
+const ORGANIZATION_GET_DEPARTMENT_USERS_PATH = '/organization/getDepartmentUsers';
+const ORGANIZATION_GET_DEPARTMENT_LIST_PATH = '/organization/getDepartmentList';
 const PUBLISHED_APPS_GET_NAVIGATION_MODEL_PATH = '/publishedApps/getNavigationModel';
 const PUBLISHED_APPS_GET_NODE_RUNTIME_PATH = '/publishedApps/getNodeRuntime';
 const PUBLISHED_APPS_GET_RUNTIME_MANIFEST_PATH = '/publishedApps/getRuntimeManifest';
@@ -383,7 +398,7 @@ const WORKFLOWS_TRIGGER_FORM_SUBMITTED_PATH = '/workflows/triggerFormSubmitted';
 const WORKFLOWS_TRIGGER_EMAIL_RECEIVED_PATH = '/workflows/triggerEmailReceived';
 const WORKFLOWS_TEST_RUN_PATH = '/workflows/testRun';
 
-export const v2Contract = {
+const v2ContractDefinition = {
   bases: {
     create: oc
       .route({
@@ -1052,6 +1067,38 @@ export const v2Contract = {
       .input(getCommentByIdInputSchema)
       .output(getCommentByIdOkResponseSchema),
   },
+  organization: {
+    getMe: oc
+      .route({
+        method: 'GET',
+        path: ORGANIZATION_GET_ME_PATH,
+        successStatus: 200,
+        summary: 'Get current organization info',
+        tags: ['organization'],
+      })
+      .input(getOrganizationMeInputSchema)
+      .output(getOrganizationMeOkResponseSchema),
+    getDepartmentUsers: oc
+      .route({
+        method: 'GET',
+        path: ORGANIZATION_GET_DEPARTMENT_USERS_PATH,
+        successStatus: 200,
+        summary: 'Get organization department users',
+        tags: ['organization'],
+      })
+      .input(getDepartmentUsersInputSchema)
+      .output(getDepartmentUsersOkResponseSchema),
+    getDepartmentList: oc
+      .route({
+        method: 'GET',
+        path: ORGANIZATION_GET_DEPARTMENT_LIST_PATH,
+        successStatus: 200,
+        summary: 'Get organization department list',
+        tags: ['organization'],
+      })
+      .input(getDepartmentListInputSchema)
+      .output(getDepartmentListOkResponseSchema),
+  },
   publishedApps: {
     getNavigationModel: oc
       .route({
@@ -1473,6 +1520,10 @@ export const v2Contract = {
       .output(testRunWorkflowOkResponseSchema),
   },
 } as const satisfies AnyContractRouter;
+
+export type V2Contract = typeof v2ContractDefinition;
+
+export const v2Contract: V2Contract = v2ContractDefinition;
 
 export const v2ContractErrors = {
   400: createTableErrorResponseSchema,

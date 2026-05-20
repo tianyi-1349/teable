@@ -89,7 +89,7 @@ export const TableInfo: React.FC<ITableInfoProps> = (props: ITableInfoProps) => 
             ref={inputRef}
             type="text"
             defaultValue={table?.name}
-            className="rounded-none absolute left-0 top-0 size-full cursor-text"
+            className="absolute left-0 top-0 size-full cursor-text rounded-none"
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             onBlur={(e) => {

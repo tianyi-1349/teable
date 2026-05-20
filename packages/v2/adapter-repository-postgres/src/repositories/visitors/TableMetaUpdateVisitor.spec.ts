@@ -21,7 +21,6 @@ import {
   type ITableMapper,
   TableName,
   TableRenameSpec,
-  TableUpdateFieldDbFieldNameSpec,
   TableUpdateFieldHasErrorSpec,
   TableUpdateFieldNameSpec,
   ViewColumnMeta,
@@ -112,21 +111,6 @@ const createTableFixture = () => {
   const view = table.views()[0]!;
 
   return { table, titleField, linkField, rollupField, view };
-};
-
-const createDetachedField = (name: string) => {
-  const builder = Table.builder()
-    .withBaseId(BaseId.create(`bse${'d'.repeat(16)}`)._unsafeUnwrap())
-    .withId(TableId.create(`tbl${'d'.repeat(16)}`)._unsafeUnwrap())
-    .withName(TableName.create('Detached')._unsafeUnwrap());
-  builder.field().singleLineText().withName(FieldName.create(name)._unsafeUnwrap()).done();
-  builder.view().defaultGrid().done();
-  return builder
-    .build()
-    ._unsafeUnwrap()
-    .clone(new DefaultTableMapper())
-    ._unsafeUnwrap()
-    .getFields()[0]!;
 };
 
 const createVisitor = (table = createTableFixture().table) => {

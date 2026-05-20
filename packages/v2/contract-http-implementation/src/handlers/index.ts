@@ -10,6 +10,9 @@ export {
   executeGetCommentTableCountEndpoint,
 } from './comments/getCommentCounts';
 export { executeListCommentsEndpoint } from './comments/listComments';
+export { executeGetDepartmentListEndpoint } from './organization/getDepartmentList';
+export { executeGetDepartmentUsersEndpoint } from './organization/getDepartmentUsers';
+export { executeGetOrganizationMeEndpoint } from './organization/getOrganizationMe';
 export { executeGetPublishedAppNavigationModelEndpoint } from './published-app/getNavigationModel';
 export { executeGetPublishedAppNodeRuntimeEndpoint } from './published-app/getNodeRuntime';
 export { executeGetPublishedAppRuntimeManifestEndpoint } from './published-app/getRuntimeManifest';

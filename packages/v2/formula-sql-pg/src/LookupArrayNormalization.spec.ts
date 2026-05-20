@@ -4,7 +4,6 @@ import {
   CreateFieldCommand,
   CreateTableCommand,
   FieldId,
-  FieldType,
   v2CoreTokens,
   type ICommandBus,
   type Table,

@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus } from '@teable/icons';
-import type { IGatewayModel, GatewayModelProvider } from '@teable/openapi';
+import type { GatewayModelProvider } from '@teable/openapi';
 import {
   Button,
   Label,

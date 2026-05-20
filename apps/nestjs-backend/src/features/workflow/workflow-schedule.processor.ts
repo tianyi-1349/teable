@@ -1,7 +1,8 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import type { NestWorkerOptions } from '@nestjs/bullmq/dist/interfaces/worker-options.interface';
 import { Injectable } from '@nestjs/common';
-import type { Job, Queue } from 'bullmq';
+import { Queue } from 'bullmq';
+import type { Job } from 'bullmq';
 import { WorkflowRunnerService } from './workflow-runner.service';
 import { WORKFLOW_SCHEDULE_JOB, WORKFLOW_SCHEDULE_QUEUE } from './workflow-schedule.service';
 import { WorkflowService } from './workflow.service';

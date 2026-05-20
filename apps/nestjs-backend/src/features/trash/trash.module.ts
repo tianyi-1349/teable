@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AttachmentsTableModule } from '../attachments/attachments-table.module';
 import { BaseModule } from '../base/base.module';
 import { CanaryModule } from '../canary/canary.module';
@@ -21,13 +21,13 @@ import { V2TableTrashService } from './v2-table-trash.service';
     AttachmentsTableModule,
     UserModule,
     SpaceModule,
-    BaseModule,
+    forwardRef(() => BaseModule),
     CanaryModule,
-    TableOpenApiModule,
-    FieldOpenApiModule,
-    RecordOpenApiModule,
+    forwardRef(() => TableOpenApiModule),
+    forwardRef(() => FieldOpenApiModule),
+    forwardRef(() => RecordOpenApiModule),
     RecordModule,
-    V2Module,
+    forwardRef(() => V2Module),
     ViewModule,
   ],
   controllers: [TrashController],

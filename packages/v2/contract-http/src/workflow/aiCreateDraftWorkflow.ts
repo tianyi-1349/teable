@@ -1,6 +1,5 @@
 import {
   aiCreateWorkflowDraftRoSchema,
-  type IAiCreateWorkflowDraftRo,
   type IWorkflowDetailVo,
   workflowDetailVoSchema,
 } from '@teable/openapi';

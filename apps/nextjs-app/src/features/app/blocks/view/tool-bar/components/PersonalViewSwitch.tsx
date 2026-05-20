@@ -18,7 +18,7 @@ interface IPersonalViewSwitchProps {
 }
 
 export const PersonalViewSwitch = (props: IPersonalViewSwitchProps) => {
-  const { textClassName, buttonClassName } = props;
+  const { buttonClassName } = props;
   const view = useView();
   const permission = useTablePermission();
   const { t } = useTranslation(tableConfig.i18nNamespaces);

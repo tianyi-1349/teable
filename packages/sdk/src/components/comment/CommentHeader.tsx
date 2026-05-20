@@ -52,14 +52,6 @@ export const CommentHeader = (props: ICommentHeaderProps) => {
     },
   });
 
-  const subscribeHandler = () => {
-    if (!subscribeStatus) {
-      createSubscribe({ tableId: tableId!, recordId: recordId! });
-    } else {
-      deleteSubscribeFn({ tableId: tableId!, recordId: recordId! });
-    }
-  };
-
   const subscribeComment = () => {
     if (!subscribeStatus) {
       createSubscribe({ tableId: tableId!, recordId: recordId! });

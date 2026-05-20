@@ -1,5 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { generateBaseNodeId, HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import type {
@@ -42,7 +43,7 @@ import type { IClsStore } from '../../types/cls';
 import { updateOrder } from '../../utils/update-order';
 import type { IV2Decision } from '../canary/canary.service';
 import { CanaryService } from '../canary/canary.service';
-import { DashboardService } from '../dashboard/dashboard.service';
+import type { DashboardService } from '../dashboard/dashboard.service';
 import { TableOpenApiV2Service } from '../table/open-api/table-open-api-v2.service';
 import { TableOpenApiService } from '../table/open-api/table-open-api.service';
 import { prepareCreateTableRo } from '../table/open-api/table.pipe.helper';
@@ -77,9 +78,18 @@ export class BaseNodeService {
     private readonly tableOpenApiService: TableOpenApiService,
     private readonly tableOpenApiV2Service: TableOpenApiV2Service,
     private readonly tableDuplicateService: TableDuplicateService,
-    private readonly dashboardService: DashboardService,
+    private readonly moduleRef: ModuleRef,
     private readonly workflowService: WorkflowService
   ) {}
+
+  private async getDashboardService(): Promise<DashboardService> {
+    const { DashboardService: dashboardServiceToken } = await import(
+      '../dashboard/dashboard.service'
+    );
+    return this.moduleRef.get(dashboardServiceToken, {
+      strict: false,
+    });
+  }
 
   private get userId() {
     return this.cls.get('user.id');
@@ -531,10 +541,8 @@ export class BaseNodeService {
         };
       }
       case BaseNodeResourceType.Dashboard: {
-        const dashboard = await this.dashboardService.createDashboard(
-          baseId,
-          ro as ICreateDashboardRo
-        );
+        const dashboardService = await this.getDashboardService();
+        const dashboard = await dashboardService.createDashboard(baseId, ro as ICreateDashboardRo);
         return { id: dashboard.id, name: dashboard.name };
       }
       case BaseNodeResourceType.Workflow: {
@@ -673,7 +681,8 @@ export class BaseNodeService {
         };
       }
       case BaseNodeResourceType.Dashboard: {
-        const dashboard = await this.dashboardService.duplicateDashboard(
+        const dashboardService = await this.getDashboardService();
+        const dashboard = await dashboardService.duplicateDashboard(
           baseId,
           id,
           duplicateRo as IDuplicateDashboardRo
@@ -757,7 +766,8 @@ export class BaseNodeService {
         break;
       case BaseNodeResourceType.Dashboard:
         if (name) {
-          await this.dashboardService.renameDashboard(baseId, id, name);
+          const dashboardService = await this.getDashboardService();
+          await dashboardService.renameDashboard(baseId, id, name);
         }
         break;
       case BaseNodeResourceType.Workflow:
@@ -857,9 +867,11 @@ export class BaseNodeService {
           await this.tableOpenApiService.deleteTable(baseId, id);
         }
         break;
-      case BaseNodeResourceType.Dashboard:
-        await this.dashboardService.deleteDashboard(baseId, id);
+      case BaseNodeResourceType.Dashboard: {
+        const dashboardService = await this.getDashboardService();
+        await dashboardService.deleteDashboard(baseId, id);
         break;
+      }
       case BaseNodeResourceType.Workflow:
         await this.workflowService.deleteWorkflow(baseId, id, permanent);
         break;

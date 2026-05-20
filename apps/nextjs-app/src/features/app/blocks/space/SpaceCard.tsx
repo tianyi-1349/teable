@@ -10,7 +10,6 @@ import {
 } from '@teable/openapi';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@teable/ui-lib/shadcn';
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { type FC, useEffect, useState } from 'react';
 import { spaceConfig } from '@/features/i18n/space.config';
@@ -31,7 +30,6 @@ interface ISpaceCard {
 }
 export const SpaceCard: FC<ISpaceCard> = (props) => {
   const { space, bases, subscription, disallowSpaceInvitation } = props;
-  const router = useRouter();
   const isCloud = useIsCloud();
   const queryClient = useQueryClient();
   const [renaming, setRenaming] = useState<boolean>(false);

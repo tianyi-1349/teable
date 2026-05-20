@@ -39,6 +39,9 @@ import {
   executeGetCommentRecordCountEndpoint,
   executeGetCommentSubscribeEndpoint,
   executeGetCommentTableCountEndpoint,
+  executeGetDepartmentListEndpoint,
+  executeGetDepartmentUsersEndpoint,
+  executeGetOrganizationMeEndpoint,
   executeGetPublicSettingEndpoint,
   executeGetPublishedAppNavigationModelEndpoint,
   executeGetPublishedAppNodeRuntimeEndpoint,
@@ -95,6 +98,7 @@ import { v2CoreTokens } from '@teable/v2-core';
 import type { ICommandBus, IQueryBus } from '@teable/v2-core' with { 'resolution-mode': 'import' };
 import { AggregationOpenApiService } from '../aggregation/open-api/aggregation-open-api.service';
 import { CommentOpenApiService } from '../comment/comment-open-api.service';
+import { OrganizationService } from '../organization/organization.service';
 import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
 import { ShareAuthService } from '../share/share-auth.service';
 import { ShareService } from '../share/share.service';
@@ -228,6 +232,7 @@ export class V2Controller {
     private readonly v2ContextFactory: V2ExecutionContextFactory,
     private readonly aggregationOpenApiService: AggregationOpenApiService,
     private readonly commentOpenApiService: CommentOpenApiService,
+    private readonly organizationService: OrganizationService,
     private readonly v2PublishedAppService: V2PublishedAppService,
     private readonly shareService: ShareService,
     private readonly shareAuthService: ShareAuthService,
@@ -590,6 +595,47 @@ export class V2Controller {
 
         return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
       }),
+    };
+  }
+
+  @Implement({
+    getMe: v2Contract.organization.getMe,
+    getDepartmentUsers: v2Contract.organization.getDepartmentUsers,
+    getDepartmentList: v2Contract.organization.getDepartmentList,
+  })
+  organization() {
+    return {
+      getMe: implement(v2Contract.organization.getMe).handler(async ({ input }) => {
+        const result = await executeGetOrganizationMeEndpoint(input, () =>
+          this.organizationService.getOrganizationMe()
+        );
+
+        if (result.status === 200) return result.body;
+
+        return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+      }),
+      getDepartmentUsers: implement(v2Contract.organization.getDepartmentUsers).handler(
+        async ({ input }) => {
+          const result = await executeGetDepartmentUsersEndpoint(input, (query) =>
+            this.organizationService.getDepartmentUsers(query)
+          );
+
+          if (result.status === 200) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
+      getDepartmentList: implement(v2Contract.organization.getDepartmentList).handler(
+        async ({ input }) => {
+          const result = await executeGetDepartmentListEndpoint(input, (query) =>
+            this.organizationService.getDepartmentList(query)
+          );
+
+          if (result.status === 200) return result.body;
+
+          return throwOrpcErrorByStatus(result.status, getErrorMessage(result.body.error));
+        }
+      ),
     };
   }
 

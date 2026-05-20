@@ -1,8 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { EventJobModule } from '../../event-emitter/event-job/event-job.module';
-import { WorkflowModule } from './workflow.module';
-import { WORKFLOW_SCHEDULE_QUEUE, WorkflowScheduleService } from './workflow-schedule.service';
 import { WorkflowScheduleProcessor } from './workflow-schedule.processor';
+import { WORKFLOW_SCHEDULE_QUEUE, WorkflowScheduleService } from './workflow-schedule.service';
+import { WorkflowModule } from './workflow.module';
 
 @Module({
   imports: [

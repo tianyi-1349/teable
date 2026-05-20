@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { authConfig } from '../../configs/auth.config';
 import { AuthModule } from '../auth/auth.module';
@@ -18,7 +18,7 @@ import { BaseShareJwtStrategy } from './strategies/jwt.strategy';
   imports: [
     AuthModule,
     PermissionModule,
-    BaseModule,
+    forwardRef(() => BaseModule),
     FieldModule,
     ViewModule,
     JwtModule.registerAsync({

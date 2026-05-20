@@ -8,7 +8,6 @@ import {
   CommandInput,
   CommandList,
   CommandEmpty,
-  CommandGroup,
   CommandItem,
   Button,
   TooltipProvider,
