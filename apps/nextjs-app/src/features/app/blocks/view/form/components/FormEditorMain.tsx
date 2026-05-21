@@ -152,7 +152,7 @@ export const FormEditorMain = (props: { fields: IFieldInstance[] }) => {
           {coverUrl && (
             <img
               src={previewUrl(coverUrl)}
-              alt="card cover"
+              alt={t('oauth:authorization.cardCoverAlt')}
               className="absolute inset-0 size-full object-cover"
             />
           )}
@@ -191,7 +191,7 @@ export const FormEditorMain = (props: { fields: IFieldInstance[] }) => {
               <img
                 className="absolute inset-0 size-full rounded-lg object-cover shadow-sm"
                 src={previewUrl(logoUrl)}
-                alt="card cover"
+                alt={t('oauth:authorization.cardCoverAlt')}
               />
               <Button
                 variant={'ghost'}

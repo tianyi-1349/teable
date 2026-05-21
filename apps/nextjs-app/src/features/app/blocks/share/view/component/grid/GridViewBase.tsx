@@ -246,7 +246,7 @@ export const GridViewBase = (props: IGridViewProps) => {
     async (selection: CombinedSelection) => {
       const allowCopy = view?.shareMeta?.allowCopy;
       if (!allowCopy) {
-        toast.warning("Sorry, the table's owner has disabled copying");
+        toast.warning(t('share:grid.copyDisabled'));
         return;
       }
       await copy(selection);

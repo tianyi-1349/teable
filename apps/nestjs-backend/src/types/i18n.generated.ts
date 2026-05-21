@@ -257,6 +257,7 @@ export type I18nTranslations = {
             "getMore": string;
             "copySuccess": string;
             "share": string;
+            "added": string;
             "clear": string;
             "download": string;
             "retry": string;
@@ -675,6 +676,7 @@ export type I18nTranslations = {
                 "linkCreatedTime": string;
                 "linkCopySuccess": string;
                 "linkRemove": string;
+                "desc": string;
                 "desc_billable_one": string;
                 "desc_billable_other": string;
                 "spaceTitleWithCount": string;
@@ -684,7 +686,6 @@ export type I18nTranslations = {
                 "noInviteLinks": string;
                 "linkDescription": string;
                 "haveAccess": string;
-                "desc": string;
             };
             "base": {
                 "title": string;
@@ -924,6 +925,8 @@ export type I18nTranslations = {
                     "pending": string;
                     "configuredModels": string;
                     "modelRates": string;
+                    "pricingSectionTitle": string;
+                    "pricingSectionDescription": string;
                     "model": string;
                     "inputRate": string;
                     "outputRate": string;
@@ -939,6 +942,9 @@ export type I18nTranslations = {
                     "cacheWrite": string;
                     "reasoning": string;
                     "perImage": string;
+                    "perImageUsd": string;
+                    "inputUsdPerToken": string;
+                    "outputUsdPerToken": string;
                     "cacheReadRateTip": string;
                     "cacheWriteRateTip": string;
                     "reasoningRateTip": string;
@@ -994,6 +1000,9 @@ export type I18nTranslations = {
                     "testModelImageSuccess": string;
                     "testModelNotFound": string;
                     "displayLabel": string;
+                    "modelDisplayNamePlaceholder": string;
+                    "descriptionEnPlaceholder": string;
+                    "descriptionZhPlaceholder": string;
                     "isImageModel": string;
                     "capabilities": string;
                     "setAsDefault": string;
@@ -1330,6 +1339,7 @@ export type I18nTranslations = {
                 "manual": string;
                 "interval": string;
                 "cron": string;
+                "cronExample": string;
                 "intervalSeconds": string;
                 "saveTrigger": string;
                 "emailReceivedTrigger": string;
@@ -1903,6 +1913,10 @@ export type I18nTranslations = {
                 "tableDenySave": string;
                 "publishedWorkflowTitle": string;
                 "publishedWorkflowDescription": string;
+                "appUnavailable": string;
+                "embedUnavailableDescription": string;
+                "runtimeUrlMissingDescription": string;
+                "openApp": string;
             };
         };
         "import": {
@@ -1922,6 +1936,10 @@ export type I18nTranslations = {
             "url": string;
             "id": string;
         };
+        "non": {
+            "share": string;
+            "copy": string;
+        };
         "authorityMatrixPage": {
             "subtitle": string;
             "openBaseDesign": string;
@@ -1934,6 +1952,10 @@ export type I18nTranslations = {
             "permissionSource": string;
             "permissionSourceDescription": string;
             "actionsCount": string;
+        };
+        "progressBar": {
+            "progress": string;
+            "processingHint": string;
         };
         "noPermissionToCreateBase": string;
         "chat": {
@@ -1954,6 +1976,22 @@ export type I18nTranslations = {
             "idleTimeout": string;
             "danglingToolUse": string;
         };
+        "status": {
+            "redirecting": string;
+            "unknown": string;
+        };
+        "marketing": {
+            "bannerMobile": string;
+            "bannerDesktop": string;
+            "learnMore": string;
+            "dismiss": string;
+        };
+        "monitor": {
+            "unexpectedErrorTitle": string;
+            "ssrDescription": string;
+            "csrDescription": string;
+        };
+        "welcomeText": string;
         "clickToCopyTooltip": string;
         "copiedTooltip": string;
         "hiddenFieldCount_one": string;
@@ -1985,10 +2023,6 @@ export type I18nTranslations = {
         "showText": string;
         "sourceTable": string;
         "sourceView": string;
-        "non": {
-            "share": string;
-            "copy": string;
-        };
     };
     "dashboard": {
         "empty": {
@@ -2037,6 +2071,17 @@ export type I18nTranslations = {
         "createNewToken": string;
         "showPagination": string;
         "addSort": string;
+        "fieldKeyTypeName": string;
+        "fieldKeyTypeId": string;
+        "fieldKeyTypeDbFieldName": string;
+        "grid": string;
+        "json": string;
+        "key": string;
+        "value": string;
+        "skip": string;
+        "take": string;
+        "loading": string;
+        "fetchRecordsFailed": string;
         "tabs": {
             "apiBuilder": string;
             "aiContext": string;
@@ -2116,6 +2161,8 @@ export type I18nTranslations = {
             "scopes": string;
             "redirectDescription": string;
             "authorize": string;
+            "transactionIdRequired": string;
+            "cardCoverAlt": string;
         };
         "help": {
             "link": string;
@@ -3697,6 +3744,9 @@ export type I18nTranslations = {
             "requireLoginTip": string;
             "login": string;
         };
+        "grid": {
+            "copyDisabled": string;
+        };
     };
     "space": {
         "initialSpaceName": string;
@@ -3976,6 +4026,88 @@ export type I18nTranslations = {
                     "copyAIDoc": string;
                     "aiDocPreview": string;
                     "manageToken": string;
+                    "token": string;
+                    "json": string;
+                    "fieldTypes": {
+                        "singleSelectWithOptions": string;
+                        "multipleSelectWithOptions": string;
+                        "checkbox": string;
+                        "link": string;
+                        "formula": string;
+                        "rollup": string;
+                        "user": string;
+                        "createdTime": string;
+                        "lastModifiedTime": string;
+                        "createdBy": string;
+                        "lastModifiedBy": string;
+                        "autoNumber": string;
+                        "rating": string;
+                        "button": string;
+                    };
+                    "aiDoc": {
+                        "table": string;
+                        "description": string;
+                        "apiOperations": string;
+                        "readRecords": string;
+                        "pagination": string;
+                        "paginationUsage": string;
+                        "takeDescription": string;
+                        "skipDescription": string;
+                        "paginationExample": string;
+                        "filtering": string;
+                        "filteringUsage": string;
+                        "filterFieldIdImportant": string;
+                        "filterExample": string;
+                        "filterOperators": string;
+                        "textOperators": string;
+                        "numberOperators": string;
+                        "dateOperators": string;
+                        "sorting": string;
+                        "sortingUsage": string;
+                        "sortFieldIdImportant": string;
+                        "sortExample": string;
+                        "fieldSelection": string;
+                        "fieldSelectionUsage": string;
+                        "fieldSelectionExample": string;
+                        "searching": string;
+                        "searchingUsage": string;
+                        "searchExample": string;
+                        "searchExampleValue": string;
+                        "filterExampleValue": string;
+                        "projectionFieldName": string;
+                        "projectionFieldEmail": string;
+                        "createRecord": string;
+                        "editableFields": string;
+                        "none": string;
+                        "updateRecord": string;
+                        "updateFieldsHint": string;
+                        "deleteRecord": string;
+                        "apiConfiguration": string;
+                        "baseUrl": string;
+                        "tableId": string;
+                        "apiToken": string;
+                        "endpoint": string;
+                        "authentication": string;
+                        "authenticationUsage": string;
+                        "fields": string;
+                        "notesForAi": string;
+                        "primaryNote": string;
+                        "readonlyNote": string;
+                        "fieldKeyTypeNote": string;
+                        "fieldIdNote": string;
+                        "dateFormatNote": string;
+                        "selectFieldNote": string;
+                        "linkFieldNote": string;
+                        "responseFormatNote": string;
+                    };
+                    "generatedToken": {
+                        "name": string;
+                        "description": string;
+                    };
+                    "markers": {
+                        "primary": string;
+                        "readOnly": string;
+                    };
                     "openInNewTab": string;
                     "advancedDesc": string;
                     "openAdvanced": string;
@@ -4858,6 +4990,9 @@ export type I18nTranslations = {
             "descriptionPlaceholder": string;
             "dragToFormTip": string;
             "protectedFieldTip": string;
+            "requiredFieldsBeforeSubmit": string;
+            "requiredFieldsMore": string;
+            "readonlySubmitUnavailable": string;
         };
         "kanban": {
             "toolbar": {

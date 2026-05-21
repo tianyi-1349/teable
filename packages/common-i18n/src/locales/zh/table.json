@@ -1048,7 +1048,10 @@
     "removeFromFormTip": "从表单中隐藏",
     "descriptionPlaceholder": "请输入表单描述",
     "dragToFormTip": "拖拽字段到此处在表单中显示",
-    "protectedFieldTip": "此字段已被设为\"必填\"字段，无法在表单视图中移除，请在字段设置中进行修改。"
+    "protectedFieldTip": "此字段已被设为\"必填\"字段，无法在表单视图中移除，请在字段设置中进行修改。",
+    "requiredFieldsBeforeSubmit": "提交前请先补全这些必填字段：{{fields}}",
+    "requiredFieldsMore": " 另外还有 {{count}} 项",
+    "readonlySubmitUnavailable": "当前共享权限模式下，已发布表单暂不支持提交。"
   },
   "kanban": {
     "toolbar": {

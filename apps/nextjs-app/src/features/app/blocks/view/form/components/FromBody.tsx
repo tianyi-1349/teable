@@ -11,7 +11,7 @@ import { useLocalStorage, useMap, useSet } from 'react-use';
 import { usePreviewUrl } from '@/features/app/hooks/usePreviewUrl';
 import { useOptionalPublishedApp } from '@/features/app/published-app';
 import { tableConfig } from '@/features/i18n/table.config';
-import { generateUniqLocalKey } from '../util';
+import { generateUniqLocalKey, getLocalizedDefaultFieldName } from '../util';
 import { FormField } from './FormField';
 
 interface IFormBodyProps {
@@ -70,7 +70,7 @@ export const FormBody = (props: IFormBodyProps) => {
   const { name, description, columnMeta } = view;
   const errorFieldNames = visibleFields
     .filter((field) => errors.has(field.id))
-    .map((field) => field.name || t('untitled'));
+    .map((field) => getLocalizedDefaultFieldName(field, t) ?? field.name ?? t('untitled'));
 
   const onChange = (fieldId: string, value: unknown) => {
     if (errors.has(fieldId) && value != null && value != '') {
@@ -162,11 +162,11 @@ export const FormBody = (props: IFormBodyProps) => {
         )}
       >
         {coverUrl && (
-          <img
-            src={previewUrl(coverUrl)}
-            alt="card cover"
-            className="absolute inset-0 size-full object-cover"
-          />
+            <img
+              src={previewUrl(coverUrl)}
+              alt={t('oauth:authorization.cardCoverAlt')}
+              className="absolute inset-0 size-full object-cover"
+            />
         )}
       </div>
 
@@ -175,7 +175,7 @@ export const FormBody = (props: IFormBodyProps) => {
           <img
             className="absolute inset-0 size-full rounded-lg object-cover shadow-sm"
             src={previewUrl(logoUrl)}
-            alt="card cover"
+            alt={t('oauth:authorization.cardCoverAlt')}
           />
         </div>
       )}
@@ -200,9 +200,12 @@ export const FormBody = (props: IFormBodyProps) => {
             <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               <div className="font-medium">{t('required')}</div>
               <div className="mt-1 text-xs">
-                Complete the required fields before submitting:{' '}
-                {errorFieldNames.slice(0, 3).join(', ')}
-                {errorFieldNames.length > 3 ? ` +${errorFieldNames.length - 3} more` : ''}
+                {t('form.requiredFieldsBeforeSubmit', {
+                  fields: errorFieldNames.slice(0, 3).join(', '),
+                })}
+                {errorFieldNames.length > 3
+                  ? t('form.requiredFieldsMore', { count: errorFieldNames.length - 3 })
+                  : ''}
               </div>
             </div>
           ) : null}
@@ -242,7 +245,7 @@ export const FormBody = (props: IFormBodyProps) => {
               </Button>
               {publishedApp?.isReadonly && !submit ? (
                 <p className="text-center text-xs text-muted-foreground">
-                  Published form submission is unavailable for this shared permission mode.
+                  {t('form.readonlySubmitUnavailable')}
                 </p>
               ) : null}
             </div>

@@ -1048,7 +1048,10 @@
     "removeFromFormTip": "Hide from the form",
     "descriptionPlaceholder": "Enter from description",
     "dragToFormTip": "Drag field here to show in form",
-    "protectedFieldTip": "This field has been set as a \"required\" field, and cannot be removed in the form view. Please modify it in the field settings."
+    "protectedFieldTip": "This field has been set as a \"required\" field, and cannot be removed in the form view. Please modify it in the field settings.",
+    "requiredFieldsBeforeSubmit": "Complete the required fields before submitting: {{fields}}",
+    "requiredFieldsMore": " +{{count}} more",
+    "readonlySubmitUnavailable": "Published form submission is unavailable for this shared permission mode."
   },
   "kanban": {
     "toolbar": {

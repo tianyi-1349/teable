@@ -14,7 +14,7 @@ import {
 import { useTranslation } from 'next-i18next';
 import type { FC } from 'react';
 import { tableConfig } from '@/features/i18n/table.config';
-import { isProtectedField } from '../util';
+import { getLocalizedDefaultFieldName, isProtectedField } from '../util';
 
 interface IFormFieldEditorProps {
   field: IFieldInstance;
@@ -29,7 +29,7 @@ export const FormFieldEditor: FC<IFormFieldEditorProps> = (props) => {
 
   if (!view || !tableId) return null;
 
-  const { type, name, description, isComputed, isLookup, id: fieldId, aiConfig } = field;
+  const { type, description, isComputed, isLookup, id: fieldId, aiConfig } = field;
   const isProtected = isProtectedField(field);
   const required = isProtected || view.columnMeta[fieldId]?.required;
   const Icon = getFieldStatic(type, {
@@ -37,6 +37,7 @@ export const FormFieldEditor: FC<IFormFieldEditorProps> = (props) => {
     isConditionalLookup: field.isConditionalLookup,
     hasAiConfig: Boolean(aiConfig),
   }).Icon;
+  const displayName = getLocalizedDefaultFieldName(field, t) ?? field.name;
 
   const onHidden = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     event.stopPropagation();
@@ -68,7 +69,7 @@ export const FormFieldEditor: FC<IFormFieldEditorProps> = (props) => {
           <div className="flex h-6 shrink-0 items-center">
             <Icon className="size-4 shrink-0" />
           </div>
-          <h3 className="mx-1">{name}</h3>
+          <h3 className="mx-1">{displayName}</h3>
         </div>
         <div className="flex items-center">
           {!isComputed && (

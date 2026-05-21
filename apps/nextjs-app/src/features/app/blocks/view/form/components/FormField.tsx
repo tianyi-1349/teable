@@ -3,7 +3,7 @@ import type { FormView, IFieldInstance } from '@teable/sdk/model';
 import { useTranslation } from 'next-i18next';
 import type { FC } from 'react';
 import { tableConfig } from '@/features/i18n/table.config';
-import { isProtectedField } from '../util';
+import { getLocalizedDefaultFieldName, isProtectedField } from '../util';
 import { FormCellEditor } from './FormCellEditor';
 
 interface IFormFieldEditorProps {
@@ -22,12 +22,13 @@ export const FormField: FC<IFormFieldEditorProps> = (props) => {
 
   if (!activeViewId || !view) return null;
 
-  const { id: fieldId, type, name, description, isLookup, aiConfig } = field;
+  const { id: fieldId, type, description, isLookup, aiConfig } = field;
   const Icon = getFieldStatic(type, {
     isLookup,
     isConditionalLookup: field.isConditionalLookup,
     hasAiConfig: Boolean(aiConfig),
   }).Icon;
+  const displayName = getLocalizedDefaultFieldName(field, t) ?? field.name;
 
   const isProtected = isProtectedField(field);
   const required = isProtected || view?.columnMeta[fieldId]?.required;
@@ -39,7 +40,7 @@ export const FormField: FC<IFormFieldEditorProps> = (props) => {
         <div className="flex h-6 shrink-0 items-center">
           <Icon className="size-4 shrink-0" />
         </div>
-        <h3 className="ml-1">{name}</h3>
+        <h3 className="ml-1">{displayName}</h3>
       </div>
 
       {description && (
