@@ -45,7 +45,7 @@ export const OAuthAppDecisionPage = () => {
   }, [decisionInfo?.scopes]);
 
   if (!transactionId) {
-    return <div>Transaction ID is required</div>;
+    return <div>{t('oauth:decision.transactionIdRequired')}</div>;
   }
 
   if (!decisionInfo) {
@@ -64,7 +64,7 @@ export const OAuthAppDecisionPage = () => {
           {decisionInfo.logo ? (
             <img
               src={getPreviewUrl(decisionInfo.logo)}
-              alt="card cover"
+              alt={t('oauth:decision.cardCoverAlt')}
               className="absolute inset-0 size-full object-contain"
             />
           ) : (

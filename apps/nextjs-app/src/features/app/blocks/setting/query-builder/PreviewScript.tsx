@@ -45,26 +45,28 @@ const LanguageSelector = ({
 }: {
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
-}) => (
-  <ToggleGroup
-    className="w-auto"
-    type="single"
-    variant="outline"
-    size="sm"
-    value={selectedLanguage}
-    onValueChange={(v) => onLanguageChange(v || 'curl')}
-  >
-    <ToggleGroupItem value="curl" aria-label="Toggle curl">
-      cURL
-    </ToggleGroupItem>
-    <ToggleGroupItem value="javascript" aria-label="Toggle javascript">
-      JavaScript
-    </ToggleGroupItem>
-    <ToggleGroupItem value="python" aria-label="Toggle python">
-      Python
-    </ToggleGroupItem>
-  </ToggleGroup>
-);
+}) => {
+  return (
+    <ToggleGroup
+      className="w-auto"
+      type="single"
+      variant="outline"
+      size="sm"
+      value={selectedLanguage}
+      onValueChange={(v) => onLanguageChange(v || 'curl')}
+    >
+      <ToggleGroupItem value="curl" aria-label="Toggle curl">
+        cURL
+      </ToggleGroupItem>
+      <ToggleGroupItem value="javascript" aria-label="Toggle javascript">
+        JavaScript
+      </ToggleGroupItem>
+      <ToggleGroupItem value="python" aria-label="Toggle python">
+        Python
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+};
 
 const generateCurlCode = (endpoint: string, params: Record<string, unknown>, token: string) => {
   const queryParams = new URLSearchParams();
@@ -173,6 +175,8 @@ interface QueryParamsTableProps {
 }
 
 export const QueryParamsTable: React.FC<QueryParamsTableProps> = ({ query }) => {
+  const { t } = useTranslation(developerConfig.i18nNamespaces);
+
   const renderValue = (key: string, value: unknown): string => {
     if (key === 'filter' || key === 'orderBy') {
       return value ? JSON.stringify(value) : '';
@@ -184,8 +188,8 @@ export const QueryParamsTable: React.FC<QueryParamsTableProps> = ({ query }) => 
     <table className="w-full border-collapse">
       <thead>
         <tr>
-          <th className="w-60 border p-2 text-left">Key</th>
-          <th className="border p-2 text-left">Value</th>
+          <th className="w-60 border p-2 text-left">{t('developer:key')}</th>
+          <th className="border p-2 text-left">{t('developer:value')}</th>
         </tr>
       </thead>
       <tbody>

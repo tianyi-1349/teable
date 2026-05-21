@@ -1,4 +1,5 @@
 import { BaseNodeResourceType } from '@teable/openapi';
+import { useTranslation } from 'next-i18next';
 import type { ReactNode } from 'react';
 import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { usePublishedApp } from '../context';
@@ -10,6 +11,7 @@ import { UnsupportedResourcePage } from './resources/UnsupportedResourcePage';
 import { WorkflowResourcePage } from './resources/WorkflowResourcePage';
 
 export const PublishedResourceSwitch = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation('common');
   const { currentNode, defaultNode, isShare } = usePublishedApp();
   const resource = useBaseResource();
   const node = currentNode ?? defaultNode;
@@ -18,8 +20,8 @@ export const PublishedResourceSwitch = ({ children }: { children: ReactNode }) =
     if (resource.resourceType) {
       return (
         <PublishedResourceState
-          title="Access denied"
-          description="This page is outside the published scope for this app."
+          title={t('system.publishedApp.accessDeniedTitle')}
+          description={t('system.publishedApp.accessDeniedDescription')}
         />
       );
     }
@@ -30,8 +32,8 @@ export const PublishedResourceSwitch = ({ children }: { children: ReactNode }) =
 
     return (
       <PublishedResourceState
-        title="No published resources"
-        description="This published app does not include a renderable resource yet."
+        title={t('system.publishedApp.noResourcesTitle')}
+        description={t('system.publishedApp.noResourcesDescription')}
       />
     );
   }

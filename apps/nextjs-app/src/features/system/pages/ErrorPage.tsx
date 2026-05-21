@@ -22,26 +22,26 @@ export const ErrorPage: FC<Props> = (props) => {
       <IllustrationPage
         imageLightSrc="/images/layout/error-light.png"
         imageDarkSrc="/images/layout/error-dark.png"
-        imageAlt="Error"
+        imageAlt={t('system.error.title')}
         title={t('system.error.title')}
         description={t('system.error.description')}
         button={{ label: t('system.links.backToHome'), href: '/' }}
       />
       <div className="absolute bottom-0 right-0 m-5 flex flex-col gap-1 rounded-lg border bg-background p-4 text-left text-sm">
         <div className="flex gap-2" data-testid="error-status-code">
-          <span className="text-muted-foreground">Code: </span>
+          <span className="text-muted-foreground">{t('system.error.code')}: </span>
           <span className="text-foreground">{statusCode}</span>
         </div>
         <div className="flex gap-2">
-          <span className="text-muted-foreground">Message: </span>
+          <span className="text-muted-foreground">{t('system.error.message')}: </span>
           <span className="text-foreground">{displayMessage}</span>
         </div>
         <div className="flex gap-2">
-          <span className="text-muted-foreground">Error id: </span>
+          <span className="text-muted-foreground">{t('system.error.errorId')}: </span>
           <span className="text-foreground">{errorId}</span>
         </div>
         <div className="flex gap-2">
-          <span className="text-muted-foreground">ErrorMessage: </span>
+          <span className="text-muted-foreground">{t('system.error.errorMessage')}: </span>
           <span className="text-foreground">{displayErrorMessage}</span>
         </div>
       </div>

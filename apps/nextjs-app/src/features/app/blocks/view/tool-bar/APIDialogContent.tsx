@@ -53,53 +53,73 @@ interface IFieldInfo {
   isComputed?: boolean;
 }
 
-const getFieldTypeDescription = (type: FieldType, options?: unknown): string => {
+type TranslateFn = ReturnType<typeof useTranslation<typeof tableConfig.i18nNamespaces>>['t'];
+
+const getFieldTypeDescription = (t: TranslateFn, type: FieldType, options?: unknown): string => {
   switch (type) {
     case FieldType.SingleLineText:
-      return 'Single line text';
+      return t('table:field.default.singleLineText.title');
     case FieldType.LongText:
-      return 'Long text / Rich text';
+      return t('table:field.default.longText.title');
     case FieldType.Number:
-      return 'Number';
+      return t('table:field.default.number.title');
     case FieldType.SingleSelect: {
       const opts = options as { choices?: { name: string }[] };
       const choices = opts?.choices?.map((c) => c.name).join(', ') || '';
-      return choices ? `Single select (options: ${choices})` : 'Single select';
+      const label = t('table:field.default.singleSelect.title');
+      return choices
+        ? t('table:toolbar.others.api.fieldTypes.singleSelectWithOptions', { label, choices })
+        : label;
     }
     case FieldType.MultipleSelect: {
       const opts = options as { choices?: { name: string }[] };
       const choices = opts?.choices?.map((c) => c.name).join(', ') || '';
-      return choices ? `Multiple select (options: ${choices})` : 'Multiple select';
+      const label = t('table:field.default.multipleSelect.title');
+      return choices
+        ? t('table:toolbar.others.api.fieldTypes.multipleSelectWithOptions', { label, choices })
+        : label;
     }
     case FieldType.Checkbox:
-      return 'Checkbox (true/false)';
+      return t('table:toolbar.others.api.fieldTypes.checkbox', {
+        label: t('table:field.default.checkbox.title'),
+      });
     case FieldType.Date:
-      return 'Date/Time';
+      return t('table:field.default.date.title');
     case FieldType.Attachment:
-      return 'File attachments';
+      return t('table:field.default.attachment.title');
     case FieldType.Link:
-      return 'Link to another table';
+      return t('table:toolbar.others.api.fieldTypes.link');
     case FieldType.Formula:
-      return 'Computed formula field';
+      return t('table:toolbar.others.api.fieldTypes.formula');
     case FieldType.Rollup:
     case FieldType.ConditionalRollup:
-      return 'Rollup (aggregation from linked records)';
+      return t('table:toolbar.others.api.fieldTypes.rollup');
     case FieldType.User:
-      return 'User reference';
+      return t('table:toolbar.others.api.fieldTypes.user');
     case FieldType.CreatedTime:
-      return 'Created time (auto-generated)';
+      return t('table:toolbar.others.api.fieldTypes.createdTime', {
+        label: t('table:field.default.createdTime.title'),
+      });
     case FieldType.LastModifiedTime:
-      return 'Last modified time (auto-generated)';
+      return t('table:toolbar.others.api.fieldTypes.lastModifiedTime', {
+        label: t('table:field.default.lastModifiedTime.title'),
+      });
     case FieldType.CreatedBy:
-      return 'Created by (auto-generated)';
+      return t('table:toolbar.others.api.fieldTypes.createdBy', {
+        label: t('table:field.default.createdBy.title'),
+      });
     case FieldType.LastModifiedBy:
-      return 'Last modified by (auto-generated)';
+      return t('table:toolbar.others.api.fieldTypes.lastModifiedBy', {
+        label: t('table:field.default.lastModifiedBy.title'),
+      });
     case FieldType.AutoNumber:
-      return 'Auto-incrementing number';
+      return t('table:toolbar.others.api.fieldTypes.autoNumber');
     case FieldType.Rating:
-      return 'Rating (1-5 stars)';
+      return t('table:toolbar.others.api.fieldTypes.rating', {
+        label: t('table:field.default.rating.title'),
+      });
     case FieldType.Button:
-      return 'Button (trigger actions)';
+      return t('table:toolbar.others.api.fieldTypes.button');
     default:
       return type;
   }
@@ -108,6 +128,7 @@ const getFieldTypeDescription = (type: FieldType, options?: unknown): string => 
 const TOKEN_PLACEHOLDER = '<YOUR_API_TOKEN>';
 
 const generateAIContext = (
+  t: TranslateFn,
   tableName: string,
   tableDescription: string | undefined,
   fields: IFieldInfo[],
@@ -118,9 +139,11 @@ const generateAIContext = (
   const displayToken = token || TOKEN_PLACEHOLDER;
   const fieldDescriptions = fields
     .map((field) => {
-      const typeDesc = getFieldTypeDescription(field.type as FieldType, field.options);
-      const primary = field.isPrimary ? ' [PRIMARY]' : '';
-      const computed = field.isComputed ? ' [READ-ONLY]' : '';
+      const typeDesc = getFieldTypeDescription(t, field.type as FieldType, field.options);
+      const primary = field.isPrimary ? ` [${t('table:toolbar.others.api.markers.primary')}]` : '';
+      const computed = field.isComputed
+        ? ` [${t('table:toolbar.others.api.markers.readOnly')}]`
+        : '';
       const desc = field.description ? ` - ${field.description}` : '';
       return `  - "${field.name}" [id: ${field.id}] (${typeDesc})${primary}${computed}${desc}`;
     })
@@ -131,73 +154,73 @@ const generateAIContext = (
     .map((f) => `"${f.name}"`)
     .join(', ');
 
-  return `# Table: ${tableName}
-${tableDescription ? `\nDescription: ${tableDescription}\n` : ''}
-## API Operations
+  return `# ${t('table:toolbar.others.api.aiDoc.table')}: ${tableName}
+${tableDescription ? `\n${t('table:toolbar.others.api.aiDoc.description')}: ${tableDescription}\n` : ''}
+## ${t('table:toolbar.others.api.aiDoc.apiOperations')}
 
-### 1. Read Records (GET)
+### 1. ${t('table:toolbar.others.api.aiDoc.readRecords')} (GET)
 \`\`\`bash
 curl -X GET "${baseUrl}/api/table/${tableId}/record?fieldKeyType=name" \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-#### Pagination
-Use \`skip\` and \`take\` parameters:
-- \`take\`: Number of records to return (default: 100, max: 1000)
-- \`skip\`: Number of records to skip
+#### ${t('table:toolbar.others.api.aiDoc.pagination')}
+${t('table:toolbar.others.api.aiDoc.paginationUsage')}
+- \`take\`: ${t('table:toolbar.others.api.aiDoc.takeDescription')}
+- \`skip\`: ${t('table:toolbar.others.api.aiDoc.skipDescription')}
 
 \`\`\`bash
-# Get 20 records, starting from the 41st record (page 3)
+# ${t('table:toolbar.others.api.aiDoc.paginationExample')}
 curl "${baseUrl}/api/table/${tableId}/record?take=20&skip=40&fieldKeyType=name" \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-#### Filtering
-Use the \`filter\` parameter with a JSON object.
+#### ${t('table:toolbar.others.api.aiDoc.filtering')}
+${t('table:toolbar.others.api.aiDoc.filteringUsage')}
 
-**⚠️ Important: The \`fieldId\` in filter/orderBy MUST use the actual field ID (e.g., "fldXXXX"), not the field name.**
+**${t('table:toolbar.others.api.aiDoc.filterFieldIdImportant')}**
 
 \`\`\`bash
-# Filter records - use field ID from the Fields section above
+# ${t('table:toolbar.others.api.aiDoc.filterExample')}
 curl "${baseUrl}/api/table/${tableId}/record?fieldKeyType=name" \\
-  --data-urlencode 'filter={"conjunction":"and","filterSet":[{"fieldId":"fldXXXXXXX","operator":"is","value":"Active"}]}' \\
+  --data-urlencode 'filter={"conjunction":"and","filterSet":[{"fieldId":"fldXXXXXXX","operator":"is","value":"${t('table:toolbar.others.api.aiDoc.filterExampleValue')}"}]}' \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-**Filter Operators**:
-- Text: \`is\`, \`isNot\`, \`contains\`, \`doesNotContain\`, \`isEmpty\`, \`isNotEmpty\`
-- Number: \`is\`, \`isNot\`, \`isGreater\`, \`isLess\`, \`isGreaterEqual\`, \`isLessEqual\`
-- Date: \`is\`, \`isBefore\`, \`isAfter\`, \`isWithin\`
+**${t('table:toolbar.others.api.aiDoc.filterOperators')}**:
+- ${t('table:toolbar.others.api.aiDoc.textOperators')}: \`is\`, \`isNot\`, \`contains\`, \`doesNotContain\`, \`isEmpty\`, \`isNotEmpty\`
+- ${t('table:toolbar.others.api.aiDoc.numberOperators')}: \`is\`, \`isNot\`, \`isGreater\`, \`isLess\`, \`isGreaterEqual\`, \`isLessEqual\`
+- ${t('table:toolbar.others.api.aiDoc.dateOperators')}: \`is\`, \`isBefore\`, \`isAfter\`, \`isWithin\`
 
-#### Sorting
-Use the \`orderBy\` parameter.
+#### ${t('table:toolbar.others.api.aiDoc.sorting')}
+${t('table:toolbar.others.api.aiDoc.sortingUsage')}
 
-**⚠️ Important: The \`fieldId\` in orderBy MUST use the actual field ID (e.g., "fldXXXX"), not the field name.**
+**${t('table:toolbar.others.api.aiDoc.sortFieldIdImportant')}**
 
 \`\`\`bash
-# Sort by a field - use field ID from the Fields section above
+# ${t('table:toolbar.others.api.aiDoc.sortExample')}
 curl "${baseUrl}/api/table/${tableId}/record?fieldKeyType=name" \\
   --data-urlencode 'orderBy=[{"fieldId":"fldXXXXXXX","order":"desc"}]' \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-#### Field Selection (Projection)
-Use the \`projection\` parameter to return only specific fields:
+#### ${t('table:toolbar.others.api.aiDoc.fieldSelection')}
+${t('table:toolbar.others.api.aiDoc.fieldSelectionUsage')}
 \`\`\`bash
-# Only return "Name" and "Email" fields
-curl "${baseUrl}/api/table/${tableId}/record?fieldKeyType=name&projection=Name&projection=Email" \\
+# ${t('table:toolbar.others.api.aiDoc.fieldSelectionExample')}
+  curl "${baseUrl}/api/table/${tableId}/record?fieldKeyType=name&projection=${t('table:toolbar.others.api.aiDoc.projectionFieldName')}&projection=${t('table:toolbar.others.api.aiDoc.projectionFieldEmail')}" \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-#### Searching
-Use the \`search\` parameter:
+#### ${t('table:toolbar.others.api.aiDoc.searching')}
+${t('table:toolbar.others.api.aiDoc.searchingUsage')}
 \`\`\`bash
-# Search for "john" in all fields
-curl "${baseUrl}/api/table/${tableId}/record?search=john&fieldKeyType=name" \\
+# ${t('table:toolbar.others.api.aiDoc.searchExample')}
+  curl "${baseUrl}/api/table/${tableId}/record?search=${t('table:toolbar.others.api.aiDoc.searchExampleValue')}&fieldKeyType=name" \\
   -H "Authorization: Bearer ${displayToken}"
 \`\`\`
 
-### 2. Create Record (POST)
+### 2. ${t('table:toolbar.others.api.aiDoc.createRecord')} (POST)
 \`\`\`bash
 curl -X POST "${baseUrl}/api/table/${tableId}/record" \\
   -H "Authorization: Bearer ${displayToken}" \\
@@ -207,14 +230,14 @@ curl -X POST "${baseUrl}/api/table/${tableId}/record" \\
     "records": [
       {
         "fields": {
-          // Editable fields: ${editableFields || 'None'}
+          // ${t('table:toolbar.others.api.aiDoc.editableFields')}: ${editableFields || t('table:toolbar.others.api.aiDoc.none')}
         }
       }
     ]
   }'
 \`\`\`
 
-### 3. Update Record (PATCH)
+### 3. ${t('table:toolbar.others.api.aiDoc.updateRecord')} (PATCH)
 \`\`\`bash
 curl -X PATCH "${baseUrl}/api/table/${tableId}/record/{recordId}" \\
   -H "Authorization: Bearer ${displayToken}" \\
@@ -223,13 +246,13 @@ curl -X PATCH "${baseUrl}/api/table/${tableId}/record/{recordId}" \\
     "fieldKeyType": "name",
     "record": {
       "fields": {
-        // Include only fields you want to update
+        // ${t('table:toolbar.others.api.aiDoc.updateFieldsHint')}
       }
     }
   }'
 \`\`\`
 
-### 4. Delete Record (DELETE)
+### 4. ${t('table:toolbar.others.api.aiDoc.deleteRecord')} (DELETE)
 \`\`\`bash
 curl -X DELETE "${baseUrl}/api/table/${tableId}/record/{recordId}" \\
   -H "Authorization: Bearer ${displayToken}"
@@ -237,34 +260,34 @@ curl -X DELETE "${baseUrl}/api/table/${tableId}/record/{recordId}" \\
 
 ---
 
-## API Configuration
-- **Base URL**: ${baseUrl}
-- **Table ID**: ${tableId}
-- **API Token**: ${displayToken}
-- **Endpoint**: \`${baseUrl}/api/table/${tableId}/record\`
+## ${t('table:toolbar.others.api.aiDoc.apiConfiguration')}
+- **${t('table:toolbar.others.api.aiDoc.baseUrl')}**: ${baseUrl}
+- **${t('table:toolbar.others.api.aiDoc.tableId')}**: ${tableId}
+- **${t('table:toolbar.others.api.aiDoc.apiToken')}**: ${displayToken}
+- **${t('table:toolbar.others.api.aiDoc.endpoint')}**: \`${baseUrl}/api/table/${tableId}/record\`
 
-## Authentication
-All requests require the \`Authorization\` header:
+## ${t('table:toolbar.others.api.aiDoc.authentication')}
+${t('table:toolbar.others.api.aiDoc.authenticationUsage')}
 \`\`\`
 Authorization: Bearer ${displayToken}
 \`\`\`
 
 ---
 
-## Fields
+## ${t('table:toolbar.others.api.aiDoc.fields')}
 ${fieldDescriptions}
 
 ---
 
-## Notes for AI
-- Fields marked [PRIMARY] are the main identifier field
-- Fields marked [READ-ONLY] are computed and cannot be directly modified
-- Use \`fieldKeyType=name\` to reference fields by their display name in request/response body
-- **Important**: \`filter\` and \`orderBy\` parameters MUST use field IDs (the [id: fldXXX] shown above), not field names
-- Dates should be in ISO 8601 format (e.g., "2024-01-15T10:30:00Z")
-- For select fields, use the exact option names listed above
-- For link fields, provide an array of record IDs from the linked table
-- Response format: \`{ "records": [{ fields: { ... } }] }\`
+## ${t('table:toolbar.others.api.aiDoc.notesForAi')}
+- ${t('table:toolbar.others.api.aiDoc.primaryNote')}
+- ${t('table:toolbar.others.api.aiDoc.readonlyNote')}
+- ${t('table:toolbar.others.api.aiDoc.fieldKeyTypeNote')}
+- **${t('table:toolbar.others.api.aiDoc.fieldIdNote')}**
+- ${t('table:toolbar.others.api.aiDoc.dateFormatNote')}
+- ${t('table:toolbar.others.api.aiDoc.selectFieldNote')}
+- ${t('table:toolbar.others.api.aiDoc.linkFieldNote')}
+- ${t('table:toolbar.others.api.aiDoc.responseFormatNote')}
 `;
 };
 
@@ -284,7 +307,7 @@ const TokenSection = ({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Key className="size-5 text-muted-foreground" />
-          <span className="font-medium">Token</span>
+          <span className="font-medium">{t('table:toolbar.others.api.token')}</span>
         </div>
         <div className="flex items-center gap-2">
           {generatedToken ? (
@@ -424,8 +447,8 @@ const AdvancedQueryPanel = ({
               value={cellFormat}
               onValueChange={(v) => setCellFormat((v as CellFormat) || CellFormat.Json)}
             >
-              <ToggleGroupItem value="json">JSON</ToggleGroupItem>
-              <ToggleGroupItem value="text">Text</ToggleGroupItem>
+              <ToggleGroupItem value="json">{t('table:toolbar.others.api.json')}</ToggleGroupItem>
+              <ToggleGroupItem value="text">{t('table:text')}</ToggleGroupItem>
             </ToggleGroup>
           </div>
           <div className="flex flex-col gap-2">
@@ -438,9 +461,11 @@ const AdvancedQueryPanel = ({
               value={fieldKeyType}
               onValueChange={(v) => setFieldKeyType((v as FieldKeyType) || FieldKeyType.Name)}
             >
-              <ToggleGroupItem value="name">name</ToggleGroupItem>
-              <ToggleGroupItem value="id">id</ToggleGroupItem>
-              <ToggleGroupItem value="dbFieldName">dbFieldName</ToggleGroupItem>
+              <ToggleGroupItem value="name">{t('developer:fieldKeyTypeName')}</ToggleGroupItem>
+              <ToggleGroupItem value="id">{t('developer:fieldKeyTypeId')}</ToggleGroupItem>
+              <ToggleGroupItem value="dbFieldName">
+                {t('developer:fieldKeyTypeDbFieldName')}
+              </ToggleGroupItem>
             </ToggleGroup>
           </div>
         </div>
@@ -511,8 +536,13 @@ export const APIDialogContent = ({ onOpenChange: _onOpenChange }: APIDialogConte
       expiredTime.setFullYear(expiredTime.getFullYear() + 1);
 
       return createAccessToken({
-        name: `API Token for ${tableInfo?.name || 'Table'} (Auto-generated)`,
-        description: `Auto-generated token for AI integration. Base: ${baseId}, Table: ${tableId}`,
+        name: t('table:toolbar.others.api.generatedToken.name', {
+          tableName: tableInfo?.name || t('table:toolbar.others.api.aiDoc.table'),
+        }),
+        description: t('table:toolbar.others.api.generatedToken.description', {
+          baseId,
+          tableId,
+        }),
         scopes: [
           'table|read',
           'field|read',
@@ -551,6 +581,7 @@ export const APIDialogContent = ({ onOpenChange: _onOpenChange }: APIDialogConte
   const aiContext = useMemo(() => {
     if (!tableInfo) return '';
     return generateAIContext(
+      t,
       tableInfo.name,
       tableInfo.description,
       fields,
@@ -558,7 +589,7 @@ export const APIDialogContent = ({ onOpenChange: _onOpenChange }: APIDialogConte
       tableId,
       generatedToken?.token
     );
-  }, [tableInfo, fields, currentUrl, tableId, generatedToken]);
+  }, [t, tableInfo, fields, currentUrl, tableId, generatedToken]);
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(aiContext);

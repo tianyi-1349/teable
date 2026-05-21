@@ -59,7 +59,9 @@
     "title": "{{name}} is requesting access to your account",
     "scopes": "This application will be able to get the following scopes:",
     "redirectDescription": "Authorizing will redirect to",
-    "authorize": "Authorize"
+    "authorize": "Authorize",
+    "transactionIdRequired": "Transaction ID is required",
+    "cardCoverAlt": "card cover"
   },
   "help": {
     "link": "https://help.teable.ai/en/api-doc/oauth",

@@ -1,23 +1,25 @@
+import { useTranslation } from 'next-i18next';
 import type { ReactNode } from 'react';
 import { usePublishedApp } from '../../context';
 import { PublishedResourcePageFrame } from './PublishedResourcePageFrame';
 
 export const DashboardResourcePage = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation('common');
   const { isMobile, isReadonly } = usePublishedApp();
 
   const guidance = [
     isReadonly
-      ? 'Published dashboards stay view-first with edit gestures disabled.'
-      : 'Interactive dashboard runtime keeps view access active.',
+      ? t('system.publishedApp.dashboardReadonlyGuidance')
+      : t('system.publishedApp.dashboardInteractiveGuidance'),
     isMobile
-      ? 'Mobile dashboard review should focus on overflow, tap targets, and card visibility.'
-      : 'Larger layouts keep the existing dashboard browsing model.',
+      ? t('system.publishedApp.dashboardMobileGuidance')
+      : t('system.publishedApp.dashboardDesktopGuidance'),
   ];
 
   return (
     <PublishedResourcePageFrame
-      title="Published dashboard"
-      description="Dashboard cards stay view-first in published runtime, with drag and resize disabled for shared access."
+      title={t('system.publishedApp.publishedDashboardTitle')}
+      description={t('system.publishedApp.publishedDashboardDescription')}
     >
       <div className="flex size-full min-h-0 flex-col">
         <div className="border-b bg-background px-4 py-3 text-xs text-muted-foreground">

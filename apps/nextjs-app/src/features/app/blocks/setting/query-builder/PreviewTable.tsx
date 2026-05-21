@@ -80,7 +80,7 @@ export const PreviewTable = ({ query: queryRaw }: { query: IGetRecordsRo }) => {
       })
       .catch((err) => {
         console.error('Failed to fetch records:', err);
-        setRecordRes({ error: 'Failed to fetch records' });
+        setRecordRes({ error: t('developer:fetchRecordsFailed') });
       })
       .finally(() => {
         setIsLoading(false);
@@ -119,10 +119,10 @@ export const PreviewTable = ({ query: queryRaw }: { query: IGetRecordsRo }) => {
           onValueChange={(v) => setMode(v || 'grid')}
         >
           <ToggleGroupItem value="grid" aria-label="Toggle view">
-            Grid
+            {t('developer:grid')}
           </ToggleGroupItem>
           <ToggleGroupItem value="json" aria-label="Toggle json">
-            JSON
+            {t('developer:json')}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -177,8 +177,10 @@ export const PreviewTable = ({ query: queryRaw }: { query: IGetRecordsRo }) => {
               </Button>
             </div>
             <div className="flex items-center gap-2">
-              <span>skip: {(page - 1) * pageSize}</span>
-              <span>take:</span>
+              <span>
+                {t('developer:skip')}: {(page - 1) * pageSize}
+              </span>
+              <span>{t('developer:take')}:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
@@ -192,10 +194,12 @@ export const PreviewTable = ({ query: queryRaw }: { query: IGetRecordsRo }) => {
                 ))}
               </select>
             </div>
-            {isLoading && <span className="text-sm text-muted-foreground">Loading...</span>}
+            {isLoading && (
+              <span className="text-sm text-muted-foreground">{t('developer:loading')}</span>
+            )}
           </div>
           <CodeBlock
-            code={recordRes ? JSON.stringify(recordRes, null, 2) : '// Loading...'}
+            code={recordRes ? JSON.stringify(recordRes, null, 2) : `// ${t('developer:loading')}`}
             language="json"
           />
         </div>

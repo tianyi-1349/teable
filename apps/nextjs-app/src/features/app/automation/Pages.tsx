@@ -187,20 +187,20 @@ const inferDraftTriggerType = (prompt: string) => {
   return 'buttonClick' as const;
 };
 
-const getRecordTriggerWorkflowName = (
+const getRecordTriggerWorkflowNameKey = (
   triggerType: WorkflowRecordTriggerKind,
   actionKind: 'runScript' | 'aiGenerate'
 ) => {
   if (actionKind === 'aiGenerate') {
-    return 'Summarize new record with AI';
+    return 'automation.page.defaultName.aiRecordSummary';
   }
   if (triggerType === 'recordCreated') {
-    return 'When record is created';
+    return 'automation.page.whenRecordCreated';
   }
   if (triggerType === 'recordUpdated') {
-    return 'When record is updated';
+    return 'automation.page.whenRecordUpdated';
   }
-  return 'When record matches conditions';
+  return 'automation.page.whenRecordMatchesConditions';
 };
 
 const buildRecordTriggerAction = (
@@ -211,7 +211,7 @@ const buildRecordTriggerAction = (
     return {
       type: 'aiGenerate' as const,
       config: {
-        prompt: 'Summarize this automation trigger input in one concise paragraph: {{ input }}',
+        prompt: '请用一段简洁中文概括这个自动化触发输入：{{ input }}',
       },
     };
   }
@@ -220,7 +220,7 @@ const buildRecordTriggerAction = (
     type: 'runScript' as const,
     config: {
       script: [
-        'console.log("Record trigger input", input);',
+        'console.log("记录触发输入", input);',
         'return {',
         `  triggerType: "${triggerType}",`,
         '  tableId: input.tableId,',
@@ -257,6 +257,24 @@ const parseStringArray = (value: string) => {
   return Array.isArray(parsedValue)
     ? parsedValue.filter((item): item is string => typeof item === 'string')
     : undefined;
+};
+
+const getAutomationNodeKindLabel = (
+  t: (key: string, values?: Record<string, string | number>) => string,
+  kind: string
+) => {
+  const key = `automation.page.nodeKind.${kind}`;
+  const translated = t(key);
+  return translated === key ? kind : translated;
+};
+
+const getAutomationStatusLabel = (
+  t: (key: string, values?: Record<string, string | number>) => string,
+  status: string
+) => {
+  const key = `automation.page.statusValue.${status}`;
+  const translated = t(key);
+  return translated === key ? status : translated;
 };
 
 const buildScheduleTriggerConfig = (
@@ -454,15 +472,16 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
     onCreateWebhookTrigger,
     onSelectWorkflow,
   } = props;
+  const { t } = useTranslation('common');
 
   return (
     <Card className="min-h-0 overflow-hidden">
       <CardHeader>
-        <CardTitle className="text-base">Workflows</CardTitle>
+        <CardTitle className="text-base">{t('automation.page.sidebarTitle')}</CardTitle>
       </CardHeader>
       <CardContent className="flex h-[calc(100%-72px)] flex-col gap-3">
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create with AI</div>
+          <div className="text-sm font-medium">{t('automation.page.createWithAi')}</div>
           <Textarea
             value={draftPrompt}
             onChange={(event) => onDraftPromptChange(event.target.value)}
@@ -474,16 +493,16 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={!draftPrompt.trim() || isCreatingDraft}
             onClick={onCreateDraft}
           >
-            Create inactive draft
+            {t('automation.page.createInactiveDraft')}
           </Button>
         </div>
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create record trigger</div>
+          <div className="text-sm font-medium">{t('automation.page.createRecordTrigger')}</div>
           <Input
             value={recordTriggerTableId}
             onChange={(event) => onRecordTriggerTableIdChange(event.target.value)}
-            placeholder="Optional table id"
+            placeholder={t('automation.page.optionalTableId')}
             className="text-xs"
           />
           <div className="grid grid-cols-2 gap-2">
@@ -493,7 +512,7 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
               disabled={isCreatingRecordTrigger}
               onClick={() => onCreateRecordTrigger('recordCreated')}
             >
-              On create
+              {t('automation.page.onCreate')}
             </Button>
             <Button
               size="sm"
@@ -501,7 +520,7 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
               disabled={isCreatingRecordTrigger}
               onClick={() => onCreateRecordTrigger('recordUpdated')}
             >
-              On update
+              {t('automation.page.onUpdate')}
             </Button>
           </div>
           <Button
@@ -511,7 +530,7 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingRecordTrigger}
             onClick={() => onCreateRecordTrigger('recordMatchesConditions')}
           >
-            On match conditions
+            {t('automation.page.onMatchConditions')}
           </Button>
           <Button
             size="sm"
@@ -520,15 +539,13 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingRecordTrigger}
             onClick={() => onCreateRecordTrigger('recordCreated', 'aiGenerate')}
           >
-            AI summarize on create
+            {t('automation.page.aiSummarizeOnCreate')}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Leave table id empty to listen to all tables in this base.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('automation.page.recordTriggerHint')}</p>
         </div>
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create email trigger</div>
+          <div className="text-sm font-medium">{t('automation.page.createEmailTrigger')}</div>
           <Button
             size="sm"
             variant="outline"
@@ -536,15 +553,13 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingEmailTrigger}
             onClick={onCreateEmailTrigger}
           >
-            Create email received draft
+            {t('automation.page.createEmailDraft')}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Creates an inactive email-received workflow draft with a Run Script action.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('automation.page.createEmailHint')}</p>
         </div>
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create form trigger</div>
+          <div className="text-sm font-medium">{t('automation.page.createFormTrigger')}</div>
           <Button
             size="sm"
             variant="outline"
@@ -552,15 +567,13 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingFormTrigger}
             onClick={onCreateFormTrigger}
           >
-            Create form submitted draft
+            {t('automation.page.createFormDraft')}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Creates an inactive form-submitted workflow draft with a Run Script action.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('automation.page.createFormHint')}</p>
         </div>
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create schedule trigger</div>
+          <div className="text-sm font-medium">{t('automation.page.createScheduleTrigger')}</div>
           <Button
             size="sm"
             variant="outline"
@@ -568,15 +581,13 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingScheduleTrigger}
             onClick={onCreateScheduleTrigger}
           >
-            Create schedule draft
+            {t('automation.page.createScheduleDraft')}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Creates an inactive schedule workflow draft with a Run Script action.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('automation.page.createScheduleHint')}</p>
         </div>
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="text-sm font-medium">Create webhook trigger</div>
+          <div className="text-sm font-medium">{t('automation.page.createWebhookTrigger')}</div>
           <Button
             size="sm"
             variant="outline"
@@ -584,11 +595,9 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
             disabled={isCreatingWebhookTrigger}
             onClick={onCreateWebhookTrigger}
           >
-            Create webhook draft
+            {t('automation.page.createWebhookDraft')}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Creates an inactive webhook workflow draft with a Run Script action.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('automation.page.createWebhookHint')}</p>
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
@@ -604,17 +613,17 @@ const WorkflowSidebar = (props: IWorkflowSidebarProps) => {
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{item.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {item.description || 'No description'}
+                  {item.description || t('noDescription')}
                 </div>
               </div>
               <Badge variant={item.isActive ? 'default' : 'outline'}>
-                {item.isActive ? 'Active' : 'Draft'}
+                {item.isActive ? t('automation.page.activate') : t('noun.newAutomation')}
               </Badge>
             </button>
           ))}
           {!workflows.length && (
             <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No workflows yet. Create an AI draft to start.
+              {t('automation.page.noWorkflows')}
             </div>
           )}
         </div>
@@ -732,6 +741,7 @@ interface IWorkflowNodeCardProps {
 }
 
 const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
+  const { t } = useTranslation('common');
   const {
     node,
     selectedScriptNodeId,
@@ -758,9 +768,9 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
   return (
     <div className="rounded-lg border p-3 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-medium">{node.kind}</div>
+        <div className="font-medium">{getAutomationNodeKindLabel(t, node.kind)}</div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{node.nodeType}</Badge>
+          <Badge variant="outline">{t(`automation.page.nodeType.${node.nodeType}`)}</Badge>
           {isAction && (
             <Button
               size="sm"
@@ -768,7 +778,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
               disabled={isTestingNode}
               onClick={() => onTestNode(node.id)}
             >
-              Test node
+              {t('automation.page.testNode')}
             </Button>
           )}
           {isAction && (
@@ -778,20 +788,28 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
               disabled={isRemovingAction}
               onClick={() => onRemoveAction(node.id)}
             >
-              Remove
+              {t('actions.remove')}
             </Button>
           )}
         </div>
       </div>
       <div className="mt-2 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-        <div>id: {node.id}</div>
-        <div>next: {node.nextNodeId ?? 'none'}</div>
+        <div>
+          {t('automation.page.id')}: {node.id}
+        </div>
+        <div>
+          {t('automation.page.next')}: {node.nextNodeId ?? t('automation.page.none')}
+        </div>
       </div>
       {(node.testStatus || node.testOutput != null) && (
         <div className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3">
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-medium text-foreground">Node debug state</span>
-            {node.testStatus && <Badge variant="outline">{node.testStatus}</Badge>}
+            <span className="font-medium text-foreground">
+              {t('automation.page.nodeDebugState')}
+            </span>
+            {node.testStatus && (
+              <Badge variant="outline">{getAutomationStatusLabel(t, node.testStatus)}</Badge>
+            )}
           </div>
           {node.testOutput != null && (
             <pre className="max-h-40 overflow-auto rounded border bg-background p-2 text-xs">
@@ -807,7 +825,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectScriptNode(node.id)}
         >
-          Edit script
+          {t('automation.page.editScript')}
         </Button>
       )}
       {isAiGenerate && (
@@ -817,7 +835,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectAiNode(node.id)}
         >
-          Edit prompt
+          {t('automation.page.editPrompt')}
         </Button>
       )}
       {isUpdateRecords && (
@@ -827,7 +845,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectRecordActionNode(node.id)}
         >
-          Edit record update
+          {t('automation.page.editRecordUpdate')}
         </Button>
       )}
       {isCreateRecords && (
@@ -837,7 +855,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectRecordActionNode(node.id)}
         >
-          Edit record create
+          {t('automation.page.editRecordCreate')}
         </Button>
       )}
       {isQueryRecords && (
@@ -847,7 +865,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectRecordActionNode(node.id)}
         >
-          Edit record query
+          {t('automation.page.editRecordQuery')}
         </Button>
       )}
       {isGenericAction && (
@@ -857,7 +875,7 @@ const WorkflowNodeCard = (props: IWorkflowNodeCardProps) => {
           className="mt-3"
           onClick={() => onSelectGenericActionNode(node.id)}
         >
-          Edit generic action
+          {t('automation.page.editGenericAction')}
         </Button>
       )}
     </div>
@@ -884,6 +902,7 @@ interface IWorkflowDetailHeaderProps {
 }
 
 const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
+  const { t } = useTranslation('common');
   const {
     workflow,
     isActivating,
@@ -902,10 +921,11 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
   return (
     <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
       <div>
-        <CardTitle className="text-base">{workflow?.name ?? 'Workflow detail'}</CardTitle>
+        <CardTitle className="text-base">
+          {workflow?.name ?? t('automation.page.workflowDetail')}
+        </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
-          {workflow?.description ??
-            'Select a workflow to inspect trigger, script, and activation state.'}
+          {workflow?.description ?? t('automation.page.workflowDetailDescription')}
         </p>
       </div>
       {workflow && (
@@ -917,7 +937,7 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
             title={applyUpdateDisabledReason}
             onClick={props.onApplyUpdate}
           >
-            Apply update
+            {t('automation.page.applyUpdate')}
           </Button>
           <Button
             size="sm"
@@ -926,7 +946,7 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
             title={testRunDisabledReason}
             onClick={() => props.onTestRun(workflow.id)}
           >
-            Test run
+            {t('automation.page.testRun')}
           </Button>
           <Button
             size="sm"
@@ -935,7 +955,7 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
             title={!workflow.isActive ? activateDisabledReason : undefined}
             onClick={props.onToggleActive}
           >
-            {workflow.isActive ? 'Deactivate' : 'Activate'}
+            {workflow.isActive ? t('automation.page.deactivate') : t('automation.page.activate')}
           </Button>
           <Button
             size="sm"
@@ -943,7 +963,7 @@ const WorkflowDetailHeader = (props: IWorkflowDetailHeaderProps) => {
             disabled={isDeleting}
             onClick={() => props.onDelete(workflow.id)}
           >
-            Delete
+            {t('actions.delete')}
           </Button>
         </div>
       )}
@@ -979,7 +999,8 @@ const getWorkflowDetailCapabilities = (
 
 const getWorkflowRunAvailability = (
   workflow: IWorkflowDetailVo | undefined,
-  actionCapabilities: IWorkflowActionCapabilityMap
+  actionCapabilities: IWorkflowActionCapabilityMap,
+  t: (key: string, values?: Record<string, string>) => string
 ) => {
   const unrunnableAction = workflow?.nodes.find(
     (node) => node.nodeType === 'action' && actionCapabilities[node.kind]?.runnable === false
@@ -989,7 +1010,10 @@ const getWorkflowRunAvailability = (
   return {
     disabled: Boolean(unrunnableAction),
     reason: unrunnableAction
-      ? `Action ${unrunnableAction.kind} is not runnable yet${reason ? `: ${reason}` : ''}`
+      ? t('automation.page.actionNotRunnable', {
+          kind: unrunnableAction.kind,
+          reason: reason ? `: ${reason}` : '',
+        })
       : undefined,
   };
 };
@@ -1017,6 +1041,7 @@ const getRecordActionKind = (
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 const WorkflowDetail = (props: IWorkflowDetailProps) => {
+  const { t } = useTranslation('common');
   const {
     workflow,
     nameDraft,
@@ -1117,7 +1142,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
       recordTriggerFilter: recordTriggerFilterDraft,
     }
   );
-  const workflowRunAvailability = getWorkflowRunAvailability(workflow, actionCapabilities);
+  const workflowRunAvailability = getWorkflowRunAvailability(workflow, actionCapabilities, t);
   const parsedRecordActionDraft = parseRecordActionDraft(recordActionDraft, activeRecordActionKind);
   const parsedRecordUpdateDraft =
     activeRecordActionKind === 'updateRecords' && parsedRecordActionDraft
@@ -1183,8 +1208,12 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             {selectedNodeDebugRunStep && (
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Latest selected node run</div>
-                  <Badge variant="outline">{selectedNodeDebugRunStep.status}</Badge>
+                  <div className="text-sm font-medium">
+                    {t('automation.page.latestSelectedNodeRun')}
+                  </div>
+                  <Badge variant="outline">
+                    {getAutomationStatusLabel(t, selectedNodeDebugRunStep.status)}
+                  </Badge>
                 </div>
                 <pre className="max-h-40 overflow-auto rounded border bg-background p-2 text-xs">
                   {formatJson(selectedNodeDebugRunStep.output)}
@@ -1194,14 +1223,14 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             {webhookNode && (
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Webhook endpoint</div>
+                  <div className="text-sm font-medium">{t('automation.page.webhookEndpoint')}</div>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={isTesting}
                     onClick={() => onTriggerWebhook(workflow.id)}
                   >
-                    Trigger webhook
+                    {t('automation.page.triggerWebhook')}
                   </Button>
                 </div>
                 <pre className="overflow-auto rounded border bg-background p-2 text-xs">
@@ -1210,30 +1239,30 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 <Input
                   value={webhookSecretDraft}
                   onChange={(event) => onWebhookSecretDraftChange(event.target.value)}
-                  placeholder="optional webhook secret"
+                  placeholder={t('automation.page.optionalWebhookSecret')}
                   className="text-xs"
                 />
                 <Input
                   value={webhookSignatureSecretDraft}
                   onChange={(event) => onWebhookSignatureSecretDraftChange(event.target.value)}
-                  placeholder="optional webhook signature secret"
+                  placeholder={t('automation.page.optionalWebhookSignatureSecret')}
                   className="text-xs"
                 />
                 <Input
                   value={webhookBodyLimitDraft}
                   onChange={(event) => onWebhookBodyLimitDraftChange(event.target.value)}
-                  placeholder="webhook body limit KB"
+                  placeholder={t('automation.page.webhookBodyLimitKb')}
                   className="text-xs"
                 />
                 <Input
                   value={webhookTimestampToleranceDraft}
                   onChange={(event) => onWebhookTimestampToleranceDraftChange(event.target.value)}
-                  placeholder="webhook timestamp tolerance seconds"
+                  placeholder={t('automation.page.webhookTimestampToleranceSeconds')}
                   className="text-xs"
                 />
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-muted-foreground">
-                    fieldMappings JSON
+                    {t('automation.page.fieldMappingsJson')}
                   </div>
                   <Textarea
                     value={fieldMappingsDraft}
@@ -1243,7 +1272,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-muted-foreground">
-                    activation test input JSON
+                    {t('automation.page.activationTestInputJson')}
                   </div>
                   <Textarea
                     value={activationTestInputDraft}
@@ -1253,7 +1282,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-muted-foreground">
-                    activation checks JSON
+                    {t('automation.page.activationChecksJson')}
                   </div>
                   <Textarea
                     value={activationChecksDraft}
@@ -1262,47 +1291,40 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   />
                 </div>
                 <div className="rounded border bg-background p-2 text-xs text-muted-foreground">
-                  Signing contract: `sha256=HEX(HMAC_SHA256(secret, timestamp.rawBody))`, headers
-                  use `x-webhook-signature` and `x-webhook-timestamp`.
+                  {t('automation.page.webhookSigningContract')}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Use this endpoint to trigger the active webhook workflow. The test input below can
-                  also be sent through the in-app trigger button.
-                </p>
+                <p className="text-xs text-muted-foreground">{t('automation.page.webhookHint')}</p>
               </div>
             )}
             {scheduleNode && (
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Schedule trigger</div>
+                  <div className="text-sm font-medium">{t('automation.page.scheduleTrigger')}</div>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={isTesting}
                     onClick={() => onTriggerSchedule(workflow.id)}
                   >
-                    Trigger schedule
+                    {t('automation.page.triggerSchedule')}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Save `manual`, `interval`, or `cron` mode here. Active workflows sync backend
-                  schedule jobs automatically.
-                </p>
+                <p className="text-xs text-muted-foreground">{t('automation.page.scheduleHint')}</p>
                 <Select value={scheduleModeDraft} onValueChange={onScheduleModeDraftChange}>
                   <SelectTrigger className="text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="interval">Interval</SelectItem>
-                    <SelectItem value="cron">Cron</SelectItem>
+                    <SelectItem value="manual">{t('automation.page.manual')}</SelectItem>
+                    <SelectItem value="interval">{t('automation.page.interval')}</SelectItem>
+                    <SelectItem value="cron">{t('automation.page.cron')}</SelectItem>
                   </SelectContent>
                 </Select>
                 {scheduleModeDraft === 'interval' && (
                   <Input
                     value={scheduleIntervalSecondsDraft}
                     onChange={(event) => onScheduleIntervalSecondsDraftChange(event.target.value)}
-                    placeholder="interval seconds"
+                    placeholder={t('automation.page.intervalSeconds')}
                     className="text-xs"
                   />
                 )}
@@ -1310,106 +1332,111 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   <Input
                     value={scheduleCronDraft}
                     onChange={(event) => onScheduleCronDraftChange(event.target.value)}
-                    placeholder="*/5 * * * *"
+                    placeholder={t('automation.page.cronExample')}
                     className="text-xs"
                   />
                 )}
                 <Button size="sm" variant="outline" onClick={onSaveRecordTrigger}>
-                  Save trigger
+                  {t('automation.page.saveTrigger')}
                 </Button>
               </div>
             )}
             {emailReceivedNode && (
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Email received trigger</div>
+                  <div className="text-sm font-medium">
+                    {t('automation.page.emailReceivedTrigger')}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={isTesting}
                     onClick={() => onTriggerEmailReceived(workflow.id)}
                   >
-                    Trigger email receive
+                    {t('automation.page.triggerEmailReceive')}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  This is a manual email-received trigger entry for the current draft/runtime path.
+                  {t('automation.page.emailReceivedHint')}
                 </p>
               </div>
             )}
             {formSubmittedNode && (
               <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Form submitted trigger</div>
+                  <div className="text-sm font-medium">
+                    {t('automation.page.formSubmittedTrigger')}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={isTesting}
                     onClick={() => onTriggerFormSubmitted(workflow.id)}
                   >
-                    Trigger form submit
+                    {t('automation.page.triggerFormSubmit')}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  This is a manual form-submitted trigger entry for the current draft/runtime path.
+                  {t('automation.page.formSubmittedHint')}
                 </p>
               </div>
             )}
             <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
-              <div className="text-sm font-medium">Test run input</div>
+              <div className="text-sm font-medium">{t('automation.page.testRunInput')}</div>
               <Textarea
                 value={testRunInputDraft}
                 onChange={(event) => onTestRunInputDraftChange(event.target.value)}
                 className="min-h-28 resize-none font-mono text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                The Test run button sends this JSON as workflow input. Leave the default object to
-                use workspace metadata only.
+                {t('automation.page.testRunInputHint')}
               </p>
             </div>
             <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium">Workflow metadata</div>
+                <div className="text-sm font-medium">{t('automation.page.workflowMetadata')}</div>
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={!nameDraft.trim() || isSavingMetadata}
                   onClick={onSaveMetadata}
                 >
-                  Save metadata
+                  {t('automation.page.saveMetadata')}
                 </Button>
               </div>
               <Input
                 value={nameDraft}
                 onChange={(event) => onNameDraftChange(event.target.value)}
-                placeholder="Workflow name"
+                placeholder={t('automation.page.workflowName')}
                 className="text-xs"
               />
               <Textarea
                 value={descriptionDraft}
                 onChange={(event) => onDescriptionDraftChange(event.target.value)}
-                placeholder="Optional description"
+                placeholder={t('automation.page.optionalDescription')}
                 className="min-h-20 resize-none text-xs"
               />
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Status</div>
-                <div className="mt-1 font-medium">{workflow.isActive ? 'Active' : 'Draft'}</div>
+                <div className="text-xs text-muted-foreground">{t('automation.page.status')}</div>
+                <div className="mt-1 font-medium">
+                  {workflow.isActive ? t('automation.page.active') : t('automation.page.draft')}
+                </div>
               </div>
               <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Nodes</div>
+                <div className="text-xs text-muted-foreground">{t('automation.page.nodes')}</div>
                 <div className="mt-1 font-medium">{workflow.nodes.length}</div>
               </div>
               <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Snapshot</div>
+                <div className="text-xs text-muted-foreground">{t('automation.page.snapshot')}</div>
                 <div className="mt-1 truncate font-medium">
-                  {workflow.activeSnapshotId ?? 'None'}
+                  {workflow.activeSnapshotId ?? t('automation.page.none')}
                 </div>
               </div>
             </div>
             <div className="space-y-2">
-              <div className="text-sm font-medium">Nodes</div>
+              <div className="text-sm font-medium">{t('automation.page.nodes')}</div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -1418,7 +1445,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.runScript?.reason}
                   onClick={() => onAddAction('runScript')}
                 >
-                  Add Run Script
+                  {t('automation.page.addRunScript')}
                 </Button>
                 <Button
                   size="sm"
@@ -1427,7 +1454,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.aiGenerate?.reason}
                   onClick={() => onAddAction('aiGenerate')}
                 >
-                  Add AI Generate
+                  {t('automation.page.addAiGenerate')}
                 </Button>
                 <Button
                   size="sm"
@@ -1436,7 +1463,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.updateRecords?.reason}
                   onClick={() => onAddAction('updateRecords')}
                 >
-                  Add Record Update
+                  {t('automation.page.addRecordUpdate')}
                 </Button>
                 <Button
                   size="sm"
@@ -1445,7 +1472,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.createRecords?.reason}
                   onClick={() => onAddAction('createRecords')}
                 >
-                  Add Record Create
+                  {t('automation.page.addRecordCreate')}
                 </Button>
                 <Button
                   size="sm"
@@ -1454,7 +1481,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.queryRecords?.reason}
                   onClick={() => onAddAction('queryRecords')}
                 >
-                  Add Record Query
+                  {t('automation.page.addRecordQuery')}
                 </Button>
                 <Button
                   size="sm"
@@ -1463,7 +1490,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.sendEmail?.reason}
                   onClick={() => onAddAction('sendEmail')}
                 >
-                  Add Send Email
+                  {t('automation.page.addSendEmail')}
                 </Button>
                 <Button
                   size="sm"
@@ -1472,7 +1499,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.httpRequest?.reason}
                   onClick={() => onAddAction('httpRequest')}
                 >
-                  Add HTTP Request
+                  {t('automation.page.addHttpRequest')}
                 </Button>
                 <Button
                   size="sm"
@@ -1481,7 +1508,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.condition?.reason}
                   onClick={() => onAddAction('condition')}
                 >
-                  Add Condition
+                  {t('automation.page.addCondition')}
                 </Button>
                 <Button
                   size="sm"
@@ -1490,7 +1517,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   title={actionCapabilities.loop?.reason}
                   onClick={() => onAddAction('loop')}
                 >
-                  Add Loop
+                  {t('automation.page.addLoop')}
                 </Button>
               </div>
               {workflow.nodes.map((node) => (
@@ -1514,23 +1541,25 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium">Record trigger scope</div>
+                <div className="text-sm font-medium">{t('automation.page.recordTriggerScope')}</div>
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={!hasRecordTrigger || isSavingRecordTrigger}
                   onClick={onSaveRecordTrigger}
                 >
-                  Save trigger
+                  {t('automation.page.saveTrigger')}
                 </Button>
               </div>
               <Input
                 value={
-                  hasRecordTrigger ? recordTriggerTableIdDraft : 'No record trigger configured.'
+                  hasRecordTrigger
+                    ? recordTriggerTableIdDraft
+                    : t('automation.page.noRecordTriggerConfigured')
                 }
                 disabled={!hasRecordTrigger}
                 onChange={(event) => onRecordTriggerTableIdDraftChange(event.target.value)}
-                placeholder="Optional table id"
+                placeholder={t('automation.page.optionalTableId')}
                 className="text-xs"
               />
               <Select
@@ -1544,31 +1573,37 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recordCreated">When record is created</SelectItem>
-                  <SelectItem value="recordUpdated">When record is updated</SelectItem>
+                  <SelectItem value="recordCreated">
+                    {t('automation.page.whenRecordCreated')}
+                  </SelectItem>
+                  <SelectItem value="recordUpdated">
+                    {t('automation.page.whenRecordUpdated')}
+                  </SelectItem>
                   <SelectItem value="recordMatchesConditions">
-                    When record matches conditions
+                    {t('automation.page.whenRecordMatchesConditions')}
                   </SelectItem>
                 </SelectContent>
               </Select>
               <Textarea
                 value={
-                  hasRecordTrigger ? recordTriggerFilterDraft : 'No record trigger configured.'
+                  hasRecordTrigger
+                    ? recordTriggerFilterDraft
+                    : t('automation.page.noRecordTriggerConfigured')
                 }
                 disabled={!hasRecordTrigger}
                 onChange={(event) => onRecordTriggerFilterDraftChange(event.target.value)}
-                placeholder='Optional filter JSON, for example {"conjunction":"and","filterSet":[]}'
+                placeholder={t('automation.page.optionalFilterJsonExample')}
                 className="min-h-28 resize-none font-mono text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                Leave table id empty to listen to all tables in this base. Leave filter empty to run
-                on every matching record event.
+                {t('automation.page.recordTriggerScopeHint')}
               </p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-medium">
-                  Run Script draft{selectedScriptNodeId ? `: ${selectedScriptNodeId}` : ''}
+                  {t('automation.page.runScriptDraft')}
+                  {selectedScriptNodeId ? `: ${selectedScriptNodeId}` : ''}
                 </div>
                 <Button
                   size="sm"
@@ -1576,11 +1611,11 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   disabled={!hasRunScript || isSavingScript}
                   onClick={onSaveScript}
                 >
-                  Save script
+                  {t('automation.page.saveScript')}
                 </Button>
               </div>
               <Textarea
-                value={hasRunScript ? scriptDraft : 'No runScript action configured.'}
+                value={hasRunScript ? scriptDraft : t('automation.page.noRunScriptConfigured')}
                 disabled={!hasRunScript}
                 onChange={(event) => onScriptDraftChange(event.target.value)}
                 className="min-h-80 resize-none font-mono text-xs"
@@ -1589,7 +1624,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-medium">
-                  Record action config
+                  {t('automation.page.recordActionConfig')}
                   {selectedRecordActionNodeId ? `: ${selectedRecordActionNodeId}` : ''}
                 </div>
                 <Button
@@ -1598,7 +1633,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   disabled={!activeRecordActionKind || isSavingRecordAction}
                   onClick={onSaveRecordAction}
                 >
-                  Save record action
+                  {t('automation.page.saveRecordAction')}
                 </Button>
               </div>
               {activeRecordActionKind === 'updateRecords' && parsedRecordUpdateDraft && (
@@ -1613,7 +1648,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                         })
                       )
                     }
-                    placeholder="tableId"
+                    placeholder={t('automation.page.tableId')}
                     className="text-xs"
                   />
                   <Input
@@ -1626,12 +1661,12 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                         })
                       )
                     }
-                    placeholder="recordId"
+                    placeholder={t('automation.page.recordId')}
                     className="text-xs"
                   />
                   <div className="md:col-span-2">
                     <div className="mb-1 text-xs font-medium text-muted-foreground">
-                      fields JSON
+                      {t('automation.page.fieldsJson')}
                     </div>
                     <Textarea
                       value={JSON.stringify(parsedRecordUpdateDraft.fields ?? {}, null, 2)}
@@ -1663,12 +1698,12 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                         })
                       )
                     }
-                    placeholder="tableId"
+                    placeholder={t('automation.page.tableId')}
                     className="text-xs"
                   />
                   <div>
                     <div className="mb-1 text-xs font-medium text-muted-foreground">
-                      records JSON
+                      {t('automation.page.recordsJson')}
                     </div>
                     <Textarea
                       value={JSON.stringify(parsedRecordCreateDraft.records ?? [], null, 2)}
@@ -1700,7 +1735,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                         })
                       )
                     }
-                    placeholder="tableId"
+                    placeholder={t('automation.page.tableId')}
                     className="text-xs"
                   />
                   <Input
@@ -1713,12 +1748,12 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                         })
                       )
                     }
-                    placeholder="take"
+                    placeholder={t('automation.page.take')}
                     className="text-xs"
                   />
                   <div className="md:col-span-2">
                     <div className="mb-1 text-xs font-medium text-muted-foreground">
-                      filter JSON
+                      {t('automation.page.filterJson')}
                     </div>
                     <Textarea
                       value={JSON.stringify(parsedRecordQueryDraft.filter ?? {}, null, 2)}
@@ -1742,20 +1777,20 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 value={
                   activeRecordActionKind
                     ? recordActionDraft
-                    : 'No record action selected. Choose update/create/query record on a node card.'
+                    : t('automation.page.noRecordActionSelected')
                 }
                 disabled={!activeRecordActionKind}
                 onChange={(event) => onRecordActionDraftChange(event.target.value)}
                 className="min-h-56 resize-none font-mono text-xs"
               />
               <p className="text-xs text-muted-foreground">
-                The structured fields update the same JSON config used by the backend runtime.
+                {t('automation.page.structuredFieldsHint')}
               </p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-medium">
-                  Generic action config
+                  {t('automation.page.genericActionConfig')}
                   {selectedGenericActionNodeId ? `: ${selectedGenericActionNodeId}` : ''}
                 </div>
                 <Button
@@ -1764,14 +1799,14 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   disabled={!activeGenericActionKind || isSavingGenericAction}
                   onClick={onSaveGenericAction}
                 >
-                  Save generic action
+                  {t('automation.page.saveGenericAction')}
                 </Button>
               </div>
               <Textarea
                 value={
                   activeGenericActionKind
                     ? genericActionDraft
-                    : 'No generic action selected. Choose sendEmail/httpRequest/condition/loop on a node card.'
+                    : t('automation.page.noGenericActionSelected')
                 }
                 disabled={!activeGenericActionKind}
                 onChange={(event) => onGenericActionDraftChange(event.target.value)}
@@ -1781,7 +1816,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-medium">
-                  AI Generate prompt draft{selectedAiNodeId ? `: ${selectedAiNodeId}` : ''}
+                  {t('automation.page.aiGeneratePromptDraft')}
+                  {selectedAiNodeId ? `: ${selectedAiNodeId}` : ''}
                 </div>
                 <Button
                   size="sm"
@@ -1789,11 +1825,11 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   disabled={!hasAiGenerate || isSavingAiPrompt}
                   onClick={onSaveAiPrompt}
                 >
-                  Save prompt
+                  {t('automation.page.savePrompt')}
                 </Button>
               </div>
               <Textarea
-                value={hasAiGenerate ? aiPromptDraft : 'No aiGenerate action configured.'}
+                value={hasAiGenerate ? aiPromptDraft : t('automation.page.noAiGenerateConfigured')}
                 disabled={!hasAiGenerate}
                 onChange={(event) => onAiPromptDraftChange(event.target.value)}
                 className="min-h-40 resize-none text-xs"
@@ -1802,7 +1838,7 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
           </>
         ) : (
           <div className="flex h-80 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-            Select or create a workflow draft.
+            {t('automation.page.selectOrCreateDraft')}
           </div>
         )}
       </CardContent>
@@ -1818,10 +1854,12 @@ interface IRunHistoryProps {
 }
 
 const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistoryProps) => {
+  const { t } = useTranslation('common');
+
   return (
     <Card className="min-h-0 overflow-hidden">
       <CardHeader>
-        <CardTitle className="text-base">Run history</CardTitle>
+        <CardTitle className="text-base">{t('automation.page.runHistory')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 overflow-auto">
         {runs.map((run) => (
@@ -1834,7 +1872,9 @@ const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistory
             onClick={() => onSelectRun(run.id)}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className={cn('font-medium', getStatusTone(run.status))}>{run.status}</span>
+              <span className={cn('font-medium', getStatusTone(run.status))}>
+                {getAutomationStatusLabel(t, run.status)}
+              </span>
               <span className="text-xs text-muted-foreground">{run.durationMs ?? 0} ms</span>
             </div>
             <div className="mt-2 truncate text-xs text-muted-foreground">{run.id}</div>
@@ -1842,46 +1882,59 @@ const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistory
         ))}
         {!runs.length && (
           <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            No runs yet. Activate a workflow and click its linked button field to run it.
+            {t('automation.page.noRuns')}
           </div>
         )}
         {runDetail && (
           <div className="space-y-3 rounded-lg border bg-muted/20 p-3 text-sm">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium">Run detail</div>
-              <Badge variant="outline">{runDetail.steps.length} steps</Badge>
+              <div className="font-medium">{t('automation.page.runDetail')}</div>
+              <Badge variant="outline">
+                {t('automation.page.steps', { count: runDetail.steps.length })}
+              </Badge>
             </div>
             <div className="grid gap-2 text-xs text-muted-foreground">
-              <div>trigger: {runDetail.triggerType}</div>
-              <div>snapshot: {runDetail.snapshotId ?? 'none'}</div>
+              <div>
+                {t('automation.page.trigger')}:{' '}
+                {getAutomationNodeKindLabel(t, runDetail.triggerType)}
+              </div>
+              <div>
+                {t('automation.page.snapshot')}: {runDetail.snapshotId ?? t('automation.page.none')}
+              </div>
               {runDetail.error != null && (
-                <div className="text-destructive">error: {formatJson(runDetail.error)}</div>
+                <div className="text-destructive">
+                  {t('automation.page.error')}: {formatJson(runDetail.error)}
+                </div>
               )}
             </div>
             {runDetail.steps.map((step) => (
               <div key={step.id} className="space-y-2 rounded-md border bg-background p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className={cn('font-medium', getStatusTone(step.status))}>
-                    {step.status}
+                    {getAutomationStatusLabel(t, step.status)}
                   </span>
                   <span className="text-xs text-muted-foreground">{step.durationMs ?? 0} ms</span>
                 </div>
-                <div className="truncate text-xs text-muted-foreground">node: {step.nodeId}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {t('automation.page.node')}: {step.nodeId}
+                </div>
                 <div className="space-y-1">
-                  <div className="text-xs font-medium">Input</div>
+                  <div className="text-xs font-medium">{t('automation.page.input')}</div>
                   <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 text-xs">
                     {formatJson(step.input)}
                   </pre>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-xs font-medium">Output</div>
+                  <div className="text-xs font-medium">{t('automation.page.output')}</div>
                   <pre className="max-h-40 overflow-auto rounded border bg-muted/40 p-2 text-xs">
                     {formatJson(step.output)}
                   </pre>
                 </div>
                 {step.error != null && (
                   <div className="space-y-1">
-                    <div className="text-xs font-medium text-destructive">Error</div>
+                    <div className="text-xs font-medium text-destructive">
+                      {t('automation.page.error')}
+                    </div>
                     <pre className="max-h-40 overflow-auto rounded border bg-destructive/10 p-2 text-xs text-destructive">
                       {formatJson(step.error)}
                     </pre>
@@ -1913,9 +1966,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | undefined>(selectedWorkflowId);
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
-  const [draftPrompt, setDraftPrompt] = useState(
-    'When the button is clicked, inspect the record and return a short summary.'
-  );
+  const [draftPrompt, setDraftPrompt] = useState(t('automation.page.defaultDraftPrompt'));
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
   const [nameDraft, setNameDraft] = useState('');
   const [descriptionDraft, setDescriptionDraft] = useState('');
@@ -2178,7 +2229,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         triggerType: inferDraftTriggerType(draftPrompt),
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Workflow draft created');
+      toast.success(t('automation.toast.draftCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2193,8 +2244,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       actionKind?: 'runScript' | 'aiGenerate';
     }) =>
       createWorkflow(baseId, {
-        name: getRecordTriggerWorkflowName(triggerType, actionKind),
-        description: 'Inactive record trigger workflow draft. Add actions before activation.',
+        name: t(getRecordTriggerWorkflowNameKey(triggerType, actionKind)),
+        description: t('automation.page.defaultDescription.recordTriggerDraft'),
         trigger: {
           type: triggerType,
           config: recordTriggerTableId.trim() ? { tableId: recordTriggerTableId.trim() } : {},
@@ -2202,7 +2253,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         actions: [buildRecordTriggerAction(triggerType, actionKind)],
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Record trigger workflow created');
+      toast.success(t('automation.toast.recordTriggerCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2211,8 +2262,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const webhookTriggerMutation = useMutation({
     mutationFn: () =>
       createWorkflow(baseId, {
-        name: 'When webhook is called',
-        description: 'Inactive webhook workflow draft. Review the script before activation.',
+        name: t('automation.page.defaultName.whenWebhookCalled'),
+        description: t('automation.page.defaultDescription.webhookDraft'),
         trigger: {
           type: 'webhook',
           config: {},
@@ -2222,7 +2273,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             type: 'runScript',
             config: {
               script: [
-                'console.log("Webhook trigger input", input);',
+                'console.log("Webhook 触发输入", input);',
                 'return {',
                 '  triggerType: "webhook",',
                 '  body: input,',
@@ -2233,7 +2284,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         ],
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Webhook workflow created');
+      toast.success(t('automation.toast.webhookCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2242,8 +2293,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const emailTriggerMutation = useMutation({
     mutationFn: () =>
       createWorkflow(baseId, {
-        name: 'When email is received',
-        description: 'Inactive email-received workflow draft. Review the script before activation.',
+        name: t('automation.page.defaultName.whenEmailReceived'),
+        description: t('automation.page.defaultDescription.emailDraft'),
         trigger: {
           type: 'emailReceived',
           config: {},
@@ -2253,7 +2304,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             type: 'runScript',
             config: {
               script: [
-                'console.log("Email received trigger input", input);',
+                'console.log("邮件接收触发输入", input);',
                 'return {',
                 '  triggerType: "emailReceived",',
                 '  input,',
@@ -2264,7 +2315,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         ],
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Email received workflow created');
+      toast.success(t('automation.toast.emailCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2273,8 +2324,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const formTriggerMutation = useMutation({
     mutationFn: () =>
       createWorkflow(baseId, {
-        name: 'When form is submitted',
-        description: 'Inactive form-submitted workflow draft. Review the script before activation.',
+        name: t('automation.page.defaultName.whenFormSubmitted'),
+        description: t('automation.page.defaultDescription.formDraft'),
         trigger: {
           type: 'formSubmitted',
           config: {},
@@ -2284,7 +2335,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             type: 'runScript',
             config: {
               script: [
-                'console.log("Form submitted trigger input", input);',
+                'console.log("表单提交触发输入", input);',
                 'return {',
                 '  triggerType: "formSubmitted",',
                 '  input,',
@@ -2295,7 +2346,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         ],
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Form submitted workflow created');
+      toast.success(t('automation.toast.formCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2304,8 +2355,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const scheduleTriggerMutation = useMutation({
     mutationFn: () =>
       createWorkflow(baseId, {
-        name: 'On schedule',
-        description: 'Inactive schedule workflow draft. Review the script before activation.',
+        name: t('automation.page.defaultName.onSchedule'),
+        description: t('automation.page.defaultDescription.scheduleDraft'),
         trigger: {
           type: 'schedule',
           config: { mode: 'manual' },
@@ -2315,7 +2366,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             type: 'runScript',
             config: {
               script: [
-                'console.log("Schedule trigger input", input);',
+                'console.log("定时触发输入", input);',
                 'return {',
                 '  triggerType: "schedule",',
                 '  input,',
@@ -2326,7 +2377,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         ],
       }),
     onSuccess: async ({ data }) => {
-      toast.success('Schedule workflow created');
+      toast.success(t('automation.toast.scheduleCreated'));
       setSelectedId(data.id);
       await refreshWorkflow(data.id);
     },
@@ -2335,7 +2386,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const activateMutation = useMutation({
     mutationFn: (workflowId: string) => activateWorkflow(baseId, workflowId),
     onSuccess: async ({ data }) => {
-      toast.success('Workflow activated');
+      toast.success(t('automation.toast.activated'));
       await refreshWorkflow(data.id);
     },
   });
@@ -2343,7 +2394,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const deactivateMutation = useMutation({
     mutationFn: (workflowId: string) => deactivateWorkflow(baseId, workflowId),
     onSuccess: async ({ data }) => {
-      toast.success('Workflow deactivated');
+      toast.success(t('automation.toast.deactivated'));
       await refreshWorkflow(data.id);
     },
   });
@@ -2351,7 +2402,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const applyUpdateMutation = useMutation({
     mutationFn: (workflowId: string) => applyUpdateWorkflow(baseId, workflowId),
     onSuccess: async ({ data }) => {
-      toast.success('Workflow draft applied to active snapshot');
+      toast.success(t('automation.toast.applied'));
       await refreshWorkflow(data.id);
     },
   });
@@ -2359,7 +2410,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const deleteMutation = useMutation({
     mutationFn: (workflowId: string) => deleteWorkflow(baseId, workflowId),
     onSuccess: async () => {
-      toast.success('Workflow deleted');
+      toast.success(t('automation.toast.deleted'));
       setSelectedId(undefined);
       await queryClient.invalidateQueries({ queryKey: listKey });
     },
@@ -2371,12 +2422,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const input = JSON.parse(testRunInputDraft) as unknown;
         if (!input || typeof input !== 'object' || Array.isArray(input)) {
-          toast.error('Test run input must be a JSON object');
+          toast.error(t('automation.toast.testRunInputMustBeObject'));
           return Promise.resolve(undefined);
         }
         parsedInput = input as Record<string, unknown>;
       } catch {
-        toast.error('Test run input must be valid JSON');
+        toast.error(t('automation.toast.testRunInputInvalidJson'));
         return Promise.resolve(undefined);
       }
 
@@ -2389,7 +2440,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Workflow test run ${result.data.status}`);
+      toast.success(t('automation.toast.testRunFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2400,12 +2451,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const input = JSON.parse(testRunInputDraft) as unknown;
         if (!input || typeof input !== 'object' || Array.isArray(input)) {
-          toast.error('Node test input must be a JSON object');
+          toast.error(t('automation.toast.nodeTestInputMustBeObject'));
           return undefined;
         }
         parsedInput = input as Record<string, unknown>;
       } catch {
-        toast.error('Node test input must be valid JSON');
+        toast.error(t('automation.toast.nodeTestInputInvalidJson'));
         return undefined;
       }
 
@@ -2420,7 +2471,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Workflow node test ${result.data.status}`);
+      toast.success(t('automation.toast.nodeTestFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2431,12 +2482,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const body = JSON.parse(testRunInputDraft) as unknown;
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
-          toast.error('Webhook input must be a JSON object');
+          toast.error(t('automation.toast.webhookInputMustBeObject'));
           return undefined;
         }
         parsedBody = body as Record<string, unknown>;
       } catch {
-        toast.error('Webhook input must be valid JSON');
+        toast.error(t('automation.toast.webhookInputInvalidJson'));
         return undefined;
       }
 
@@ -2446,7 +2497,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Webhook workflow run ${result.data.status}`);
+      toast.success(t('automation.toast.webhookRunFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2457,12 +2508,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const body = JSON.parse(testRunInputDraft) as unknown;
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
-          toast.error('Email input must be a JSON object');
+          toast.error(t('automation.toast.emailInputMustBeObject'));
           return undefined;
         }
         parsedBody = body as Record<string, unknown>;
       } catch {
-        toast.error('Email input must be valid JSON');
+        toast.error(t('automation.toast.emailInputInvalidJson'));
         return undefined;
       }
 
@@ -2470,7 +2521,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Email received workflow run ${result.data.status}`);
+      toast.success(t('automation.toast.emailRunFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2481,12 +2532,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const body = JSON.parse(testRunInputDraft) as unknown;
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
-          toast.error('Schedule input must be a JSON object');
+          toast.error(t('automation.toast.scheduleInputMustBeObject'));
           return undefined;
         }
         parsedBody = body as Record<string, unknown>;
       } catch {
-        toast.error('Schedule input must be valid JSON');
+        toast.error(t('automation.toast.scheduleInputInvalidJson'));
         return undefined;
       }
 
@@ -2494,7 +2545,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Schedule workflow run ${result.data.status}`);
+      toast.success(t('automation.toast.scheduleRunFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2505,12 +2556,12 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
       try {
         const body = JSON.parse(testRunInputDraft) as unknown;
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
-          toast.error('Form submitted input must be a JSON object');
+          toast.error(t('automation.toast.formInputMustBeObject'));
           return undefined;
         }
         parsedBody = body as Record<string, unknown>;
       } catch {
-        toast.error('Form submitted input must be valid JSON');
+        toast.error(t('automation.toast.formInputInvalidJson'));
         return undefined;
       }
 
@@ -2518,7 +2569,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success(`Form submitted workflow run ${result.data.status}`);
+      toast.success(t('automation.toast.formRunFinished', { status: result.data.status }));
       await refreshWorkflow(result.data.workflowId);
     },
   });
@@ -2533,7 +2584,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Workflow metadata saved');
+      toast.success(t('automation.toast.metadataSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2562,7 +2613,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Run Script draft saved');
+      toast.success(t('automation.toast.scriptSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2592,7 +2643,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('AI prompt saved');
+      toast.success(t('automation.toast.aiPromptSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2610,7 +2661,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           | IRecordCreateActionConfig
           | IRecordQueryActionConfig;
       } catch {
-        toast.error('Record action config must be valid JSON');
+        toast.error(t('automation.toast.recordActionConfigInvalidJson'));
         return undefined;
       }
 
@@ -2629,7 +2680,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Record action draft saved');
+      toast.success(t('automation.toast.recordActionSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2649,7 +2700,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           | IConditionActionConfig
           | ILoopActionConfig;
       } catch {
-        toast.error('Generic action config must be valid JSON');
+        toast.error(t('automation.toast.genericActionConfigInvalidJson'));
         return undefined;
       }
 
@@ -2668,7 +2719,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Generic action draft saved');
+      toast.success(t('automation.toast.genericActionSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2697,20 +2748,20 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         return updateWorkflow(baseId, workflow.id, { nodes });
       } catch {
         if (scheduleModeDraft === 'interval') {
-          toast.error('Schedule interval must be a positive number');
+          toast.error(t('automation.toast.scheduleIntervalPositive'));
           return undefined;
         }
         if (scheduleModeDraft === 'cron' && !scheduleCronDraft.trim()) {
-          toast.error('Schedule cron expression is required');
+          toast.error(t('automation.toast.scheduleCronRequired'));
           return undefined;
         }
-        toast.error('Trigger config drafts must be valid JSON');
+        toast.error(t('automation.toast.triggerConfigInvalidJson'));
         return undefined;
       }
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Record trigger draft saved');
+      toast.success(t('automation.toast.recordTriggerSaved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2722,7 +2773,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Workflow action added');
+      toast.success(t('automation.toast.actionAdded'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2734,7 +2785,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     },
     onSuccess: async (result) => {
       if (!result?.data) return;
-      toast.success('Workflow action removed');
+      toast.success(t('automation.toast.actionRemoved'));
       await refreshWorkflow(result.data.id);
     },
   });
@@ -2754,9 +2805,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   };
 
   const applyUpdateDisabledReason =
-    workflow?.isActive === true
-      ? undefined
-      : 'Activate the workflow before applying draft updates to the active snapshot.';
+    workflow?.isActive === true ? undefined : t('automation.page.applyUpdateDisabledReason');
 
   const handleApplyUpdate = () => {
     if (!workflow?.isActive) return;
@@ -2791,7 +2840,7 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         <div className="flex items-center gap-3">
           {props.headLeft}
           <h2 className="text-3xl font-bold tracking-tight">{t('noun.automation')}</h2>
-          <Badge variant="secondary">Open workflow runtime</Badge>
+          <Badge variant="secondary">{t('automation.page.openRuntime')}</Badge>
         </div>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[320px_minmax(0,1fr)]">

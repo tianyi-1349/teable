@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { DraggableHandle, Trash2, Image as ImageIcon } from '@teable/icons';
 import type { IGatewayModel, IModelAbility, GatewayModelProvider } from '@teable/openapi';
 import { Button, Switch, Badge, Input, cn } from '@teable/ui-lib/shadcn';
+import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 import {
   calculateMultiplier,
@@ -38,6 +39,7 @@ export function ModelCard({
   onRemove,
   onUpdateI18nDescription,
 }: IModelCardProps) {
+  const { t } = useTranslation('common');
   const [descEn, setDescEn] = useState(model.i18nDescription?.en ?? '');
   const [descZh, setDescZh] = useState(model.i18nDescription?.zh ?? '');
 
@@ -123,14 +125,14 @@ export function ModelCard({
         <div className="flex gap-2">
           <Input
             className="h-7 text-xs"
-            placeholder="EN description"
+            placeholder={t('admin.setting.ai.descriptionEnPlaceholder')}
             value={descEn}
             onChange={(e) => setDescEn(e.target.value)}
             onBlur={() => onUpdateI18nDescription(model.id, { en: descEn, zh: descZh })}
           />
           <Input
             className="h-7 text-xs"
-            placeholder="ZH 描述"
+            placeholder={t('admin.setting.ai.descriptionZhPlaceholder')}
             value={descZh}
             onChange={(e) => setDescZh(e.target.value)}
             onBlur={() => onUpdateI18nDescription(model.id, { en: descEn, zh: descZh })}

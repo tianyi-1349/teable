@@ -115,7 +115,7 @@ export function AddModelDialog({
             <Input
               value={newModel.label}
               onChange={(e) => onNewModelChange({ ...newModel, label: e.target.value })}
-              placeholder="Model Display Name"
+              placeholder={t('admin.setting.ai.modelDisplayNamePlaceholder')}
               className="mt-1"
             />
           </div>

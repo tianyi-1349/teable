@@ -6,7 +6,7 @@ const useIsMobileMock = vi.fn();
 const usePersonalViewMock = vi.fn();
 
 vi.mock('@teable/sdk/context', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     AggregationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -17,7 +17,7 @@ vi.mock('@teable/sdk/context', async (importOriginal) => {
 });
 
 vi.mock('@teable/sdk/context/query', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     SearchProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -29,7 +29,7 @@ vi.mock('@/features/app/published-app', () => ({
 }));
 
 vi.mock('@teable/sdk/hooks', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     useIsMobile: () => useIsMobileMock(),

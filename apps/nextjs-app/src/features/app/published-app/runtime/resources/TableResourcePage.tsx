@@ -1,8 +1,10 @@
+import { useTranslation } from 'next-i18next';
 import type { ReactNode } from 'react';
 import { usePublishedApp } from '../../context';
 import { PublishedResourcePageFrame } from './PublishedResourcePageFrame';
 
 export const TableResourcePage = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation('common');
   const {
     manifest: { permissions },
     isMobile,
@@ -10,23 +12,23 @@ export const TableResourcePage = ({ children }: { children: ReactNode }) => {
 
   const guidance = [
     isMobile
-      ? 'Compact mobile browsing is active for published views.'
-      : 'Desktop view keeps full browsing affordances.',
+      ? t('system.publishedApp.tableMobileGuidance')
+      : t('system.publishedApp.tableDesktopGuidance'),
     permissions.allowEdit
-      ? 'Edits stay available in published runtime where the shared view allows them.'
-      : 'Editing actions stay locked in read-only published runtime.',
+      ? t('system.publishedApp.tableAllowEdit')
+      : t('system.publishedApp.tableReadonly'),
     permissions.allowCopy
-      ? 'Copy actions remain available from the shared view runtime.'
-      : 'Copy actions stay suppressed by published permissions.',
+      ? t('system.publishedApp.tableAllowCopy')
+      : t('system.publishedApp.tableDenyCopy'),
     permissions.allowSave
-      ? 'Save actions can surface when the shared view runtime exposes them.'
-      : 'Save actions stay suppressed by published permissions.',
+      ? t('system.publishedApp.tableAllowSave')
+      : t('system.publishedApp.tableDenySave'),
   ];
 
   return (
     <PublishedResourcePageFrame
-      title="Published view"
-      description="Shared tables and forms keep the existing view runtime while surfacing published permissions consistently across devices."
+      title={t('system.publishedApp.publishedViewTitle')}
+      description={t('system.publishedApp.publishedViewDescription')}
     >
       <div className="flex size-full min-h-0 flex-col">
         <div className="border-b bg-background px-4 py-3 text-xs text-muted-foreground">

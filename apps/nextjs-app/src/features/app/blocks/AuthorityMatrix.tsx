@@ -55,40 +55,52 @@ export function AuthorityMatrixPage() {
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">{t('noun.authorityMatrix')}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Live permission map for this base, grouped by action domain.
+              {t('authorityMatrixPage.subtitle')}
             </p>
           </div>
           <Button className="w-fit" variant="outline" asChild size="sm">
-            <Link href={`/base/${baseId}/design`}>Open base design</Link>
+            <Link href={`/base/${baseId}/design`}>{t('authorityMatrixPage.openBaseDesign')}</Link>
           </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Total</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t('authorityMatrixPage.total')}
+            </div>
             <div className="mt-2 text-3xl font-semibold">{permissionStats.total}</div>
-            <p className="mt-1 text-sm text-muted-foreground">actions in the live matrix</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('authorityMatrixPage.totalHint')}
+            </p>
           </div>
           <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Granted</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t('authorityMatrixPage.granted')}
+            </div>
             <div className="mt-2 text-3xl font-semibold text-emerald-600">
               {permissionStats.granted}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">enabled for the current role</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('authorityMatrixPage.grantedHint')}
+            </p>
           </div>
           <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Denied</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t('authorityMatrixPage.denied')}
+            </div>
             <div className="mt-2 text-3xl font-semibold text-slate-500">
               {permissionStats.denied}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">kept out of the current role</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('authorityMatrixPage.deniedHint')}
+            </p>
           </div>
         </div>
 
         <Alert className="border-dashed">
-          <AlertTitle>Permission source</AlertTitle>
+          <AlertTitle>{t('authorityMatrixPage.permissionSource')}</AlertTitle>
           <AlertDescription className="text-sm text-muted-foreground">
-            This view reflects `GET /base/{baseId}/permission` and the live base permission context.
+            {t('authorityMatrixPage.permissionSourceDescription')}
           </AlertDescription>
         </Alert>
 
@@ -98,7 +110,9 @@ export function AuthorityMatrixPage() {
               <div className="flex items-start justify-between gap-4 border-b pb-3">
                 <div>
                   <h3 className="text-base font-semibold">{group.title}</h3>
-                  <p className="text-sm text-muted-foreground">{group.entries.length} actions</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('authorityMatrixPage.actionsCount', { count: group.entries.length })}
+                  </p>
                 </div>
                 <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                   {group.prefix}
@@ -121,7 +135,9 @@ export function AuthorityMatrixPage() {
                             : 'bg-slate-500/10 text-slate-600 ring-1 ring-slate-500/20'
                         }`}
                       >
-                        {entry.enabled ? 'Granted' : 'Denied'}
+                        {entry.enabled
+                          ? t('authorityMatrixPage.granted')
+                          : t('authorityMatrixPage.denied')}
                       </span>
                     </div>
                   </div>

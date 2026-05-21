@@ -12,7 +12,7 @@ const useFormModeStoreMock = vi.fn();
 const formPreviewerMock = vi.fn();
 
 vi.mock('@tanstack/react-query', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     useMutation: () => useMutationMock(),

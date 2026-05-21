@@ -1,3 +1,4 @@
+import { useTranslation } from 'next-i18next';
 import type { FC } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -9,6 +10,7 @@ const getAsyncError = async (): Promise<void> => {
 
 const MonitorSentryCsrRoute: FC = () => {
   const [error, setError] = useState<Error | null>(null);
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     getAsyncError().catch((err) => setError(err));
@@ -19,13 +21,8 @@ const MonitorSentryCsrRoute: FC = () => {
   }
   return (
     <div>
-      <h1>Unexpected error</h1>
-      <p>
-        If you see this message, it means that an error thrown in a static NextJs page wasn't caught
-        by the global error handler (pages/_error.tsx). This is a bug in the application and may
-        affect the ability to display error pages and log errors on Sentry. See the monitoring page
-        in /pages/_monitor/sentry/csr-page.tsx.
-      </p>
+      <h1>{t('monitor.unexpectedErrorTitle')}</h1>
+      <p>{t('monitor.csrDescription')}</p>
     </div>
   );
 };

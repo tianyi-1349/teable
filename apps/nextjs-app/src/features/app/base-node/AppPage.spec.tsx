@@ -2,6 +2,20 @@ import { BaseNodeResourceType } from '@teable/openapi';
 import { render, screen } from '@/test-utils';
 import { AppPage } from './AppPage';
 
+vi.mock('next-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'publishedApp.appUnavailable': '应用不可用',
+        'publishedApp.runtimeUrlMissingDescription': '这个应用还没有已发布的运行时 URL。',
+        'publishedApp.publishedRuntime': '发布运行时',
+        'publishedApp.openApp': '打开应用',
+      };
+      return map[key] ?? key;
+    },
+  }),
+}));
+
 describe('AppPage', () => {
   const originalFetch = global.fetch;
 
@@ -29,10 +43,10 @@ describe('AppPage', () => {
       />
     );
 
-    expect(screen.getByText('App unavailable')).toBeInTheDocument();
+    expect(screen.getByText('应用不可用')).toBeInTheDocument();
     expect(screen.getByText('Sales App')).toBeInTheDocument();
-    expect(screen.getByText('This app has no published runtime URL yet.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /open app/i })).toBeNull();
+    expect(screen.getByText('这个应用还没有已发布的运行时 URL。')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /打开应用/i })).toBeNull();
   });
 
   it('renders published app iframe with sandbox and no-referrer policy', () => {
@@ -53,9 +67,9 @@ describe('AppPage', () => {
     );
 
     const iframe = screen.getByTitle('Sales App');
-    const link = screen.getByRole('link', { name: /open/i });
+    const link = screen.getByRole('link', { name: /打开应用/i });
 
-    expect(screen.getByText('Published app runtime')).toBeInTheDocument();
+    expect(screen.getByText('发布运行时')).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://example.com/published-app');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer');

@@ -59,7 +59,7 @@ export const AuthPage = () => {
               <Input
                 id="password"
                 name="password"
-                placeholder="Password"
+                placeholder={t('share:auth.password')}
                 required
                 type="password"
                 readOnly={isLoading}

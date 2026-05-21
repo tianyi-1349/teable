@@ -1,3 +1,4 @@
+import { useTranslation } from 'next-i18next';
 import type { ReactNode } from 'react';
 import { usePublishedApp } from '../../context';
 
@@ -8,16 +9,19 @@ interface PublishedResourcePageFrameProps {
 }
 
 const getPermissionSummary = (
-  permissions: ReturnType<typeof usePublishedApp>['manifest']['permissions']
+  permissions: ReturnType<typeof usePublishedApp>['manifest']['permissions'],
+  t: (key: string) => string
 ) => {
-  const parts = [permissions.readonly ? 'Read-only' : 'Interactive'];
+  const parts = [
+    permissions.readonly ? t('system.publishedApp.readOnly') : t('system.publishedApp.interactive'),
+  ];
 
   if (permissions.allowCopy) {
-    parts.push('copy enabled');
+    parts.push(t('system.publishedApp.copyEnabled'));
   }
 
   if (permissions.allowSave) {
-    parts.push('save enabled');
+    parts.push(t('system.publishedApp.saveEnabled'));
   }
 
   return parts.join(' • ');
@@ -28,6 +32,7 @@ export const PublishedResourcePageFrame = ({
   description,
   children,
 }: PublishedResourcePageFrameProps) => {
+  const { t } = useTranslation('common');
   const { isMobile, manifest } = usePublishedApp();
 
   return (
@@ -39,12 +44,12 @@ export const PublishedResourcePageFrame = ({
             <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           </div>
           <div className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
-            {getPermissionSummary(manifest.permissions)}
+            {getPermissionSummary(manifest.permissions, t)}
           </div>
         </div>
         {isMobile ? (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Mobile layout keeps published interactions compact and read-only safe.
+            {t('system.publishedApp.mobileHint')}
           </p>
         ) : null}
       </div>

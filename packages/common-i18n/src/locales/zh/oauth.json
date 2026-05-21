@@ -59,7 +59,9 @@
     "title": "{{name}} 正在请求访问您的帐户",
     "scopes": "此应用程序将能够获取以下权限范围：",
     "redirectDescription": "授权将重定向到",
-    "authorize": "授权"
+    "authorize": "授权",
+    "transactionIdRequired": "必须提供 Transaction ID",
+    "cardCoverAlt": "卡片封面"
   },
   "help": {
     "link": "https://help.teable.cn/zh/api-doc/oauth",

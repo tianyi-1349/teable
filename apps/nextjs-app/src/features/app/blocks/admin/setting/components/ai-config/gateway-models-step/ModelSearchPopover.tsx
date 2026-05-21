@@ -104,7 +104,7 @@ export function ModelSearchPopover({
               <div className="p-4 text-center text-sm text-muted-foreground">
                 <p>{modelsLoadError}</p>
                 <Button size="sm" variant="ghost" className="mt-2" onClick={onRetry}>
-                  Retry
+                  {t('common:retry')}
                 </Button>
               </div>
             ) : filteredModels.length === 0 ? (
@@ -167,7 +167,7 @@ export function ModelSearchPopover({
                           })()}
                           {isAlreadyAdded && (
                             <Badge variant="secondary" className="text-[10px]">
-                              Added
+                              {t('common:actions.added')}
                             </Badge>
                           )}
                         </div>
