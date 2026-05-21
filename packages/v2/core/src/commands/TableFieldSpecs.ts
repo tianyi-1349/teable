@@ -1142,7 +1142,7 @@ class CreateLinkFieldSpec implements ICreateTableFieldSpec {
 
   private resolveCreateConfig(
     fieldId: FieldId,
-    baseId: BaseId
+    _baseId: BaseId
   ): Result<LinkFieldConfig, DomainError> {
     if (this.config.hasDbConfig()) {
       return ok(this.config);

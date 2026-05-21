@@ -1,10 +1,13 @@
+import { useTranslation } from 'next-i18next';
 import { PublishedResourceState } from '../PublishedResourceState';
 
 export const UnsupportedResourcePage = () => {
+  const { t } = useTranslation('common');
+
   return (
     <PublishedResourceState
-      title="Resource unavailable"
-      description="This published app resource cannot be rendered in the current runtime."
+      title={t('system.publishedApp.resourceUnavailableTitle')}
+      description={t('system.publishedApp.resourceUnavailableDescription')}
     />
   );
 };

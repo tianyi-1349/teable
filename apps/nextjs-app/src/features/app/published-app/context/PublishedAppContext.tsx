@@ -1,8 +1,9 @@
 import type { IGetBaseVo } from '@teable/openapi';
 import { BaseNodeResourceType } from '@teable/openapi';
+import { useIsAnonymous } from '@teable/sdk';
 import { useIsMobile } from '@teable/sdk/hooks';
 import { useRouter } from 'next/router';
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useMedia } from 'react-use';
 import { BaseNodeContext } from '@/features/app/blocks/base/base-node/BaseNodeContext';
@@ -14,6 +15,17 @@ import type { PublishedAppManifest, PublishedAppNode } from '../manifest';
 import { buildPublishedNavigation } from '../navigation';
 import type { PublishedNavigationItem, PublishedNavigationModel } from '../navigation';
 import { useIsPwaStandalone } from '../pwa/useIsPwaStandalone';
+
+const useIsEmbed = () => {
+  const [isEmbed, setIsEmbed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsEmbed(window.self !== window.top);
+  }, []);
+
+  return isEmbed;
+};
 
 export interface PublishedAppContextValue {
   manifest: PublishedAppManifest;
@@ -75,7 +87,10 @@ export const PublishedAppProvider = ({
   const isMobile = useIsMobile();
   const isTablet = useMedia('(min-width: 641px) and (max-width: 1024px)');
   const isPwaStandalone = useIsPwaStandalone();
+  const isEmbed = useIsEmbed();
+  const isAnonymous = useIsAnonymous();
   const { treeItems } = useContext(BaseNodeContext);
+  const canEdit = Boolean(!shareId ? allowEdit : allowEdit && !isAnonymous);
 
   const manifest = useMemo(() => {
     return buildPublishedAppManifest({
@@ -88,8 +103,8 @@ export const PublishedAppProvider = ({
       permissions: {
         allowSave,
         allowCopy,
-        allowEdit,
-        readonly: !allowEdit,
+        allowEdit: canEdit,
+        readonly: !canEdit,
       },
       mode: shareId ? 'share' : 'authenticated',
     });
@@ -99,6 +114,8 @@ export const PublishedAppProvider = ({
     allowSave,
     base?.icon,
     base?.name,
+    canEdit,
+    isAnonymous,
     resource.baseId,
     shareId,
     shareNodeId,
@@ -122,10 +139,10 @@ export const PublishedAppProvider = ({
       defaultNode,
       activeNavigationItem: navigation.activeItem,
       isShare: Boolean(shareId),
-      isReadonly: !allowEdit,
+      isReadonly: !canEdit,
       isMobile,
       isTablet,
-      isEmbed: false,
+      isEmbed,
       isPwaStandalone,
       navigateToNode: (nodeId: string) => {
         const item = navigation.flatItems.find((navItem) => navItem.nodeId === nodeId);
@@ -135,10 +152,11 @@ export const PublishedAppProvider = ({
       },
     };
   }, [
-    allowEdit,
+    canEdit,
     currentNode,
     defaultNode,
     isMobile,
+    isEmbed,
     isTablet,
     isPwaStandalone,
     manifest,

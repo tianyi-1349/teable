@@ -1,10 +1,13 @@
 import { Frown } from '@teable/icons';
 import { Alert, AlertDescription, AlertTitle } from '@teable/ui-lib/shadcn/ui/alert';
+import { useTranslation } from 'next-i18next';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Component } from 'react';
 
 interface PublishedResourceErrorBoundaryProps {
   children: ReactNode;
+  title: string;
+  description: string;
 }
 
 interface PublishedResourceErrorBoundaryState {
@@ -33,10 +36,8 @@ export class PublishedResourceErrorBoundary extends Component<
         <div className="flex size-full min-h-[360px] items-center justify-center p-6">
           <Alert className="max-w-md">
             <Frown className="size-5" />
-            <AlertTitle>Unable to load this page</AlertTitle>
-            <AlertDescription>
-              Refresh the page or open another published page to continue.
-            </AlertDescription>
+            <AlertTitle>{this.props.title}</AlertTitle>
+            <AlertDescription>{this.props.description}</AlertDescription>
           </Alert>
         </div>
       );
@@ -45,3 +46,16 @@ export class PublishedResourceErrorBoundary extends Component<
     return this.props.children;
   }
 }
+
+export const PublishedResourceErrorBoundaryI18n = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation('common');
+
+  return (
+    <PublishedResourceErrorBoundary
+      title={t('system.publishedApp.loadFailedTitle')}
+      description={t('system.publishedApp.loadFailedDescription')}
+    >
+      {children}
+    </PublishedResourceErrorBoundary>
+  );
+};

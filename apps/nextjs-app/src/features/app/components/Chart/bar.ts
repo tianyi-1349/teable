@@ -25,10 +25,22 @@ export class Bar extends Base {
     return {
       tooltip: {
         trigger: 'item',
+        triggerOn: 'mousemove|click',
+      },
+      grid: {
+        left: 16,
+        right: 16,
+        top: 24,
+        bottom: 24,
+        containLabel: true,
       },
       xAxis: {
         type: 'category',
         data: xAxisData,
+        axisLabel: {
+          hideOverlap: true,
+          interval: 'auto',
+        },
       },
       yAxis: {
         type: 'value',

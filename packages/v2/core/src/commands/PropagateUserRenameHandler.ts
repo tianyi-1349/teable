@@ -4,7 +4,7 @@ import type { Result } from 'neverthrow';
 import type { DomainError } from '../domain/shared/DomainError';
 import type { IExecutionContext } from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
-import { IUserRenamePropagationService } from '../ports/UserRenamePropagationService';
+import { type IUserRenamePropagationService } from '../ports/UserRenamePropagationService';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';
 import { PropagateUserRenameCommand } from './PropagateUserRenameCommand';
 

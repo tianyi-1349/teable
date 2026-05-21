@@ -3,11 +3,13 @@ import { ArrowUpRight } from '@teable/icons';
 import type { IBaseNodeAppResourceMeta } from '@teable/openapi';
 import { BaseNodeResourceType } from '@teable/openapi';
 import { Button } from '@teable/ui-lib';
+import { useTranslation } from 'next-i18next';
 import type { IBaseResourceParsed } from '@/features/app/hooks/useBaseResource';
 import { getDefaultNodeUrl, redirect } from './helper';
 import type { IAppPageProps, ISSRContext, SSRResult } from './types';
 
-const APP_IFRAME_SANDBOX = 'allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts';
+const APP_IFRAME_SANDBOX =
+  'allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-downloads';
 
 export const getAppServerSideProps = async (
   ctx: ISSRContext,
@@ -52,22 +54,23 @@ const AppUnavailableState = ({
   title: string;
   publicUrl?: string | null;
 }) => {
+  const { t } = useTranslation('common');
   return (
     <div className="flex h-full min-h-[360px] items-center justify-center p-6">
       <div className="flex max-w-md flex-col items-center gap-3 text-center">
         <div className="rounded-full bg-muted px-4 py-2 text-sm font-medium text-muted-foreground">
-          App unavailable
+          {t('publishedApp.appUnavailable')}
         </div>
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">
           {publicUrl
-            ? 'This app cannot be embedded here. Open it in a new tab to continue.'
-            : 'This app has no published runtime URL yet.'}
+            ? t('publishedApp.embedUnavailableDescription')
+            : t('publishedApp.runtimeUrlMissingDescription')}
         </p>
         {publicUrl ? (
           <Button asChild>
             <a href={publicUrl} target="_blank" rel="noreferrer">
-              Open app
+              {t('publishedApp.openApp')}
               <ArrowUpRight className="ml-2 size-4" />
             </a>
           </Button>
@@ -78,6 +81,7 @@ const AppUnavailableState = ({
 };
 
 export const AppPage = ({ appNode }: IAppPageProps) => {
+  const { t } = useTranslation('common');
   const appMeta = appNode?.resourceMeta as IBaseNodeAppResourceMeta | undefined;
   const title = appMeta?.name || 'App';
   const publicUrl = appMeta?.publicUrl;
@@ -91,11 +95,13 @@ export const AppPage = ({ appNode }: IAppPageProps) => {
       <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold">{title}</h1>
-          <p className="truncate text-xs text-muted-foreground">Published app runtime</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {t('publishedApp.publishedRuntime')}
+          </p>
         </div>
         <Button variant="outline" size="sm" asChild>
           <a href={publicUrl} target="_blank" rel="noreferrer">
-            Open
+            {t('publishedApp.openApp')}
             <ArrowUpRight className="ml-2 size-4" />
           </a>
         </Button>

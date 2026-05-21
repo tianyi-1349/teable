@@ -1,8 +1,10 @@
 import type { GetServerSideProps } from 'next';
+import { useTranslation } from 'next-i18next';
 import type { NextPageWithLayout } from '@/lib/type';
 
 const Node: NextPageWithLayout = () => {
-  return <p>redirecting</p>;
+  const { t } = useTranslation('common');
+  return <p>{t('status.redirecting')}</p>;
 };
 
 export const getServerSideProps: GetServerSideProps = async () => {

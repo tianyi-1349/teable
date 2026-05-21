@@ -8,13 +8,13 @@ import { DbFieldName } from '../../domain/table/fields/DbFieldName';
 import type { Field } from '../../domain/table/fields/Field';
 import { FieldId } from '../../domain/table/fields/FieldId';
 import { Table } from '../../domain/table/Table';
-import { IExecutionContext } from '../../ports/ExecutionContext';
-import { ITableMapper } from '../../ports/mappers/TableMapper';
-import type {
-  ITableFieldPersistenceDTO,
-  ITableViewPersistenceDTO,
+import { type IExecutionContext } from '../../ports/ExecutionContext';
+import {
+  type ITableFieldPersistenceDTO,
+  type ITableMapper,
+  type ITableViewPersistenceDTO,
 } from '../../ports/mappers/TableMapper';
-import { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
+import { type ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
 import { v2CoreTokens } from '../../ports/tokens';
 import { TraceSpan } from '../../ports/TraceSpan';

@@ -1,15 +1,10 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import { BaseNodeResourceType } from '@teable/openapi';
-import type { Knex } from 'knex';
-import { GlobalModule } from '../../global/global.module';
-import { BaseNodeModule } from './base-node.module';
+import { knex as createKnex } from 'knex';
 import { BaseNodeService } from './base-node.service';
 import { buildBatchUpdateSql } from './helper';
 
 describe('BaseNodeService', () => {
-  let service: BaseNodeService;
-  let knex: Knex;
+  const knex = createKnex({ client: 'pg' });
   const baseId = 'bse1';
   const tableId = 'tbl1';
   const tableName = 'Projects Copy';
@@ -32,16 +27,28 @@ describe('BaseNodeService', () => {
     }>;
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, BaseNodeModule],
-    }).compile();
-
-    service = module.get<BaseNodeService>(BaseNodeService);
-    knex = module.get<Knex>('CUSTOM_KNEX');
-  });
+  const createService = () =>
+    new BaseNodeService(
+      {} as never,
+      {} as never,
+      {} as never,
+      knex as never,
+      {} as never,
+      {
+        get: vi.fn(),
+        set: vi.fn(),
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
 
   it('should be defined', () => {
+    const service = createService();
     expect(service).toBeDefined();
   });
 

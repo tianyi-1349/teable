@@ -11,6 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@teable/ui-lib/shadcn';
+import { useTranslation } from 'next-i18next';
 
 interface IPricingSectionProps {
   expanded: boolean;
@@ -30,13 +31,14 @@ export function PricingSection({
   modelType,
   onPricingChange,
 }: IPricingSectionProps) {
+  const { t } = useTranslation('common');
   return (
     <Collapsible open={expanded} onOpenChange={onExpandedChange}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-between">
           <span className="flex items-center gap-2">
             <DollarSign className="size-4" />
-            Pricing (USD per token)
+            {t('admin.setting.ai.pricingSectionTitle')}
             {pricing?.input && (
               <Badge variant="secondary" className="text-xs">
                 ✓
@@ -48,12 +50,12 @@ export function PricingSection({
       <CollapsibleContent>
         <div className="mt-2 space-y-3 rounded-lg border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground">
-            USD per token (same format as Vercel AI Gateway API). e.g., 0.000003 = $3/1M tokens
+            {t('admin.setting.ai.pricingSectionDescription')}
           </p>
 
           {modelType === 'image' ? (
             <div>
-              <Label className="text-xs">Per Image (USD)</Label>
+              <Label className="text-xs">{t('admin.setting.ai.perImageUsd')}</Label>
               <Input
                 type="text"
                 value={pricing?.image ?? ''}
@@ -65,7 +67,7 @@ export function PricingSection({
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Input ($/token)</Label>
+                <Label className="text-xs">{t('admin.setting.ai.inputUsdPerToken')}</Label>
                 <Input
                   type="text"
                   value={pricing?.input ?? ''}
@@ -75,7 +77,7 @@ export function PricingSection({
                 />
               </div>
               <div>
-                <Label className="text-xs">Output ($/token)</Label>
+                <Label className="text-xs">{t('admin.setting.ai.outputUsdPerToken')}</Label>
                 <Input
                   type="text"
                   value={pricing?.output ?? ''}
@@ -85,7 +87,7 @@ export function PricingSection({
                 />
               </div>
               <div>
-                <Label className="text-xs">Cache Read</Label>
+                <Label className="text-xs">{t('admin.setting.ai.cacheRead')}</Label>
                 <Input
                   type="text"
                   value={pricing?.inputCacheRead ?? ''}
@@ -95,7 +97,7 @@ export function PricingSection({
                 />
               </div>
               <div>
-                <Label className="text-xs">Cache Write</Label>
+                <Label className="text-xs">{t('admin.setting.ai.cacheWrite')}</Label>
                 <Input
                   type="text"
                   value={pricing?.inputCacheWrite ?? ''}

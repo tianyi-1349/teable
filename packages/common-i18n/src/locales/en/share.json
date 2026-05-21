@@ -9,6 +9,9 @@
     "requireLoginTip": "This form requires you to log in before submitting",
     "login": "Log in"
   },
+  "grid": {
+    "copyDisabled": "The table owner has disabled copying."
+  },
   "toolbar": {
     "filterLinkSelectPlaceholder": "Select..."
   },

@@ -9,6 +9,9 @@
     "requireLoginTip": "此表单需要登录后才能提交",
     "login": "登录"
   },
+  "grid": {
+    "copyDisabled": "表格所有者已禁用复制。"
+  },
   "toolbar": {
     "filterLinkSelectPlaceholder": "请选择..."
   },

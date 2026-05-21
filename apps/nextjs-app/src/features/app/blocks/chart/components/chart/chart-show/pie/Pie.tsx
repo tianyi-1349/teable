@@ -1,5 +1,6 @@
 import { useIsMobile } from '@teable/sdk/hooks';
 import { ChartContainer, ChartLegend, ChartTooltip, ChartTooltipContent } from '@teable/ui-lib';
+import { useTranslation } from 'next-i18next';
 import { useContext, useMemo, useState } from 'react';
 import { PieChart, Pie, Label, Sector } from 'recharts';
 import type { Payload } from 'recharts/types/component/DefaultLegendContent';
@@ -15,6 +16,7 @@ import { useRefObserve } from './useRefObserve';
 
 export const ChartPie = (props: { config: IPieConfig }) => {
   const { config } = props;
+  const { t } = useTranslation('common');
   const queryData = useBaseQueryData();
   const { interactionFilter, interactionConfig, onInteractionFilterChange } =
     useContext(ChartContext);
@@ -117,7 +119,7 @@ export const ChartPie = (props: { config: IPieConfig }) => {
           <tspan ref={totalRef} className="fill-foreground text-3xl font-bold">
             {total}
           </tspan>
-          <tspan className="fill-muted-foreground">Total</tspan>
+          <tspan className="fill-muted-foreground">{t('total')}</tspan>
         </text>
       </svg>
       <ChartContainer config={pieConfig} className="size-full">
@@ -221,7 +223,7 @@ export const ChartPie = (props: { config: IPieConfig }) => {
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Total
+                          {t('total')}
                         </tspan>
                       </text>
                     );

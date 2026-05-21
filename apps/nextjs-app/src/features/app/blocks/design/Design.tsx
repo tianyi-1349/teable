@@ -2,9 +2,9 @@ import { AnchorContext, TablePermissionProvider } from '@teable/sdk/context';
 import { Button, Separator } from '@teable/ui-lib/shadcn';
 import { ChevronLeft } from 'lucide-react';
 import Head from 'next/head';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
+import { usePageSearchParams } from '../../../../hooks/usePageSearchParams';
 import { useBaseResource } from '../../hooks/useBaseResource';
 import { DbConnectionPanel } from '../db-connection/Panel';
 import { BaseDetail } from './BaseDetail';
@@ -13,7 +13,7 @@ import { TableTabs } from './TableTabs';
 export const Design = () => {
   const router = useRouter();
   const { baseId } = useBaseResource();
-  const searchParams = useSearchParams();
+  const searchParams = usePageSearchParams();
   const tableId = searchParams.get('tableId') ?? '';
   const { t } = useTranslation(['table', 'common']);
 

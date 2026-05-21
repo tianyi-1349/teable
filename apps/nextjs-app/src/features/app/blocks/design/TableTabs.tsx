@@ -10,9 +10,9 @@ import {
   Tabs,
   TabsContent,
 } from '@teable/ui-lib/shadcn';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
+import { usePageSearchParams } from '../../../../hooks/usePageSearchParams';
 import { useBaseResource } from '../../hooks/useBaseResource';
 import { DynamicBaseErd } from '../erd/DynamicBaseErd';
 import { FieldSetting } from '../view/field/FieldSetting';
@@ -74,7 +74,7 @@ export const TableTabs = () => {
   const tables = useTables();
   const router = useRouter();
   const { baseId } = useBaseResource();
-  const searchParams = useSearchParams();
+  const searchParams = usePageSearchParams();
   const tableId = searchParams.get('tableId') ?? '';
 
   return (

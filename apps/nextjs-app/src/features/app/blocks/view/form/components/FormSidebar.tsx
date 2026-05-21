@@ -21,6 +21,7 @@ import { FORM_SIDEBAR_DROPPABLE_ID } from '@/features/app/blocks/view/form/const
 import { FieldOperator } from '@/features/app/components/field-setting';
 import { tableConfig } from '@/features/i18n/table.config';
 import { useFieldSettingStore } from '../../field/useFieldSettingStore';
+import { getLocalizedDefaultFieldName } from '../util';
 import { DraggableItem } from './Drag';
 
 interface IDragItemProps {
@@ -41,12 +42,13 @@ interface IDragItemProps {
 export const DragItem: FC<IDragItemProps> = (props) => {
   const { field, disabled, onClick, getFieldStatic } = props;
   const { t } = useTranslation(tableConfig.i18nNamespaces);
-  const { type, name, isLookup, aiConfig } = field;
+  const { type, isLookup, aiConfig } = field;
   const Icon = getFieldStatic(type, {
     isLookup,
     isConditionalLookup: field.isConditionalLookup,
     hasAiConfig: Boolean(aiConfig),
   }).Icon;
+  const displayName = getLocalizedDefaultFieldName(field, t) ?? field.name;
   const content = (
     <div
       className={cn(
@@ -57,7 +59,7 @@ export const DragItem: FC<IDragItemProps> = (props) => {
     >
       <div className="flex items-center overflow-hidden">
         <Icon className="ml-1 mr-2 size-4 shrink-0 text-muted-foreground" />
-        <span className="truncate text-sm">{name}</span>
+        <span className="truncate text-sm">{displayName}</span>
       </div>
       {!disabled && <DraggableHandle className="ml-1 shrink-0" />}
     </div>

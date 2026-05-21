@@ -1,5 +1,7 @@
 import { BaseNodeResourceType } from '@teable/openapi';
+import { useTranslation } from 'next-i18next';
 import type { ReactNode } from 'react';
+import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { usePublishedApp } from '../context';
 import { PublishedResourceState } from './PublishedResourceState';
 import { AppResourcePage } from './resources/AppResourcePage';
@@ -9,18 +11,29 @@ import { UnsupportedResourcePage } from './resources/UnsupportedResourcePage';
 import { WorkflowResourcePage } from './resources/WorkflowResourcePage';
 
 export const PublishedResourceSwitch = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation('common');
   const { currentNode, defaultNode, isShare } = usePublishedApp();
+  const resource = useBaseResource();
   const node = currentNode ?? defaultNode;
 
   if (!node) {
+    if (resource.resourceType) {
+      return (
+        <PublishedResourceState
+          title={t('system.publishedApp.accessDeniedTitle')}
+          description={t('system.publishedApp.accessDeniedDescription')}
+        />
+      );
+    }
+
     if (isShare) {
       return <>{children}</>;
     }
 
     return (
       <PublishedResourceState
-        title="No published resources"
-        description="This published app does not include a renderable resource yet."
+        title={t('system.publishedApp.noResourcesTitle')}
+        description={t('system.publishedApp.noResourcesDescription')}
       />
     );
   }

@@ -108,6 +108,7 @@ import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
 import { WorkflowCapabilityService } from '../workflow/workflow-capability.service';
 import { WorkflowRunnerService } from '../workflow/workflow-runner.service';
 import { WorkflowService } from '../workflow/workflow.service';
+import { Public } from '../auth/decorators/public.decorator';
 import { V2ContainerService } from './v2-container.service';
 import { V2ExecutionContextFactory } from './v2-execution-context.factory';
 import { V2PublishedAppService } from './v2-published-app.service';
@@ -730,6 +731,7 @@ export class V2Controller {
     getNodeRuntime: v2Contract.publishedApps.getNodeRuntime,
     getRuntimeManifest: v2Contract.publishedApps.getRuntimeManifest,
   })
+  @Public()
   publishedApps() {
     return {
       getNavigationModel: implement(v2Contract.publishedApps.getNavigationModel).handler(

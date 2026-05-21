@@ -120,6 +120,7 @@ const nextConfig = {
       : undefined,
   crossOrigin: 'anonymous',
   reactStrictMode: true,
+  allowedDevOrigins: ['*.monkeycode-ai.online'],
   productionBrowserSourceMaps: NEXT_BUILD_ENV_SOURCEMAPS === true,
   // Transpile packages that use React to ensure single React instance
   transpilePackages: [

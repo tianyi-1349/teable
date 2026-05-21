@@ -1,7 +1,9 @@
 import { Progress } from '@teable/ui-lib/shadcn';
+import { useTranslation } from 'next-i18next';
 import React, { useState, useEffect } from 'react';
 
 export function ProgressBar({ duration, cellCount }: { duration: number; cellCount: number }) {
+  const { t } = useTranslation('common');
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -32,11 +34,12 @@ export function ProgressBar({ duration, cellCount }: { duration: number; cellCou
   return (
     <div className="flex flex-col gap-2 text-sm">
       <p>
-        Progress: {format((progress / 100) * cellCount)} / {format(cellCount)}
+        {t('progressBar.progress', {
+          current: format((progress / 100) * cellCount),
+          total: format(cellCount),
+        })}
       </p>
-      {progress === 100 && (
-        <p>Please be patient, the system needs a little more time to process...</p>
-      )}
+      {progress === 100 && <p>{t('progressBar.processingHint')}</p>}
       <Progress value={progress} />
     </div>
   );

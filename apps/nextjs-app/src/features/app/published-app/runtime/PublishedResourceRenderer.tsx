@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import { PublishedResourceErrorBoundary } from './PublishedResourceErrorBoundary';
+import { PublishedResourceErrorBoundaryI18n } from './PublishedResourceErrorBoundary';
 import { PublishedResourceSwitch } from './PublishedResourceSwitch';
 
 export const PublishedResourceRenderer = ({ children }: { children: ReactNode }) => {
   return (
-    <PublishedResourceErrorBoundary>
+    <PublishedResourceErrorBoundaryI18n>
       <PublishedResourceSwitch>{children}</PublishedResourceSwitch>
-    </PublishedResourceErrorBoundary>
+    </PublishedResourceErrorBoundaryI18n>
   );
 };

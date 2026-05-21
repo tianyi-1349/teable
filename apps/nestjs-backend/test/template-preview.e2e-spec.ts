@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { INestApplication } from '@nestjs/common';
-import { FieldType, ViewType, NumberFormattingType, HttpError } from '@teable/core';
+import { FieldType, ViewType, NumberFormattingType, HttpError, HttpErrorCode } from '@teable/core';
 import {
   IS_TEMPLATE_HEADER,
   axios as defaultAxios,
@@ -146,8 +146,16 @@ describe('Template Preview Permission (e2e)', () => {
   });
 
   afterEach(async () => {
-    await deleteTemplate(templateId);
-    await permanentDeleteBase(baseId);
+    if (templateId) {
+      try {
+        await deleteTemplate(templateId);
+      } catch {
+        // Cleanup should not mask the permission assertions in this suite.
+      }
+    }
+    if (baseId) {
+      await permanentDeleteBase(baseId);
+    }
   });
 
   // Test suite factory that runs with different axios instances
@@ -568,20 +576,24 @@ describe('Template Preview Permission (e2e)', () => {
       expect(res.data.length).toBeGreaterThan(0);
     });
 
-    it('should allow createTable with valid app token', async () => {
-      const res = await anonymousAxios.post<ITableFullVo>(
-        `/base/${templateBaseId}/table`,
-        {
-          name: 'New Table',
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${appToken}`,
+    it('should deny createTable with valid app token', async () => {
+      const error = await anonymousAxios
+        .post<ITableFullVo>(
+          `/base/${templateBaseId}/table`,
+          {
+            name: 'New Table',
           },
-        }
-      );
-      expect(res.status).toBe(200);
-      expect(res.data).toMatchObject({
+          {
+            headers: {
+              Authorization: `Bearer ${appToken}`,
+            },
+          }
+        )
+        .catch((error: HttpError) => error);
+
+      expect(error).toMatchObject({
+        status: 403,
+        code: HttpErrorCode.RESTRICTED_RESOURCE,
         message: new TemplateAppTokenNotAllowedException().message,
       });
     });

@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { formSubmit } from '@teable/openapi';
 import { useViewId, useTableId, useIsMobile, useTablePermission } from '@teable/sdk/hooks';
+import { useOptionalPublishedApp } from '@/features/app/published-app';
 import { FormMode, useFormModeStore } from '../tool-bar/store';
 import { FormEditor, FormPreviewer } from './components';
 import { generateUniqLocalKey } from './util';
@@ -11,6 +12,7 @@ export const FormViewBase = () => {
   const { modeMap } = useFormModeStore();
   const isMobile = useIsMobile();
   const permission = useTablePermission();
+  const publishedApp = useOptionalPublishedApp();
 
   const { mutateAsync: createRecords } = useMutation({
     mutationFn: (fields: Record<string, unknown>) =>
@@ -23,6 +25,7 @@ export const FormViewBase = () => {
   const modeKey = generateUniqLocalKey(tableId, activeViewId);
   const mode = modeMap[modeKey] ?? FormMode.Edit;
   const isEditMode = permission['view|update'] && mode === FormMode.Edit;
+  const canSubmit = !publishedApp?.isReadonly;
 
   const submitForm = async (fields: Record<string, unknown>) => {
     if (!tableId || !activeViewId) return;
@@ -31,7 +34,11 @@ export const FormViewBase = () => {
 
   return (
     <div className="flex size-full">
-      {isEditMode && !isMobile ? <FormEditor /> : <FormPreviewer submit={submitForm} />}
+      {isEditMode && !isMobile ? (
+        <FormEditor />
+      ) : (
+        <FormPreviewer submit={canSubmit ? submitForm : undefined} />
+      )}
     </div>
   );
 };

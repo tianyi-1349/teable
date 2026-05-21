@@ -1,4 +1,3 @@
-import { ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
 import type { DomainError } from '../../shared/DomainError';
@@ -12,8 +11,8 @@ import type { ITableSpecVisitor } from './ITableSpecVisitor';
  * Specification for renaming a field's physical database column name (dbFieldName).
  * Stores both previous and next dbFieldName for undo/redo support.
  *
- * The mutation on the in-memory Table is a no-op because the physical rename is
- * handled entirely by the persistence layer (ALTER TABLE RENAME COLUMN + metadata update).
+ * The mutation updates the in-memory Table metadata so callers observe the renamed
+ * dbFieldName consistently before persistence applies the physical column rename.
  */
 export class TableUpdateFieldDbFieldNameSpec<
   V extends ITableSpecVisitor = ITableSpecVisitor,

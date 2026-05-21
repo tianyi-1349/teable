@@ -13,6 +13,7 @@ import {
   ANONYMOUS_STRATEGY_NAME,
   JWT_TOKEN_STRATEGY_NAME,
 } from '../strategies/constant';
+import { PUBLIC_PUBLISHED_APP_PATHS } from './published-app-paths';
 
 @Injectable()
 export class AuthGuard extends PassportAuthGuard([
@@ -41,6 +42,11 @@ export class AuthGuard extends PassportAuthGuard([
   }
 
   async canActivate(context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest();
+    if (PUBLIC_PUBLISHED_APP_PATHS.has(req?.path)) {
+      return true;
+    }
+
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -58,7 +64,6 @@ export class AuthGuard extends PassportAuthGuard([
         context.getClass(),
       ]);
       const res = context.switchToHttp().getResponse();
-      const req = context.switchToHttp().getRequest();
       if (ensureLogin) {
         return res.redirect(`/auth/login?redirect=${encodeURIComponent(req.url)}`);
       }

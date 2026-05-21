@@ -2,7 +2,7 @@ import type { IBaseNodeAppResourceMeta } from '@teable/openapi';
 import { BaseNodeResourceType } from '@teable/openapi';
 import type { TreeItemData } from '@/features/app/blocks/base/base-node/hooks';
 
-export type PublishedAppValidationSeverity = 'error' | 'warning' | 'info';
+export type PublishedAppValidationSeverity = 'fatal' | 'error' | 'warning' | 'info';
 
 export interface PublishedAppValidationIssue {
   severity: PublishedAppValidationSeverity;
@@ -12,8 +12,32 @@ export interface PublishedAppValidationIssue {
 
 export interface PublishedAppValidationResult {
   issues: PublishedAppValidationIssue[];
+  hasFatalErrors: boolean;
   hasErrors: boolean;
 }
+
+const getSelectedNodes = (selectedNodeIds: string[], treeItems: Record<string, TreeItemData>) => {
+  return selectedNodeIds
+    .map((nodeId) => treeItems[nodeId])
+    .filter((node): node is TreeItemData => Boolean(node));
+};
+
+const addDashboardWarning = (
+  issues: PublishedAppValidationIssue[],
+  renderableNodes: TreeItemData[]
+) => {
+  const hasDashboardNode = renderableNodes.some(
+    (node) => node.resourceType === BaseNodeResourceType.Dashboard
+  );
+
+  if (hasDashboardNode) {
+    issues.push({
+      severity: 'warning',
+      message:
+        'Dashboard pages may require mobile layout verification to avoid overflow on narrow screens.',
+    });
+  }
+};
 
 type IPublishedAppConfigValidationProps = {
   selectedNodeIds: string[];
@@ -25,7 +49,7 @@ export const validatePublishedAppConfig = (
   props: IPublishedAppConfigValidationProps & { treeItems: Record<string, TreeItemData> }
 ): PublishedAppValidationResult => {
   const { defaultNodeId, selectedNodeIds, treeItems } = props;
-  const selectedNodes = selectedNodeIds.map((nodeId) => treeItems[nodeId]).filter(Boolean);
+  const selectedNodes = getSelectedNodes(selectedNodeIds, treeItems);
   const renderableNodes = selectedNodes.filter(
     (node) => node.resourceType !== BaseNodeResourceType.Folder
   );
@@ -33,14 +57,14 @@ export const validatePublishedAppConfig = (
 
   if (selectedNodes.length === 0) {
     issues.push({
-      severity: 'error',
+      severity: 'fatal',
       message: 'Select at least one node before publishing.',
     });
   }
 
   if (selectedNodes.length > 0 && renderableNodes.length === 0) {
     issues.push({
-      severity: 'error',
+      severity: 'fatal',
       message: 'Select at least one table, dashboard, automation, or app node.',
     });
   }
@@ -49,13 +73,13 @@ export const validatePublishedAppConfig = (
     const defaultNode = treeItems[defaultNodeId];
     if (!selectedNodeIds.includes(defaultNodeId) || !defaultNode) {
       issues.push({
-        severity: 'error',
+        severity: 'fatal',
         message: 'The default page must be included in the published nodes.',
         nodeId: defaultNodeId,
       });
     } else if (defaultNode.resourceType === BaseNodeResourceType.Folder) {
       issues.push({
-        severity: 'error',
+        severity: 'fatal',
         message: 'The default page cannot be a folder.',
         nodeId: defaultNodeId,
       });
@@ -67,8 +91,8 @@ export const validatePublishedAppConfig = (
     const meta = node.resourceMeta as IBaseNodeAppResourceMeta | undefined;
     if (!meta?.publicUrl) {
       issues.push({
-        severity: 'warning',
-        message: `App "${node.resourceMeta?.name ?? node.id}" has no public URL and will show an unavailable state.`,
+        severity: 'fatal',
+        message: `App "${node.resourceMeta?.name ?? node.id}" has no public URL, so published runtime cannot render it.`,
         nodeId: node.id,
       });
     }
@@ -81,8 +105,11 @@ export const validatePublishedAppConfig = (
     });
   }
 
+  addDashboardWarning(issues, renderableNodes);
+
   return {
     issues,
-    hasErrors: issues.some((issue) => issue.severity === 'error'),
+    hasFatalErrors: issues.some((issue) => issue.severity === 'fatal'),
+    hasErrors: issues.some((issue) => issue.severity === 'fatal' || issue.severity === 'error'),
   };
 };

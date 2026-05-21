@@ -4,6 +4,7 @@ import type { IGetPinListVo } from '@teable/openapi';
 import { BaseNodeResourceType, PinType } from '@teable/openapi';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useTranslation } from 'next-i18next';
 import { Emoji } from '@/features/app/components/emoji/Emoji';
 import { BaseNodeResourceIconMap, getNodeUrl } from '../../base/base-node/hooks';
 import { VIEW_ICON_MAP } from '../../view/constant';
@@ -18,6 +19,7 @@ interface IPinItemProps {
 export const PinItem = (props: IPinItemProps) => {
   const { className, pin, right } = props;
   const router = useRouter();
+  const { t } = useTranslation('common');
 
   switch (pin.type) {
     case PinType.Space: {
@@ -176,6 +178,6 @@ export const PinItem = (props: IPinItemProps) => {
       );
     }
     default:
-      return <div>unknown</div>;
+      return <div>{t('status.unknown')}</div>;
   }
 };

@@ -4,6 +4,12 @@ const testFiles = ['./src/**/*.{test,spec}.{js,ts}'];
 
 export default defineConfig({
   resolve: {
+    alias: {
+      '@teable/core': new URL('../../core/src/index.ts', import.meta.url).pathname,
+      '@teable/formula': new URL('../../formula/src/index.ts', import.meta.url).pathname,
+      '@teable/i18n-keys': new URL('../../i18n-keys/src/index.ts', import.meta.url).pathname,
+      '@teable/v2-di': new URL('../di/src/index.ts', import.meta.url).pathname,
+    },
     conditions: ['@teable/source'],
   },
   ssr: {
