@@ -21,6 +21,7 @@ export const PwaStandaloneShell = ({ children }: PublishedAppShellProps) => {
 
   return (
     <div
+      data-testid="pwa-standalone-shell"
       className="flex h-screen min-h-0 flex-col bg-background"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
@@ -30,12 +31,18 @@ export const PwaStandaloneShell = ({ children }: PublishedAppShellProps) => {
       }}
     >
       {!isOnline && (
-        <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
+        <div
+          data-testid="pwa-offline-banner"
+          className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-700"
+        >
           Network is unavailable. Published content stays available in read-only mode.
         </div>
       )}
       <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
-      <div className="border-t px-3 py-2 text-center text-xs text-muted-foreground">
+      <div
+        data-testid="pwa-shell-footer"
+        className="border-t px-3 py-2 text-center text-xs text-muted-foreground"
+      >
         Standalone mode keeps safe-area spacing and current page refresh behavior.
       </div>
     </div>

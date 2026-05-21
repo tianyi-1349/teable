@@ -7,8 +7,8 @@ import {
 import { useBase, useTables } from '@teable/sdk/hooks';
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@teable/ui-lib/shadcn';
 import { Check, Loader2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'next-i18next';
+import { usePageSearchParams } from '../../../../../hooks/usePageSearchParams';
 import { IntegrityV2Dialog } from './IntegrityV2Dialog';
 
 const LegacyIntegrityButton = ({ baseId, tableId }: { baseId: string; tableId: string }) => {
@@ -88,7 +88,7 @@ export const IntegrityButton = () => {
   const base = useBase();
   const tables = useTables();
   const { t } = useTranslation(['table']);
-  const searchParams = useSearchParams();
+  const searchParams = usePageSearchParams();
   const tableId = searchParams.get('tableId') ?? '';
   const tableName = tables.find((table) => table.id === tableId)?.name;
 

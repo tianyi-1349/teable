@@ -15,11 +15,11 @@ import {
   TabsContent,
 } from '@teable/ui-lib/shadcn';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'next-i18next';
 import { useMemo, useState } from 'react';
 import { Selector } from '@/components/Selector';
 import { developerConfig } from '@/features/i18n/developer.config';
+import { usePageSearchParams } from '../../../../../hooks/usePageSearchParams';
 import { SettingRight } from '../SettingRight';
 import { SettingRightTitle } from '../SettingRightTitle';
 import { AIContextPanel } from './AIContextPanel';
@@ -32,7 +32,7 @@ import { ViewBuilder } from './ViewBuilder';
 
 export const QueryBuilder = () => {
   const { t } = useTranslation(developerConfig.i18nNamespaces);
-  const searchParams = useSearchParams();
+  const searchParams = usePageSearchParams();
   const [baseId, setBaseId] = useState<string>(searchParams.get('baseId') ?? '');
   const [tableId, setTableId] = useState<string>(searchParams.get('tableId') ?? '');
   const [viewId, setViewId] = useState<string>();

@@ -15,9 +15,12 @@ export class Pie extends Base {
     return {
       tooltip: {
         trigger: 'item',
+        triggerOn: 'mousemove|click',
       },
       legend: {
         left: 'center',
+        type: 'scroll',
+        bottom: 0,
       },
       series: {
         type: ChartType.Pie,

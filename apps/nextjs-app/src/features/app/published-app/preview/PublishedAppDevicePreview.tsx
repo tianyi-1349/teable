@@ -22,6 +22,7 @@ export const PublishedAppDevicePreview = ({
   defaultNodeTitle,
   issues,
 }: PublishedAppDevicePreviewProps) => {
+  const fatalCount = issues.filter((issue) => issue.severity === 'fatal').length;
   const errorCount = issues.filter((issue) => issue.severity === 'error').length;
   const warningCount = issues.filter((issue) => issue.severity === 'warning').length;
   const infoCount = issues.filter((issue) => issue.severity === 'info').length;
@@ -46,6 +47,9 @@ export const PublishedAppDevicePreview = ({
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded bg-muted px-2 py-1 text-muted-foreground">
           Default: {defaultNodeTitle || 'Unset'}
+        </span>
+        <span className="rounded bg-destructive px-2 py-1 text-destructive-foreground">
+          Fatal: {fatalCount}
         </span>
         <span className="rounded bg-destructive/10 px-2 py-1 text-destructive">
           Errors: {errorCount}

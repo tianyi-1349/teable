@@ -92,7 +92,16 @@ import { UserFieldDto } from '../field/model/field-dto/user-field.dto';
 import { TableIndexService } from '../table/table-index.service';
 import { ROW_ORDER_FIELD_PREFIX } from '../view/constant';
 import { InjectRecordQueryBuilder, IRecordQueryBuilder } from './query-builder';
+import {
+  chunkTokens,
+  collectAttachmentPreviewTokens,
+  collectAttachmentThumbnailTokens,
+  decorateAttachmentValue,
+  decorateRecordsAttachmentFields,
+} from './record-attachment-preview';
 import { RecordPermissionService } from './record-permission.service';
+import { assertAllRecordIdsFound, buildSnapshotsFromDbRecords } from './record-snapshot-mapping';
+import { buildViewProjection } from './record-view-projection';
 
 type IUserFields = { id: string; dbFieldName: string }[];
 type IGeneratedColumnMeta = { meta?: { persistedAsGeneratedColumn?: boolean } };
@@ -987,43 +996,9 @@ export class RecordService {
     });
 
     const columnMeta = JSON.parse(view.columnMeta) as IColumnMeta;
-
-    const useVisible = Object.values(columnMeta).some((column) => 'visible' in column);
-    const useHidden = Object.values(columnMeta).some((column) => 'hidden' in column);
-
-    if (!useVisible && !useHidden) {
-      return;
-    }
-
     const fieldRaws = await this.dataLoaderService.field.load(tableId);
 
-    const fieldMap = keyBy(fieldRaws, 'id');
-
-    const projection = Object.entries(columnMeta).reduce<Record<string, boolean>>(
-      (acc, [fieldId, column]) => {
-        const field = fieldMap[fieldId];
-        if (!field) return acc;
-
-        const fieldKey = field[fieldKeyType];
-
-        if (useVisible) {
-          if ('visible' in column && column.visible) {
-            acc[fieldKey] = true;
-          }
-        } else if (useHidden) {
-          if (!('hidden' in column) || !column.hidden) {
-            acc[fieldKey] = true;
-          }
-        } else {
-          acc[fieldKey] = true;
-        }
-
-        return acc;
-      },
-      {}
-    );
-
-    return Object.keys(projection).length > 0 ? projection : undefined;
+    return buildViewProjection(columnMeta, fieldRaws, fieldKeyType);
   }
 
   async getRecords(
@@ -1614,34 +1589,15 @@ export class RecordService {
     fields: IFieldInstance[],
     fieldKeyType: FieldKeyType
   ) {
-    const previewToken: string[] = [];
-    for (const field of fields) {
-      if (field.type === FieldType.Attachment) {
-        const fieldKey = field[fieldKeyType];
-        for (const record of records) {
-          const cellValue = record.data.fields[fieldKey];
-          if (cellValue == null) continue;
-          (cellValue as IAttachmentCellValue).forEach((item) => {
-            if (item.mimetype.startsWith('image/') && item.width && item.height) {
-              const { smThumbnailPath, lgThumbnailPath } = generateTableThumbnailPath(item.path);
-              previewToken.push(getTableThumbnailToken(smThumbnailPath));
-              previewToken.push(getTableThumbnailToken(lgThumbnailPath));
-            }
-            previewToken.push(item.token);
-          });
-        }
-      }
-    }
-    // limit 1000 one handle
+    const previewTokens = collectAttachmentPreviewTokens(records, fields, fieldKeyType);
     const tokenMap: Record<string, string> = {};
-    for (let i = 0; i < previewToken.length; i += 1000) {
-      const tokenBatch = previewToken.slice(i, i + 1000);
+    for (const tokenBatch of chunkTokens(previewTokens, 1000)) {
       const previewUrls = await this.cacheService.getMany(
         tokenBatch.map((token) => `attachment:preview:${token}` as const)
       );
       previewUrls.forEach((url, index) => {
         if (url) {
-          tokenMap[previewToken[i + index]] = url.url;
+          tokenMap[tokenBatch[index]] = url.url;
         }
       });
     }
@@ -1653,21 +1609,7 @@ export class RecordService {
     fields: IFieldInstance[],
     fieldKeyType: FieldKeyType
   ) {
-    const thumbnailTokens: string[] = [];
-    for (const field of fields) {
-      if (field.type === FieldType.Attachment) {
-        const fieldKey = field[fieldKeyType];
-        for (const record of records) {
-          const cellValue = record.data.fields[fieldKey];
-          if (cellValue == null) continue;
-          (cellValue as IAttachmentCellValue).forEach((item) => {
-            if (isImage(item.mimetype) || isPdf(item.mimetype)) {
-              thumbnailTokens.push(getTableThumbnailToken(item.token));
-            }
-          });
-        }
-      }
-    }
+    const thumbnailTokens = collectAttachmentThumbnailTokens(records, fields, fieldKeyType);
     if (thumbnailTokens.length === 0) {
       return {};
     }
@@ -1705,23 +1647,10 @@ export class RecordService {
       fields,
       fieldKeyType
     );
-    for (const field of fields) {
-      if (field.type === FieldType.Attachment) {
-        const fieldKey = field[fieldKeyType];
-        for (const record of records) {
-          const cellValue = record.data.fields[fieldKey];
-          const presignedCellValue = await this.getAttachmentPresignedCellValue(
-            cellValue as IAttachmentCellValue,
-            cacheTokenUrlMap,
-            thumbnailPathTokenMap
-          );
-          if (presignedCellValue == null) continue;
 
-          record.data.fields[fieldKey] = presignedCellValue;
-        }
-      }
-    }
-    return records;
+    return decorateRecordsAttachmentFields(records, fields, fieldKeyType, async (cellValue) =>
+      this.getAttachmentPresignedCellValue(cellValue, cacheTokenUrlMap, thumbnailPathTokenMap)
+    );
   }
 
   async invalidateAttachmentPresignedUrlCache(tokens: string[]) {
@@ -1775,12 +1704,11 @@ export class RecordService {
           }
         }
 
-        return {
-          ...item,
+        return decorateAttachmentValue(item, {
           presignedUrl,
-          smThumbnailUrl: isImg ? smThumbnailUrl || presignedUrl : smThumbnailUrl,
-          lgThumbnailUrl: isImg ? lgThumbnailUrl || presignedUrl : lgThumbnailUrl,
-        };
+          smThumbnailUrl,
+          lgThumbnailUrl,
+        });
       })
     );
   }
@@ -1845,44 +1773,29 @@ export class RecordService {
       {} as { [recordId: string]: number }
     );
 
-    recordIds.forEach((recordId) => {
-      if (!(recordId in recordIdsMap)) {
-        throw new CustomHttpException(`Record ${recordId} not found`, HttpErrorCode.NOT_FOUND, {
+    const missingRecordIds = assertAllRecordIdsFound(recordIds, result);
+    if (missingRecordIds.length) {
+      throw new CustomHttpException(
+        `Some records cannot be found, ids: ${missingRecordIds.join(', ')}`,
+        HttpErrorCode.NOT_FOUND,
+        {
           localization: {
             i18nKey: 'httpErrors.record.notFound',
           },
-        });
-      }
-    });
+        }
+      );
+    }
 
     const primaryField = await this.getPrimaryField(tableId);
 
-    const snapshots = result
-      .sort((a, b) => {
-        return recordIdsMap[a.__id] - recordIdsMap[b.__id];
-      })
-      .map((record) => {
-        const recordFields = this.dbRecord2RecordFields(record, fields, fieldKeyType, cellFormat);
-        const name = recordFields[primaryField[fieldKeyType]];
-        return {
-          id: record.__id,
-          v: record.__version,
-          type: 'json0',
-          data: {
-            fields: recordFields,
-            name:
-              cellFormat === CellFormat.Text
-                ? (name as string)
-                : primaryField.cellValue2String(name),
-            id: record.__id,
-            autoNumber: record.__auto_number,
-            createdTime: record.__created_time?.toISOString(),
-            lastModifiedTime: record.__last_modified_time?.toISOString(),
-            createdBy: record.__created_by,
-            lastModifiedBy: record.__last_modified_by || undefined,
-          },
-        };
-      });
+    const snapshots = buildSnapshotsFromDbRecords(
+      result,
+      recordIdsMap,
+      primaryField,
+      fieldKeyType,
+      cellFormat,
+      (record) => this.dbRecord2RecordFields(record, fields, fieldKeyType, cellFormat)
+    );
     if (cellFormat === CellFormat.Json) {
       return await this.recordsPresignedUrl(snapshots, fields, fieldKeyType);
     }

@@ -137,6 +137,9 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
   const visibleValidationIssues = validationResult.issues.filter(
     (issue) => issue.severity !== 'info' || selectedNodeIds.length > 0
   );
+  const primaryBlockingIssue =
+    validationResult.issues.find((issue) => issue.severity === 'fatal') ||
+    validationResult.issues.find((issue) => issue.severity === 'error');
   const defaultNodeTitle = defaultActiveNodeId
     ? treeItems[defaultActiveNodeId]?.resourceMeta?.name
     : '';
@@ -393,10 +396,7 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
     }
 
     if (validationResult.hasErrors) {
-      toast.error(
-        validationResult.issues.find((issue) => issue.severity === 'error')?.message ||
-          t('publishBase.tips.publishValidation')
-      );
+      toast.error(primaryBlockingIssue?.message || t('publishBase.tips.publishValidation'));
       return;
     }
 
@@ -497,7 +497,8 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
                     <div
                       key={`${issue.severity}-${issue.nodeId ?? index}-${issue.message}`}
                       className={cn('flex gap-2', {
-                        'text-destructive': issue.severity === 'error',
+                        'text-destructive':
+                          issue.severity === 'fatal' || issue.severity === 'error',
                         'text-amber-600 dark:text-amber-500': issue.severity === 'warning',
                         'text-muted-foreground': issue.severity === 'info',
                       })}

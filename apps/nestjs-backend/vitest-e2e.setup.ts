@@ -79,6 +79,14 @@ function compileWorkerFile() {
 async function setup() {
   dotenv.config({ path: '../nextjs-app' });
 
+  // Keep backend e2e bootstrapping stable even when local env files omit secrets.
+  process.env.SECRET_KEY ||= 'test-secret-key';
+  process.env.BACKEND_JWT_SECRET ||= process.env.SECRET_KEY;
+  process.env.BACKEND_SESSION_SECRET ||= process.env.SECRET_KEY;
+  process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_KEY ||= process.env.SECRET_KEY;
+  process.env.BACKEND_ACCESS_TOKEN_ENCRYPTION_IV ||= process.env.SECRET_KEY;
+  process.env.DISABLE_PRE_SQL_EXECUTOR_CHECK ||= 'true';
+
   // Use sync mode for v2 computed updates in tests
   process.env.V2_COMPUTED_UPDATE_MODE = 'sync';
 

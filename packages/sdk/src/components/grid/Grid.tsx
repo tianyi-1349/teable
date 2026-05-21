@@ -1,7 +1,15 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-tabindex */
 import { uniqueId } from 'lodash';
 import type { CSSProperties, ForwardRefRenderFunction } from 'react';
-import { useState, useRef, useMemo, useCallback, useImperativeHandle, forwardRef } from 'react';
+import {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from 'react';
 import { useRafState } from 'react-use';
 import { LoadingIndicator, ErrorIndicator } from './components';
 import type { IGridTheme } from './configs';
@@ -507,12 +515,12 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
 
   const totalHeight = coordInstance.totalHeight + scrollBufferY;
 
-  useMemo(() => {
+  useEffect(() => {
     coordInstance.refreshColumnDimensions({ columnInitSize, columnCount, columnWidthMap });
     setForceRenderFlag(uniqueId('grid_'));
   }, [coordInstance, columnInitSize, columnCount, columnWidthMap]);
 
-  useMemo(() => {
+  useEffect(() => {
     coordInstance.containerWidth = width;
     coordInstance.containerHeight = containerHeight;
     coordInstance.freezeColumnCount = freezeColumnCount;

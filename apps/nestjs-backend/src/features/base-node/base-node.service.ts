@@ -269,6 +269,28 @@ export class BaseNodeService {
     });
   }
 
+  protected getAppResources(baseId: string, ids?: string[]) {
+    return this.prismaService.baseNode
+      .findMany({
+        where: {
+          baseId,
+          resourceType: BaseNodeResourceType.App,
+          resourceId: { in: ids ? ids : undefined },
+        },
+        select: {
+          resourceId: true,
+        },
+      })
+      .then((nodes) =>
+        nodes.map(({ resourceId }) => ({
+          id: resourceId,
+          name: 'App',
+          publicUrl: null,
+          publishedVersion: null,
+        }))
+      );
+  }
+
   protected getFolderResources(baseId: string, ids?: string[]) {
     return this.prismaService.baseNodeFolder.findMany({
       where: { baseId, id: { in: ids ? ids : undefined } },
@@ -293,6 +315,8 @@ export class BaseNodeService {
         return this.getDashboardResources(baseId, ids);
       case BaseNodeResourceType.Workflow:
         return this.getWorkflowResources(baseId, ids);
+      case BaseNodeResourceType.App:
+        return this.getAppResources(baseId, ids);
       default:
         throw new CustomHttpException(
           `Invalid resource type ${type}`,
@@ -312,6 +336,7 @@ export class BaseNodeService {
       BaseNodeResourceType.Table,
       BaseNodeResourceType.Dashboard,
       BaseNodeResourceType.Workflow,
+      BaseNodeResourceType.App,
     ];
   }
 

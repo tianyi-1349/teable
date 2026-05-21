@@ -1,5 +1,6 @@
 import type { IGetBaseVo } from '@teable/openapi';
 import { BaseNodeResourceType } from '@teable/openapi';
+import { useIsAnonymous } from '@teable/sdk';
 import { useIsMobile } from '@teable/sdk/hooks';
 import { useRouter } from 'next/router';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
@@ -87,7 +88,9 @@ export const PublishedAppProvider = ({
   const isTablet = useMedia('(min-width: 641px) and (max-width: 1024px)');
   const isPwaStandalone = useIsPwaStandalone();
   const isEmbed = useIsEmbed();
+  const isAnonymous = useIsAnonymous();
   const { treeItems } = useContext(BaseNodeContext);
+  const canEdit = Boolean(!shareId ? allowEdit : allowEdit && !isAnonymous);
 
   const manifest = useMemo(() => {
     return buildPublishedAppManifest({
@@ -100,8 +103,8 @@ export const PublishedAppProvider = ({
       permissions: {
         allowSave,
         allowCopy,
-        allowEdit,
-        readonly: !allowEdit,
+        allowEdit: canEdit,
+        readonly: !canEdit,
       },
       mode: shareId ? 'share' : 'authenticated',
     });
@@ -111,6 +114,8 @@ export const PublishedAppProvider = ({
     allowSave,
     base?.icon,
     base?.name,
+    canEdit,
+    isAnonymous,
     resource.baseId,
     shareId,
     shareNodeId,
@@ -134,7 +139,7 @@ export const PublishedAppProvider = ({
       defaultNode,
       activeNavigationItem: navigation.activeItem,
       isShare: Boolean(shareId),
-      isReadonly: !allowEdit,
+      isReadonly: !canEdit,
       isMobile,
       isTablet,
       isEmbed,
@@ -147,7 +152,7 @@ export const PublishedAppProvider = ({
       },
     };
   }, [
-    allowEdit,
+    canEdit,
     currentNode,
     defaultNode,
     isMobile,

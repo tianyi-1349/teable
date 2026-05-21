@@ -104,6 +104,7 @@ import { useChatPanelStore } from '@/features/app/components/sidebar/useChatPane
 import { useShareAllowCopy, useShareContext } from '@/features/app/context/ShareContext';
 import { useBaseUsage } from '@/features/app/hooks/useBaseUsage';
 import { useDisableAIAction } from '@/features/app/hooks/useDisableAIAction';
+import { useOptionalPublishedApp } from '@/features/app/published-app';
 import { tableConfig } from '@/features/i18n/table.config';
 import { FieldOperator } from '../../../components/field-setting';
 import { useFieldSettingStore } from '../field/useFieldSettingStore';
@@ -139,12 +140,12 @@ import { getSyncCopyData } from './utils/getSyncCopyData';
  * Extract row ranges (0-based) from a CombinedSelection.
  * Returns null for column-only selections.
  */
-function getRowRangesFromSelection(selection: CombinedSelection): [number, number][] | null {
+export function getRowRangesFromSelection(selection: CombinedSelection): [number, number][] | null {
   const { isCellSelection, isRowSelection } = selection;
 
   if (isCellSelection) {
     const [[, startRow], [, endRow]] = selection.serialize();
-    return [[startRow, endRow]];
+    return [[Math.min(startRow, endRow), Math.max(startRow, endRow)]];
   }
 
   if (isRowSelection) {
@@ -153,11 +154,81 @@ function getRowRangesFromSelection(selection: CombinedSelection): [number, numbe
       .map(
         ([startRow, endRow]) =>
           [Math.min(startRow, endRow), Math.max(startRow, endRow)] as [number, number]
-      );
+      )
+      .sort((a, b) => a[0] - b[0]);
   }
 
   return null;
 }
+
+export function getSelectedColumnRange(selection: CombinedSelection): [number, number] | null {
+  if (selection.type !== SelectionRegionType.Cells) {
+    return null;
+  }
+
+  const [start, end] = selection.serialize();
+  return [Math.min(start[0], end[0]), Math.max(start[0], end[0])];
+}
+
+export function getSelectedFieldIdsFromColumns(
+  selection: CombinedSelection,
+  columns: Array<{ id?: string }>
+) {
+  const columnRange = getSelectedColumnRange(selection);
+  if (!columnRange) {
+    return [];
+  }
+
+  const [startCol, endCol] = columnRange;
+  const fieldIds: string[] = [];
+
+  for (let col = startCol; col <= endCol; col++) {
+    const fieldId = columns[col]?.id;
+    if (fieldId) {
+      fieldIds.push(fieldId);
+    }
+  }
+
+  return fieldIds;
+}
+
+export const buildGridRowControls = ({
+  isTouchDevice,
+  canDragRow,
+}: {
+  isTouchDevice: boolean;
+  canDragRow: boolean;
+}) => {
+  if (isTouchDevice) {
+    return [
+      {
+        type: RowControlType.Expand,
+        icon: RowControlType.Expand,
+      },
+    ];
+  }
+
+  const drag = canDragRow
+    ? [
+        {
+          type: RowControlType.Drag,
+          icon: RowControlType.Drag,
+        },
+      ]
+    : [];
+
+  return [
+    ...drag,
+    {
+      type: RowControlType.Checkbox,
+      icon: RowControlType.Checkbox,
+    },
+    {
+      type: RowControlType.Expand,
+      icon: RowControlType.Expand,
+    },
+  ];
+};
 
 interface IGridViewBaseInnerProps {
   groupPointsServerData?: IGroupPointsVo | null;
@@ -166,6 +237,7 @@ interface IGridViewBaseInnerProps {
 
 const { scrollBuffer, columnAppendBtnWidth } = GRID_DEFAULT;
 
+/* eslint-disable sonarjs/cognitive-complexity */
 export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   props: IGridViewBaseInnerProps
 ) => {
@@ -189,6 +261,7 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const allFields = useFields({ withHidden: true });
   const taskStatusCollection = useContext(TaskStatusCollectionContext);
   const { shareId } = useShareContext();
+  const publishedApp = useOptionalPublishedApp();
   const buttonClickStatusHook = useButtonClickStatus(tableId, shareId);
   const { columns: originalColumns, cellValue2GridDisplay } = useGridColumns();
   const { columns, onColumnResize } = useGridColumnResize(originalColumns);
@@ -901,26 +974,10 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const customIcons = useGridIcons();
 
   const rowControls = useMemo(() => {
-    if (isTouchDevice) return [];
-    const drag = permission['view|update']
-      ? [
-          {
-            type: RowControlType.Drag,
-            icon: RowControlType.Drag,
-          },
-        ]
-      : [];
-    return [
-      ...drag,
-      {
-        type: RowControlType.Checkbox,
-        icon: RowControlType.Checkbox,
-      },
-      {
-        type: RowControlType.Expand,
-        icon: RowControlType.Expand,
-      },
-    ];
+    return buildGridRowControls({
+      isTouchDevice,
+      canDragRow: permission['view|update'],
+    });
   }, [isTouchDevice, permission]);
 
   const onDelete = (selection: CombinedSelection) => {
@@ -962,8 +1019,12 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
     if (type !== SelectionRegionType.Cells || fieldValueMap == null) return;
 
     const getCopyData = () => {
-      const [start, end] = selection.serialize();
-      const selectedFields = fields.slice(start[0], end[0] + 1);
+      const columnRange = getSelectedColumnRange(selection);
+      if (!columnRange) {
+        return { content: '', header: [] };
+      }
+      const [startCol, endCol] = columnRange;
+      const selectedFields = fields.slice(startCol, endCol + 1);
       const filteredPropsFields = selectedFields
         .map((f) => {
           const validateField = fieldVoSchema.safeParse(f);
@@ -1022,14 +1083,8 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const onDeleteForPrefilling = (selection: CombinedSelection) => {
     if (localRecord == null || prefillingFieldValueMap == null) return;
 
-    const [start, end] = selection.serialize();
-    const startCol = Math.min(start[0], end[0]);
-    const endCol = Math.max(start[0], end[0]);
-
     const updated: { [fieldId: string]: unknown } = { ...prefillingFieldValueMap };
-    for (let col = startCol; col <= endCol; col++) {
-      const fieldId = columns[col]?.id;
-      if (!fieldId) continue;
+    for (const fieldId of getSelectedFieldIdsFromColumns(selection, columns)) {
       updated[fieldId] = null;
     }
     setPrefillingFieldValueMap(updated);
@@ -1038,14 +1093,8 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const onDeleteForPresort = (selection: CombinedSelection) => {
     if (!presortRecord) return;
 
-    const [start, end] = selection.serialize();
-    const startCol = Math.min(start[0], end[0]);
-    const endCol = Math.max(start[0], end[0]);
-
     const fieldsToNull: { [fieldId: string]: unknown } = {};
-    for (let col = startCol; col <= endCol; col++) {
-      const fieldId = columns[col]?.id;
-      if (!fieldId) continue;
+    for (const fieldId of getSelectedFieldIdsFromColumns(selection, columns)) {
       fieldsToNull[fieldId] = null;
     }
 
@@ -1714,7 +1763,16 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
           />
         </PresortRowContainer>
       )}
-      <RowCounter rowCount={realRowCount} className="absolute bottom-3 left-0" />
+      <div
+        className="absolute left-0"
+        style={
+          publishedApp?.isMobile
+            ? { bottom: 'calc(env(safe-area-inset-bottom) + 12px)' }
+            : { bottom: '0.75rem' }
+        }
+      >
+        <RowCounter rowCount={realRowCount} className="relative" />
+      </div>
       <DomBox id={componentId} />
       {!onRowExpand && (
         <ExpandRecordContainer
@@ -1810,3 +1868,4 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
     </div>
   );
 };
+/* eslint-enable sonarjs/cognitive-complexity */

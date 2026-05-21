@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 import { PluginContent } from '../../components/plugin/PluginContent';
 import { PluginHeader } from '../../components/plugin/PluginHeader';
 import { useIsExpandPlugin } from '../hooks/useIsExpandPlugin';
+import { DashboardPluginErrorBoundary } from './DashboardPluginErrorBoundary';
 
 export const PluginItem = (props: {
   name: string;
@@ -121,17 +122,19 @@ export const PluginItem = (props: {
           canManage={canManage}
           onCopy={onCopy}
         />
-        <PluginContent
-          baseId={baseId}
-          dragging={dragging}
-          pluginId={pluginId}
-          pluginInstallId={pluginInstallId}
-          pluginUrl={pluginUrl}
-          positionId={dashboardId}
-          onExpand={onExpand}
-          renderClassName="p-1"
-          positionType={PluginPosition.Dashboard}
-        />
+        <DashboardPluginErrorBoundary name={name}>
+          <PluginContent
+            baseId={baseId}
+            dragging={dragging}
+            pluginId={pluginId}
+            pluginInstallId={pluginInstallId}
+            pluginUrl={pluginUrl}
+            positionId={dashboardId}
+            onExpand={onExpand}
+            renderClassName="p-1"
+            positionType={PluginPosition.Dashboard}
+          />
+        </DashboardPluginErrorBoundary>
       </div>
     </div>
   );
