@@ -45,7 +45,6 @@ const createTableId = (seed: string) => TableId.create(`tbl${seed.repeat(16)}`).
 const createFieldId = (seed: string) => FieldId.create(`fld${seed.repeat(16)}`)._unsafeUnwrap();
 
 const TEXT_DEFAULT_ALPHA = TextDefaultValue.create('Alpha')._unsafeUnwrap();
-const TEXT_DEFAULT_BETA = TextDefaultValue.create('Beta')._unsafeUnwrap();
 const NUMBER_DEFAULT_ONE = NumberDefaultValue.create(1)._unsafeUnwrap();
 const NUMBER_SHOW_AS_BAR = NumberShowAs.create({
   type: SingleNumberDisplayType.Bar,

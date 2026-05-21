@@ -1,6 +1,6 @@
 import { inject, injectable } from '@teable/v2-di';
 import type { Result } from 'neverthrow';
-import { err, ok } from 'neverthrow';
+import { err } from 'neverthrow';
 
 import { TableQueryService } from '../application/services/TableQueryService';
 import type { DomainError } from '../domain/shared/DomainError';

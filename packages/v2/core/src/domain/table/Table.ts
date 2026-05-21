@@ -1077,10 +1077,63 @@ export class Table extends AggregateRoot<TableId> {
     if (fieldResult.isErr()) return err(fieldResult.error);
 
     const field = fieldResult.value;
-    const setDescriptionResult = field.setDescription(description);
+    const duplicatedFieldResult = field.duplicate({
+      newId: field.id(),
+      newName: field.name(),
+      baseId: this.baseIdValue,
+      tableId: this.id(),
+    });
+    if (duplicatedFieldResult.isErr()) return err(duplicatedFieldResult.error);
+
+    const duplicatedField = duplicatedFieldResult.value;
+
+    const setDescriptionResult = duplicatedField.setDescription(description);
     if (setDescriptionResult.isErr()) return err(setDescriptionResult.error);
 
-    return ok(this);
+    const setAiConfigResult = duplicatedField.setAiConfig(field.aiConfig());
+    if (setAiConfigResult.isErr()) return err(setAiConfigResult.error);
+
+    const setNotNullResult = duplicatedField.setNotNull(field.notNull());
+    if (setNotNullResult.isErr()) return err(setNotNullResult.error);
+
+    const setUniqueResult = duplicatedField.setUnique(field.unique());
+    if (setUniqueResult.isErr()) return err(setUniqueResult.error);
+
+    const hasError = field.hasError();
+    if (!hasError.equals(duplicatedField.hasError())) {
+      duplicatedField.setHasError(hasError);
+    }
+
+    const dbFieldNameResult = field.dbFieldName();
+    if (dbFieldNameResult.isOk()) {
+      const setDbFieldNameResult = duplicatedField.setDbFieldName(dbFieldNameResult.value);
+      if (setDbFieldNameResult.isErr()) return err(setDbFieldNameResult.error);
+    }
+
+    const dbFieldTypeResult = field.dbFieldType();
+    if (dbFieldTypeResult.isOk()) {
+      const setDbFieldTypeResult = duplicatedField.setDbFieldType(dbFieldTypeResult.value);
+      if (setDbFieldTypeResult.isErr()) return err(setDbFieldTypeResult.error);
+    }
+
+    const nextFields = this.fieldsValue.map((current) =>
+      current.id().equals(fieldId) ? duplicatedField : current
+    );
+
+    const props: ITableBuildProps = {
+      id: this.id(),
+      baseId: this.baseIdValue,
+      name: this.nameValue,
+      fields: nextFields,
+      views: this.viewsValue,
+      primaryFieldId: this.primaryFieldIdValue,
+    };
+
+    if (this.dbTableNameValue.isRehydrated()) {
+      props.dbTableName = this.dbTableNameValue;
+    }
+
+    return Table.rehydrate(props);
   }
 
   updateFieldDbFieldName(fieldId: FieldId, dbFieldName: DbFieldName): Result<Table, DomainError> {
@@ -1088,10 +1141,66 @@ export class Table extends AggregateRoot<TableId> {
     if (fieldResult.isErr()) return err(fieldResult.error);
 
     const field = fieldResult.value;
-    const renameResult = field.renameDbFieldName(dbFieldName);
+    const duplicatedFieldResult = field.duplicate({
+      newId: field.id(),
+      newName: field.name(),
+      baseId: this.baseIdValue,
+      tableId: this.id(),
+    });
+    if (duplicatedFieldResult.isErr()) return err(duplicatedFieldResult.error);
+
+    const duplicatedField = duplicatedFieldResult.value;
+
+    const setDescriptionResult = duplicatedField.setDescription(field.description());
+    if (setDescriptionResult.isErr()) return err(setDescriptionResult.error);
+
+    const setAiConfigResult = duplicatedField.setAiConfig(field.aiConfig());
+    if (setAiConfigResult.isErr()) return err(setAiConfigResult.error);
+
+    const setNotNullResult = duplicatedField.setNotNull(field.notNull());
+    if (setNotNullResult.isErr()) return err(setNotNullResult.error);
+
+    const setUniqueResult = duplicatedField.setUnique(field.unique());
+    if (setUniqueResult.isErr()) return err(setUniqueResult.error);
+
+    const hasError = field.hasError();
+    if (!hasError.equals(duplicatedField.hasError())) {
+      duplicatedField.setHasError(hasError);
+    }
+
+    const currentDbFieldNameResult = field.dbFieldName();
+    if (currentDbFieldNameResult.isOk()) {
+      const setDbFieldNameResult = duplicatedField.setDbFieldName(currentDbFieldNameResult.value);
+      if (setDbFieldNameResult.isErr()) return err(setDbFieldNameResult.error);
+    }
+
+    const dbFieldTypeResult = field.dbFieldType();
+    if (dbFieldTypeResult.isOk()) {
+      const setDbFieldTypeResult = duplicatedField.setDbFieldType(dbFieldTypeResult.value);
+      if (setDbFieldTypeResult.isErr()) return err(setDbFieldTypeResult.error);
+    }
+
+    const renameResult = duplicatedField.renameDbFieldName(dbFieldName);
     if (renameResult.isErr()) return err(renameResult.error);
 
-    return ok(this);
+    const nextFields = this.fieldsValue.map((current) =>
+      current.id().equals(fieldId) ? duplicatedField : current
+    );
+
+    const props: ITableBuildProps = {
+      id: this.id(),
+      baseId: this.baseIdValue,
+      name: this.nameValue,
+      fields: nextFields,
+      views: this.viewsValue,
+      primaryFieldId: this.primaryFieldIdValue,
+    };
+
+    if (this.dbTableNameValue.isRehydrated()) {
+      props.dbTableName = this.dbTableNameValue;
+    }
+
+    return Table.rehydrate(props);
   }
 
   /**
@@ -1188,15 +1297,64 @@ export class Table extends AggregateRoot<TableId> {
 
     const field = fieldResult.value;
 
+    const duplicatedFieldResult = field.duplicate({
+      newId: field.id(),
+      newName: field.name(),
+      baseId: this.baseIdValue,
+      tableId: this.id(),
+    });
+    if (duplicatedFieldResult.isErr()) return err(duplicatedFieldResult.error);
+
+    const duplicatedField = duplicatedFieldResult.value;
+
+    const setDescriptionResult = duplicatedField.setDescription(field.description());
+    if (setDescriptionResult.isErr()) return err(setDescriptionResult.error);
+
+    const setAiConfigResult = duplicatedField.setAiConfig(field.aiConfig());
+    if (setAiConfigResult.isErr()) return err(setAiConfigResult.error);
+
+    const hasError = field.hasError();
+    if (!hasError.equals(duplicatedField.hasError())) {
+      duplicatedField.setHasError(hasError);
+    }
+
+    const dbFieldNameResult = field.dbFieldName();
+    if (dbFieldNameResult.isOk()) {
+      const setDbFieldNameResult = duplicatedField.setDbFieldName(dbFieldNameResult.value);
+      if (setDbFieldNameResult.isErr()) return err(setDbFieldNameResult.error);
+    }
+
+    const dbFieldTypeResult = field.dbFieldType();
+    if (dbFieldTypeResult.isOk()) {
+      const setDbFieldTypeResult = duplicatedField.setDbFieldType(dbFieldTypeResult.value);
+      if (setDbFieldTypeResult.isErr()) return err(setDbFieldTypeResult.error);
+    }
+
     // Apply constraints to the field
-    const setNotNullResult = field.setNotNull(notNull);
+    const setNotNullResult = duplicatedField.setNotNull(notNull);
     if (setNotNullResult.isErr()) return err(setNotNullResult.error);
 
-    const setUniqueResult = field.setUnique(unique);
+    const setUniqueResult = duplicatedField.setUnique(unique);
     if (setUniqueResult.isErr()) return err(setUniqueResult.error);
 
-    // Table structure doesn't change, just field state
-    return ok(this);
+    const nextFields = this.fieldsValue.map((current) =>
+      current.id().equals(fieldId) ? duplicatedField : current
+    );
+
+    const props: ITableBuildProps = {
+      id: this.id(),
+      baseId: this.baseIdValue,
+      name: this.nameValue,
+      fields: nextFields,
+      views: this.viewsValue,
+      primaryFieldId: this.primaryFieldIdValue,
+    };
+
+    if (this.dbTableNameValue.isRehydrated()) {
+      props.dbTableName = this.dbTableNameValue;
+    }
+
+    return Table.rehydrate(props);
   }
 
   /**
@@ -1211,10 +1369,61 @@ export class Table extends AggregateRoot<TableId> {
     if (fieldResult.isErr()) return err(fieldResult.error);
 
     const field = fieldResult.value;
-    field.setHasError(hasError);
 
-    // Table structure doesn't change, just field state
-    return ok(this);
+    const duplicatedFieldResult = field.duplicate({
+      newId: field.id(),
+      newName: field.name(),
+      baseId: this.baseIdValue,
+      tableId: this.id(),
+    });
+    if (duplicatedFieldResult.isErr()) return err(duplicatedFieldResult.error);
+
+    const duplicatedField = duplicatedFieldResult.value;
+
+    const setDescriptionResult = duplicatedField.setDescription(field.description());
+    if (setDescriptionResult.isErr()) return err(setDescriptionResult.error);
+
+    const setAiConfigResult = duplicatedField.setAiConfig(field.aiConfig());
+    if (setAiConfigResult.isErr()) return err(setAiConfigResult.error);
+
+    const setNotNullResult = duplicatedField.setNotNull(field.notNull());
+    if (setNotNullResult.isErr()) return err(setNotNullResult.error);
+
+    const setUniqueResult = duplicatedField.setUnique(field.unique());
+    if (setUniqueResult.isErr()) return err(setUniqueResult.error);
+
+    const dbFieldNameResult = field.dbFieldName();
+    if (dbFieldNameResult.isOk()) {
+      const setDbFieldNameResult = duplicatedField.setDbFieldName(dbFieldNameResult.value);
+      if (setDbFieldNameResult.isErr()) return err(setDbFieldNameResult.error);
+    }
+
+    const dbFieldTypeResult = field.dbFieldType();
+    if (dbFieldTypeResult.isOk()) {
+      const setDbFieldTypeResult = duplicatedField.setDbFieldType(dbFieldTypeResult.value);
+      if (setDbFieldTypeResult.isErr()) return err(setDbFieldTypeResult.error);
+    }
+
+    duplicatedField.setHasError(hasError);
+
+    const nextFields = this.fieldsValue.map((current) =>
+      current.id().equals(fieldId) ? duplicatedField : current
+    );
+
+    const props: ITableBuildProps = {
+      id: this.id(),
+      baseId: this.baseIdValue,
+      name: this.nameValue,
+      fields: nextFields,
+      views: this.viewsValue,
+      primaryFieldId: this.primaryFieldIdValue,
+    };
+
+    if (this.dbTableNameValue.isRehydrated()) {
+      props.dbTableName = this.dbTableNameValue;
+    }
+
+    return Table.rehydrate(props);
   }
 
   private validateForeignTables(

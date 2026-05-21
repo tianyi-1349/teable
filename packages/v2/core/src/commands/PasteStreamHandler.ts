@@ -3,7 +3,7 @@ import { ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 
 import type { DomainError } from '../domain/shared/DomainError';
-import { IExecutionContext } from '../ports/ExecutionContext';
+import { type IExecutionContext } from '../ports/ExecutionContext';
 import { v2CoreTokens } from '../ports/tokens';
 import { TraceSpan } from '../ports/TraceSpan';
 import { CommandHandler, type ICommandHandler } from './CommandHandler';

@@ -12,9 +12,9 @@ import { SetRowOrderValueSpec } from '../../domain/table/records/specs/values/Se
 import { TableRecord } from '../../domain/table/records/TableRecord';
 import type { Table } from '../../domain/table/Table';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
-import { IRecordOrderCalculator } from '../../ports/RecordOrderCalculator';
+import { type IRecordOrderCalculator } from '../../ports/RecordOrderCalculator';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
-import { ITableRecordRepository } from '../../ports/TableRecordRepository';
+import { type ITableRecordRepository } from '../../ports/TableRecordRepository';
 import { v2CoreTokens } from '../../ports/tokens';
 import { createUndoRedoCommand, type UndoRedoCommandLeafData } from '../../ports/UndoRedoStore';
 

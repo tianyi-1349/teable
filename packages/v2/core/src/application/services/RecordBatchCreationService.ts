@@ -18,10 +18,10 @@ import type { TableRecord } from '../../domain/table/records/TableRecord';
 import type { Table } from '../../domain/table/Table';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { RecordWriteOperationKind } from '../../ports/RecordWritePlugin';
-import { ITableRecordRepository } from '../../ports/TableRecordRepository';
-import type {
-  BatchRecordMutationResult,
-  RecordStoredSnapshot,
+import {
+  type BatchRecordMutationResult,
+  type ITableRecordRepository,
+  type RecordStoredSnapshot,
 } from '../../ports/TableRecordRepository';
 import { v2CoreTokens } from '../../ports/tokens';
 import type { UndoRedoCommandLeafData } from '../../ports/UndoRedoStore';

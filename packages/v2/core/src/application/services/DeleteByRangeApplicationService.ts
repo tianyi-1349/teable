@@ -35,10 +35,15 @@ import * as EventBusPort from '../../ports/EventBus';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { AsyncIterableQueue } from '../../ports/memory/AsyncIterableQueue';
 import { RecordWriteOperationKind } from '../../ports/RecordWritePlugin';
-import type { TableRecordOrderBy } from '../../ports/TableRecordQueryRepository';
-import { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
+import {
+  type ITableRecordQueryRepository,
+  type TableRecordOrderBy,
+} from '../../ports/TableRecordQueryRepository';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
-import { type DeleteManyResult, ITableRecordRepository } from '../../ports/TableRecordRepository';
+import {
+  type DeleteManyResult,
+  type ITableRecordRepository,
+} from '../../ports/TableRecordRepository';
 import { v2CoreTokens } from '../../ports/tokens';
 import type { SpanAttributes } from '../../ports/Tracer';
 import * as UnitOfWorkPort from '../../ports/UnitOfWork';

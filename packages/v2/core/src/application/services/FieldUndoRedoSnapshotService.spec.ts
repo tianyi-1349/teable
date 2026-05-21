@@ -23,10 +23,7 @@ import { ViewName } from '../../domain/table/views/ViewName';
 import { ViewQueryDefaults } from '../../domain/table/views/ViewQueryDefaults';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { DefaultTableMapper } from '../../ports/mappers/defaults/DefaultTableMapper';
-import type {
-  ITableRecordQueryOptions,
-  ITableRecordQueryRepository,
-} from '../../ports/TableRecordQueryRepository';
+import type { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
 
 import { FieldUndoRedoSnapshotService } from './FieldUndoRedoSnapshotService';

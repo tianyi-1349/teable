@@ -18,11 +18,7 @@ import { FieldColor } from '../../../fields/types/FieldColor';
 import { FormulaExpression } from '../../../fields/types/FormulaExpression';
 import { NumberDefaultValue } from '../../../fields/types/NumberDefaultValue';
 import { NumberFormatting, NumberFormattingType } from '../../../fields/types/NumberFormatting';
-import {
-  MultiNumberDisplayType,
-  NumberShowAs,
-  SingleNumberDisplayType,
-} from '../../../fields/types/NumberShowAs';
+import { NumberShowAs, SingleNumberDisplayType } from '../../../fields/types/NumberShowAs';
 import { RatingColor } from '../../../fields/types/RatingColor';
 import { RatingIcon } from '../../../fields/types/RatingIcon';
 import { RatingMax } from '../../../fields/types/RatingMax';

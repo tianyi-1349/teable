@@ -2,7 +2,6 @@ import { ok } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
 
 import { BaseId } from '../../../base/BaseId';
-import type { ISpecification } from '../../../shared/specification/ISpecification';
 import { DbFieldName } from '../../fields/DbFieldName';
 import { FieldId } from '../../fields/FieldId';
 import { FieldName } from '../../fields/FieldName';
@@ -10,7 +9,6 @@ import { FieldNotNull } from '../../fields/types/FieldNotNull';
 import { FieldUnique } from '../../fields/types/FieldUnique';
 import { Table } from '../../Table';
 import { TableName } from '../../TableName';
-import type { ITableSpecVisitor } from '../ITableSpecVisitor';
 import { TableUpdateFieldConstraintsSpec } from '../TableUpdateFieldConstraintsSpec';
 
 const createBaseId = (seed: string) => BaseId.create(`bse${seed.repeat(16)}`)._unsafeUnwrap();
@@ -115,7 +113,16 @@ describe('TableUpdateFieldConstraintsSpec', () => {
     });
 
     const result = spec.mutate(table);
-    result._unsafeUnwrap();
+    const updated = result._unsafeUnwrap();
+    const originalField = table.getField((f) => f.id().equals(fieldId))._unsafeUnwrap();
+    const updatedField = updated.getField((f) => f.id().equals(fieldId))._unsafeUnwrap();
+
+    expect(updated).not.toBe(table);
+    expect(updatedField).not.toBe(originalField);
+    expect(originalField.notNull().toBoolean()).toBe(false);
+    expect(originalField.unique().toBoolean()).toBe(false);
+    expect(updatedField.notNull().toBoolean()).toBe(true);
+    expect(updatedField.unique().toBoolean()).toBe(true);
   });
 
   it('accepts visitor', () => {

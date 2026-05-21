@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { createV2NodeTestContainer } from '@teable/v2-container-node-test';
 import { injectable } from '@teable/v2-di';
 import { err, ok, type Result } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
@@ -26,7 +25,6 @@ import {
   v2CoreTokens,
 } from '@teable/v2-core';
 
-import { createV2NodeUnitTestContainer } from '../testkit/createV2NodeUnitTestContainer';
 import { getV2NodeUnitTestContainer } from '../testkit/v2NodeUnitTestContainer';
 
 describe('CreateTableHandler', () => {
