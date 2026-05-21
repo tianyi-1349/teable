@@ -17,8 +17,8 @@ import { useToolbarChange } from '../../hooks/useToolbarChange';
 import { ToolBarButton } from '../ToolBarButton';
 import { useToolBarStore } from './useToolBarStore';
 
-export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
-  const { disabled } = props;
+export const GridViewOperators: React.FC<{ disabled?: boolean; compact?: boolean }> = (props) => {
+  const { disabled, compact } = props;
   const view = useView();
   const {
     onFilterChange,
@@ -43,19 +43,21 @@ export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
     return <div></div>;
   }
   return (
-    <div className="flex min-w-0 flex-1 gap-1">
-      <HideFields>
-        {(text, isActive) => (
-          <ToolBarButton
-            disabled={disabled}
-            isActive={isActive}
-            text={text}
-            textClassName="@2xl/toolbar:inline"
-          >
-            <EyeOff className="size-4 text-sm" />
-          </ToolBarButton>
-        )}
-      </HideFields>
+    <div className={cn('flex min-w-0 flex-1 gap-1', compact && 'flex-wrap gap-2')}>
+      {!compact ? (
+        <HideFields>
+          {(text, isActive) => (
+            <ToolBarButton
+              disabled={disabled}
+              isActive={isActive}
+              text={text}
+              textClassName="@2xl/toolbar:inline"
+            >
+              <EyeOff className="size-4 text-sm" />
+            </ToolBarButton>
+          )}
+        </HideFields>
+      ) : null}
       <ViewFilter
         filters={view?.filter || null}
         onChange={onFilterChange}
@@ -75,12 +77,12 @@ export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
             text={text}
             ref={filterRef}
             className={cn(
-              'max-w-[200px]',
+              compact ? 'min-w-[88px] max-w-full flex-1 justify-center' : 'max-w-[200px]',
               isActive &&
                 'bg-violet-100 dark:bg-[#241A31] hover:bg-violet-200 dark:hover:bg-[#322245]',
               hasWarning && 'border-yellow-500'
             )}
-            textClassName="@2xl/toolbar:inline"
+            textClassName={compact ? 'inline' : '@2xl/toolbar:inline'}
           >
             <>
               <FilterIcon className="size-4 shrink-0 text-sm" />
@@ -97,11 +99,11 @@ export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
             text={text}
             ref={sortRef}
             className={cn(
-              'max-w-[200px]',
+              compact ? 'min-w-[88px] max-w-full flex-1 justify-center' : 'max-w-[200px]',
               isActive &&
                 'bg-orange-100 dark:bg-[#2F2518] hover:bg-orange-200 dark:hover:bg-[#392C1B]'
             )}
-            textClassName="@2xl/toolbar:inline"
+            textClassName={compact ? 'inline' : '@2xl/toolbar:inline'}
           >
             <ArrowUpDown className="size-4 shrink-0 text-sm" />
           </ToolBarButton>
@@ -115,11 +117,11 @@ export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
             text={text}
             ref={groupRef}
             className={cn(
-              'max-w-[200px]',
+              compact ? 'min-w-[88px] max-w-full flex-1 justify-center' : 'max-w-[200px]',
               isActive &&
                 'bg-emerald-100 dark:bg-[#0C3026] hover:bg-emerald-200 dark:hover:bg-[#0D3A2D]'
             )}
-            textClassName="@2xl/toolbar:inline"
+            textClassName={compact ? 'inline' : '@2xl/toolbar:inline'}
           >
             <LayoutList className="size-4 shrink-0 text-sm" />
           </ToolBarButton>
@@ -158,20 +160,22 @@ export const GridViewOperators: React.FC<{ disabled?: boolean }> = (props) => {
         </Tooltip>
       </TooltipProvider> */}
 
-      <RowHeight
-        rowHeight={(view?.options as IGridViewOptions)?.rowHeight}
-        fieldNameDisplayLines={(view?.options as IGridViewOptions)?.fieldNameDisplayLines}
-        onChange={(type, value) => {
-          if (type === 'rowHeight') onRowHeightChange(value as RowHeightLevel);
-          if (type === 'fieldNameDisplayLines') onFieldNameDisplayLinesChange(value as number);
-        }}
-      >
-        {(_, isActive, Icon) => (
-          <ToolBarButton disabled={disabled} isActive={isActive}>
-            <Icon className="text-sm" />
-          </ToolBarButton>
-        )}
-      </RowHeight>
+      {!compact ? (
+        <RowHeight
+          rowHeight={(view?.options as IGridViewOptions)?.rowHeight}
+          fieldNameDisplayLines={(view?.options as IGridViewOptions)?.fieldNameDisplayLines}
+          onChange={(type, value) => {
+            if (type === 'rowHeight') onRowHeightChange(value as RowHeightLevel);
+            if (type === 'fieldNameDisplayLines') onFieldNameDisplayLinesChange(value as number);
+          }}
+        >
+          {(_, isActive, Icon) => (
+            <ToolBarButton disabled={disabled} isActive={isActive}>
+              <Icon className="text-sm" />
+            </ToolBarButton>
+          )}
+        </RowHeight>
+      ) : null}
     </div>
   );
 };

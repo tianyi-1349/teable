@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import { ORPCModule } from '@orpc/nest';
 import type { Response } from 'express';
@@ -111,7 +111,7 @@ const toErrorMessage = (body: unknown): string => {
     AttachmentsStorageModule,
     BaseNodeModule,
     BaseShareModule,
-    CommentOpenApiModule,
+    forwardRef(() => CommentOpenApiModule),
     ShareDbModule,
     ShareModule,
     ShareAuthModule,

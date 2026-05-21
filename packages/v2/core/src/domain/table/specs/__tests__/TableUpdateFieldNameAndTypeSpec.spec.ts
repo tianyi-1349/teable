@@ -74,7 +74,12 @@ describe('TableUpdateFieldDescriptionSpec', () => {
 
     const result = spec.mutate(table);
     const updated = result._unsafeUnwrap();
+    const originalField = table.getField((f) => f.id().equals(fieldId))._unsafeUnwrap();
     const updatedField = updated.getField((f) => f.id().equals(fieldId))._unsafeUnwrap();
+
+    expect(updated).not.toBe(table);
+    expect(updatedField).not.toBe(originalField);
+    expect(originalField.description()).toBe('before');
     expect(updatedField.description()).toBe('after');
   });
 

@@ -50,13 +50,8 @@ export const getDefaultCodeByStatus = (status: HttpStatus) => {
   }
 };
 
-export class TemplateAppTokenNotAllowedException extends HttpException {
+export class TemplateAppTokenNotAllowedException extends CustomHttpException {
   constructor() {
-    super(
-      {
-        message: 'Template preview app token operation not allowed',
-      },
-      200
-    );
+    super('Template preview app token operation not allowed', HttpErrorCode.RESTRICTED_RESOURCE);
   }
 }

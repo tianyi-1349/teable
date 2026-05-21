@@ -12,8 +12,7 @@ import {
 import { CellValue } from '../../domain/table/records/values/CellValue';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
 import { v2CoreTokens } from '../../ports/tokens';
-import { IUserLookupService } from '../../ports/UserLookupService';
-import type { UserLookupRecord } from '../../ports/UserLookupService';
+import { type IUserLookupService, type UserLookupRecord } from '../../ports/UserLookupService';
 import type { ICellValueSpecResolver } from './SpecResolver';
 
 const buildAvatarUrl = (userId: string): string => {

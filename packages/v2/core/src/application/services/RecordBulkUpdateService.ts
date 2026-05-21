@@ -24,18 +24,22 @@ import type { ICellValueSpec } from '../../domain/table/records/specs/values/ICe
 import { TableRecord } from '../../domain/table/records/TableRecord';
 import type { Table } from '../../domain/table/Table';
 import type { TableUpdateResult } from '../../domain/table/TableMutator';
-import { IEventBus } from '../../ports/EventBus';
+import { type IEventBus } from '../../ports/EventBus';
 import type { IExecutionContext } from '../../ports/ExecutionContext';
-import { ILogger } from '../../ports/Logger';
+import { type ILogger } from '../../ports/Logger';
 import {
   RecordWriteOperationKind,
   type RecordWriteFieldValues,
 } from '../../ports/RecordWritePlugin';
-import { ITableRecordQueryRepository } from '../../ports/TableRecordQueryRepository';
-import type { ITableRecordQueryResult } from '../../ports/TableRecordQueryRepository';
+import {
+  type ITableRecordQueryRepository,
+  type ITableRecordQueryResult,
+} from '../../ports/TableRecordQueryRepository';
 import type { TableRecordReadModel } from '../../ports/TableRecordReadModel';
-import { ITableRecordRepository } from '../../ports/TableRecordRepository';
-import type { UpdateManyStreamBatchInput } from '../../ports/TableRecordRepository';
+import {
+  type ITableRecordRepository,
+  type UpdateManyStreamBatchInput,
+} from '../../ports/TableRecordRepository';
 import { v2CoreTokens } from '../../ports/tokens';
 import { TeableSpanAttributes } from '../../ports/Tracer';
 import {
@@ -43,7 +47,7 @@ import {
   createUndoRedoCommand,
   type UndoRedoCommandLeafData,
 } from '../../ports/UndoRedoStore';
-import { IUnitOfWork } from '../../ports/UnitOfWork';
+import { type IUnitOfWork } from '../../ports/UnitOfWork';
 import { type RecordFilterNode } from '../../queries/RecordFilterDto';
 import { buildRecordConditionSpec } from '../../queries/RecordFilterMapper';
 import { FieldKeyResolverService } from './FieldKeyResolverService';

@@ -794,58 +794,85 @@ export const useSelectionOperation = (props?: {
     [viewId, tableId, rowCount, fields, openClearConfirmationDialog, t, clearReq, confirm]
   );
 
+  const runSelectionStreamWithProgress = useCallback(
+    async <
+      TProgress extends object,
+      TDone extends object,
+      TError extends { message: string },
+    >(args: {
+      init: () => void;
+      execute: (handlers: {
+        onProgress: (progress: TProgress) => void;
+        onError: (error: TError) => void;
+      }) => Promise<{ done: TDone; errors: TError[] }>;
+      onProgress: (progress: TProgress) => void;
+      onError: (error: TError) => void;
+      onDone: (done: TDone, hasErrors: boolean) => void;
+    }) => {
+      args.init();
+      const streamResult = await args.execute({
+        onProgress: args.onProgress,
+        onError: args.onError,
+      });
+      args.onDone(streamResult.done, streamResult.errors.length > 0);
+      return streamResult.errors.length > 0;
+    },
+    []
+  );
+
   const runDeleteSelectionStream = useCallback(
     async (deleteRo: IRangesRo, totalCount: number) => {
       if (!tableId) {
         return false;
       }
 
-      setDeleteDialogMode('progress');
-      setDeleteErrors([]);
-      setDeleteSummary(null);
-      setDeleteProgressStatus('running');
-      setDeleteProgress({
-        id: 'progress',
-        phase: 'preparing',
-        batchIndex: -1,
-        totalCount,
-        deletedCount: 0,
-        batchDeletedCount: 0,
+      return runSelectionStreamWithProgress<
+        IDeleteSelectionStreamProgressEvent,
+        IDeleteSelectionStreamDoneEvent,
+        IDeleteSelectionStreamErrorEvent
+      >({
+        init: () => {
+          setDeleteDialogMode('progress');
+          setDeleteErrors([]);
+          setDeleteSummary(null);
+          setDeleteProgressStatus('running');
+          setDeleteProgress({
+            id: 'progress',
+            phase: 'preparing',
+            batchIndex: -1,
+            totalCount,
+            deletedCount: 0,
+            batchDeletedCount: 0,
+          });
+          setIsDeleteProgressOpen(true);
+        },
+        execute: async (handlers) =>
+          deleteSelectionStream(tableId, await buildSelectionRequest(deleteRo), {
+            headers: {
+              'X-Window-Id': ensureUndoRedoWindowIdHeader(),
+            },
+            onProgress: handlers.onProgress,
+            onError: handlers.onError,
+          }),
+        onProgress: (progress) => {
+          setDeleteProgress(progress);
+          setDeleteProgressStatus('running');
+          setIsDeleteProgressOpen(true);
+        },
+        onError: (error) => {
+          setDeleteErrors((previous) => [
+            ...previous,
+            { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+          ]);
+          setIsDeleteProgressOpen(true);
+        },
+        onDone: (done, hasErrors) => {
+          setDeleteSummary(done);
+          setDeleteProgressStatus(hasErrors ? 'partial' : 'success');
+        },
       });
-      setIsDeleteProgressOpen(true);
-
-      const streamResult = await deleteSelectionStream(
-        tableId,
-        await buildSelectionRequest(deleteRo),
-        {
-          headers: {
-            'X-Window-Id': ensureUndoRedoWindowIdHeader(),
-          },
-          onProgress: (progress) => {
-            setDeleteProgress(progress);
-            setDeleteProgressStatus('running');
-            setIsDeleteProgressOpen(true);
-          },
-          onError: (error) => {
-            setDeleteErrors((previous) => [
-              ...previous,
-              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
-            ]);
-            setIsDeleteProgressOpen(true);
-          },
-        }
-      );
-
-      setDeleteSummary(streamResult.done);
-      setDeleteProgressStatus(streamResult.errors.length ? 'partial' : 'success');
-
-      if (streamResult.errors.length) {
-        return true;
-      }
-
-      return false;
     },
-    [buildSelectionRequest, t, tableId]
+    [buildSelectionRequest, runSelectionStreamWithProgress, t, tableId]
   );
 
   const runClearSelectionStream = useCallback(
@@ -854,57 +881,75 @@ export const useSelectionOperation = (props?: {
         return false;
       }
 
-      setClearDialogMode('progress');
-      setClearErrors([]);
-      setClearSummary(null);
-      setClearProgressStatus('running');
-      setClearProgress({
-        id: 'progress',
-        phase: 'preparing',
-        batchIndex: -1,
-        totalCount,
-        processedCount: 0,
-        clearedCount: 0,
-        batchProcessedCount: 0,
-        batchClearedCount: 0,
-      });
-      setIsClearProgressOpen(true);
-
-      const streamResult = await clearSelectionStream(
-        tableId,
-        {
-          ...clearRo,
-          ...selectionViewQuery,
-          viewId,
-          groupBy,
-          collapsedGroupIds,
-          search,
+      return runSelectionStreamWithProgress<
+        IClearSelectionStreamProgressEvent,
+        IClearSelectionStreamDoneEvent,
+        IClearSelectionStreamErrorEvent
+      >({
+        init: () => {
+          setClearDialogMode('progress');
+          setClearErrors([]);
+          setClearSummary(null);
+          setClearProgressStatus('running');
+          setClearProgress({
+            id: 'progress',
+            phase: 'preparing',
+            batchIndex: -1,
+            totalCount,
+            processedCount: 0,
+            clearedCount: 0,
+            batchProcessedCount: 0,
+            batchClearedCount: 0,
+          });
+          setIsClearProgressOpen(true);
         },
-        {
-          headers: {
-            'X-Window-Id': ensureUndoRedoWindowIdHeader(),
-          },
-          onProgress: (progress) => {
-            setClearProgress(progress);
-            setClearProgressStatus('running');
-            setIsClearProgressOpen(true);
-          },
-          onError: (error) => {
-            setClearErrors((previous) => [
-              ...previous,
-              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
-            ]);
-            setIsClearProgressOpen(true);
-          },
-        }
-      );
-
-      setClearSummary(streamResult.done);
-      setClearProgressStatus(streamResult.errors.length ? 'partial' : 'success');
-
-      return streamResult.errors.length > 0;
+        execute: (handlers) =>
+          clearSelectionStream(
+            tableId,
+            {
+              ...clearRo,
+              ...selectionViewQuery,
+              viewId,
+              groupBy,
+              collapsedGroupIds,
+              search,
+            },
+            {
+              headers: {
+                'X-Window-Id': ensureUndoRedoWindowIdHeader(),
+              },
+              onProgress: handlers.onProgress,
+              onError: handlers.onError,
+            }
+          ),
+        onProgress: (progress) => {
+          setClearProgress(progress);
+          setClearProgressStatus('running');
+          setIsClearProgressOpen(true);
+        },
+        onError: (error) => {
+          setClearErrors((previous) => [
+            ...previous,
+            { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+          ]);
+          setIsClearProgressOpen(true);
+        },
+        onDone: (done, hasErrors) => {
+          setClearSummary(done);
+          setClearProgressStatus(hasErrors ? 'partial' : 'success');
+        },
+      });
     },
-    [collapsedGroupIds, groupBy, search, selectionViewQuery, t, tableId, viewId]
+    [
+      collapsedGroupIds,
+      groupBy,
+      search,
+      selectionViewQuery,
+      t,
+      tableId,
+      viewId,
+      runSelectionStreamWithProgress,
+    ]
   );
 
   const confirmDeleteSelection = useCallback(async () => {
@@ -961,52 +1006,53 @@ export const useSelectionOperation = (props?: {
         return false;
       }
 
-      setDuplicateDialogMode('progress');
-      setDuplicateErrors([]);
-      setDuplicateSummary(null);
-      setDuplicateProgressStatus('running');
-      setDuplicateProgress({
-        id: 'progress',
-        phase: 'preparing',
-        batchIndex: -1,
-        totalCount,
-        duplicatedCount: 0,
-        batchDuplicatedCount: 0,
+      return runSelectionStreamWithProgress<
+        IDuplicateSelectionStreamProgressEvent,
+        IDuplicateSelectionStreamDoneEvent,
+        IDuplicateSelectionStreamErrorEvent
+      >({
+        init: () => {
+          setDuplicateDialogMode('progress');
+          setDuplicateErrors([]);
+          setDuplicateSummary(null);
+          setDuplicateProgressStatus('running');
+          setDuplicateProgress({
+            id: 'progress',
+            phase: 'preparing',
+            batchIndex: -1,
+            totalCount,
+            duplicatedCount: 0,
+            batchDuplicatedCount: 0,
+          });
+          setIsDuplicateProgressOpen(true);
+        },
+        execute: async (handlers) =>
+          duplicateSelectionStream(tableId, await buildSelectionRequest(duplicateRo), {
+            headers: {
+              'X-Window-Id': ensureUndoRedoWindowIdHeader(),
+            },
+            onProgress: handlers.onProgress,
+            onError: handlers.onError,
+          }),
+        onProgress: (progress) => {
+          setDuplicateProgress(progress);
+          setDuplicateProgressStatus('running');
+          setIsDuplicateProgressOpen(true);
+        },
+        onError: (error) => {
+          setDuplicateErrors((previous) => [
+            ...previous,
+            { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+          ]);
+          setIsDuplicateProgressOpen(true);
+        },
+        onDone: (done, hasErrors) => {
+          setDuplicateSummary(done);
+          setDuplicateProgressStatus(hasErrors ? 'partial' : 'success');
+        },
       });
-      setIsDuplicateProgressOpen(true);
-
-      const streamResult = await duplicateSelectionStream(
-        tableId,
-        await buildSelectionRequest(duplicateRo),
-        {
-          headers: {
-            'X-Window-Id': ensureUndoRedoWindowIdHeader(),
-          },
-          onProgress: (progress) => {
-            setDuplicateProgress(progress);
-            setDuplicateProgressStatus('running');
-            setIsDuplicateProgressOpen(true);
-          },
-          onError: (error) => {
-            setDuplicateErrors((previous) => [
-              ...previous,
-              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
-            ]);
-            setIsDuplicateProgressOpen(true);
-          },
-        }
-      );
-
-      setDuplicateSummary(streamResult.done);
-      setDuplicateProgressStatus(streamResult.errors.length ? 'partial' : 'success');
-
-      if (streamResult.errors.length) {
-        return true;
-      }
-
-      return false;
     },
-    [buildSelectionRequest, t, tableId]
+    [buildSelectionRequest, runSelectionStreamWithProgress, t, tableId]
   );
 
   const runPasteSelectionStream = useCallback(
@@ -1015,57 +1061,75 @@ export const useSelectionOperation = (props?: {
         return false;
       }
 
-      setPasteDialogMode('progress');
-      setPasteErrors([]);
-      setPasteSummary(null);
-      setPasteProgressStatus('running');
-      setPasteProgress({
-        id: 'progress',
-        phase: 'preparing',
-        batchIndex: -1,
-        totalCount,
-        processedCount: 0,
-        updatedCount: 0,
-        createdCount: 0,
-        batchProcessedCount: 0,
-      });
-      setIsPasteProgressOpen(true);
-
-      const streamResult = await pasteSelectionStream(
-        tableId,
-        {
-          ...pasteRo,
-          ...selectionViewQuery,
-          viewId,
-          groupBy,
-          collapsedGroupIds,
-          search,
+      return runSelectionStreamWithProgress<
+        IPasteSelectionStreamProgressEvent,
+        IPasteSelectionStreamDoneEvent,
+        IPasteSelectionStreamErrorEvent
+      >({
+        init: () => {
+          setPasteDialogMode('progress');
+          setPasteErrors([]);
+          setPasteSummary(null);
+          setPasteProgressStatus('running');
+          setPasteProgress({
+            id: 'progress',
+            phase: 'preparing',
+            batchIndex: -1,
+            totalCount,
+            processedCount: 0,
+            updatedCount: 0,
+            createdCount: 0,
+            batchProcessedCount: 0,
+          });
+          setIsPasteProgressOpen(true);
         },
-        {
-          headers: {
-            'X-Window-Id': ensureUndoRedoWindowIdHeader(),
-          },
-          onProgress: (progress) => {
-            setPasteProgress(progress);
-            setPasteProgressStatus('running');
-            setIsPasteProgressOpen(true);
-          },
-          onError: (error) => {
-            setPasteErrors((previous) => [
-              ...previous,
-              { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
-            ]);
-            setIsPasteProgressOpen(true);
-          },
-        }
-      );
-
-      setPasteSummary(streamResult.done);
-      setPasteProgressStatus(streamResult.errors.length ? 'partial' : 'success');
-
-      return streamResult.errors.length > 0;
+        execute: (handlers) =>
+          pasteSelectionStream(
+            tableId,
+            {
+              ...pasteRo,
+              ...selectionViewQuery,
+              viewId,
+              groupBy,
+              collapsedGroupIds,
+              search,
+            },
+            {
+              headers: {
+                'X-Window-Id': ensureUndoRedoWindowIdHeader(),
+              },
+              onProgress: handlers.onProgress,
+              onError: handlers.onError,
+            }
+          ),
+        onProgress: (progress) => {
+          setPasteProgress(progress);
+          setPasteProgressStatus('running');
+          setIsPasteProgressOpen(true);
+        },
+        onError: (error) => {
+          setPasteErrors((previous) => [
+            ...previous,
+            { ...error, message: getFriendlyErrorMessage(new Error(error.message), t) },
+          ]);
+          setIsPasteProgressOpen(true);
+        },
+        onDone: (done, hasErrors) => {
+          setPasteSummary(done);
+          setPasteProgressStatus(hasErrors ? 'partial' : 'success');
+        },
+      });
     },
-    [collapsedGroupIds, groupBy, search, selectionViewQuery, t, tableId, viewId]
+    [
+      collapsedGroupIds,
+      groupBy,
+      search,
+      selectionViewQuery,
+      t,
+      tableId,
+      viewId,
+      runSelectionStreamWithProgress,
+    ]
   );
 
   const confirmDuplicateSelection = useCallback(async () => {
@@ -1103,7 +1167,10 @@ export const useSelectionOperation = (props?: {
     setPendingPasteSelection(null);
 
     try {
-      await runPasteSelectionStream(pasteRo, totalCount);
+      const hasPartialErrors = await runPasteSelectionStream(pasteRo, totalCount);
+      if (hasPartialErrors) {
+        return;
+      }
     } catch (error) {
       const description = getSelectionErrorDescription(error);
       ensurePasteProgressDialogError(description);
