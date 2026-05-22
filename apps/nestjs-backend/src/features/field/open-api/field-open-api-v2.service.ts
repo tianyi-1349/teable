@@ -2016,6 +2016,13 @@ export class FieldOpenApiV2Service {
             : undefined;
       const shouldIncludeConfig =
         linkFieldId != null && lookupFieldId != null && foreignTableId != null;
+      const shouldIncludeCondition =
+        hasFilterPatch ||
+        hasSortPatch ||
+        hasLimitPatch ||
+        shouldClearFilter ||
+        shouldClearSort ||
+        shouldClearLimit;
       return {
         ...base,
         type: 'rollup',
@@ -2044,6 +2051,17 @@ export class FieldOpenApiV2Service {
                 linkFieldId,
                 lookupFieldId,
                 foreignTableId,
+                ...(shouldIncludeCondition
+                  ? {
+                      condition: {
+                        ...(hasFilterPatch || shouldClearFilter
+                          ? { filter: lookupOpts?.filter }
+                          : {}),
+                        ...(hasSortPatch || shouldClearSort ? { sort: lookupOpts?.sort } : {}),
+                        ...(hasLimitPatch || shouldClearLimit ? { limit: lookupOpts?.limit } : {}),
+                      },
+                    }
+                  : {}),
               },
             }
           : {}),

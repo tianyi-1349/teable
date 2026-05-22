@@ -622,11 +622,13 @@ export class TypeCastAndValidate {
     linkTableRecordMap: Record<string, { id: string; title?: string }>
   ): ILinkCellValue[] | ILinkCellValue | null {
     const relationship = (this.field as LinkFieldDto).options?.relationship;
+    const isSingleRelationship =
+      relationship === Relationship.ManyOne || relationship === Relationship.OneOne;
     const isMultipleCellValue =
       relationship != null
         ? relationship === Relationship.ManyMany || relationship === Relationship.OneMany
         : this.field.isMultipleCellValue;
-    if (isMultipleCellValue) {
+    if (isMultipleCellValue && !isSingleRelationship) {
       if (typeof cellValue === 'string') {
         return cellValue
           .split(',')

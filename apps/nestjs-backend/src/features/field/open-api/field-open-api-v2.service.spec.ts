@@ -277,6 +277,52 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
     });
   });
 
+  it('maps rollup convert condition from lookupOptions filter metadata', () => {
+    const service = createService();
+    const mapped = service.mapConvertFieldToV2({
+      type: 'rollup',
+      options: {
+        expression: 'sum({values})',
+      },
+      lookupOptions: {
+        linkFieldId: 'fldLink000000000001',
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+        filter: {
+          conjunction: 'and',
+          filterSet: [{ fieldId: 'fldDate00000000001', operator: 'is', value: 'today' }],
+        },
+      },
+    });
+
+    expect(mapped).toEqual({
+      type: 'rollup',
+      options: {
+        expression: 'sum({values})',
+      },
+      lookupOptions: {
+        linkFieldId: 'fldLink000000000001',
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+        filter: {
+          conjunction: 'and',
+          filterSet: [{ fieldId: 'fldDate00000000001', operator: 'is', value: 'today' }],
+        },
+      },
+      config: {
+        linkFieldId: 'fldLink000000000001',
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+        condition: {
+          filter: {
+            conjunction: 'and',
+            filterSet: [{ fieldId: 'fldDate00000000001', operator: 'is', value: 'today' }],
+          },
+        },
+      },
+    });
+  });
+
   it('maps conditionalRollup convert options with showAs', () => {
     const service = createService();
     const mapped = service.mapConvertFieldToV2({

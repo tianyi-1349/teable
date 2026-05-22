@@ -928,21 +928,13 @@ export class TableDuplicateService {
         foreignKeyName: targetForeignKeyName,
       } = targetOptions as ILinkFieldOptions;
       if (sourceFkHostTableName.includes('junction_')) {
-        const existing = junctionDbTableNameMap[sourceFkHostTableName];
-        const next = {
+        junctionDbTableNameMap[sourceFkHostTableName] = {
           sourceSelfKeyName,
           sourceForeignKeyName,
           targetSelfKeyName,
           targetForeignKeyName,
           targetFkHostTableName,
         };
-        const existingTargetsJunction =
-          existing?.targetFkHostTableName.includes('junction_') ?? false;
-        const nextTargetsJunction = targetFkHostTableName.includes('junction_');
-
-        if (!existing || (!existingTargetsJunction && nextTargetsJunction)) {
-          junctionDbTableNameMap[sourceFkHostTableName] = next;
-        }
       }
     }
     for (const [sourceJunctionDbTableName, targetJunctionInfo] of Object.entries(
