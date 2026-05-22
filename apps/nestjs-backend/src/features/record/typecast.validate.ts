@@ -16,6 +16,7 @@ import {
   generateChoiceId,
   HttpErrorCode,
   IdPrefix,
+  Relationship,
   nullsToUndefined,
 } from '@teable/core';
 import type { PrismaService } from '@teable/db-main-prisma';
@@ -620,7 +621,11 @@ export class TypeCastAndValidate {
     cellValue: unknown,
     linkTableRecordMap: Record<string, { id: string; title?: string }>
   ): ILinkCellValue[] | ILinkCellValue | null {
-    const { isMultipleCellValue } = this.field;
+    const relationship = (this.field as LinkFieldDto).options?.relationship;
+    const isMultipleCellValue =
+      relationship != null
+        ? relationship === Relationship.ManyMany || relationship === Relationship.OneMany
+        : this.field.isMultipleCellValue;
     if (isMultipleCellValue) {
       if (typeof cellValue === 'string') {
         return cellValue

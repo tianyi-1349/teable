@@ -296,6 +296,7 @@ export class FieldOpenApiV2Service {
     if (raw.type === FieldType.Rollup) {
       const config = raw.config as Record<string, unknown> | undefined;
       if (config) {
+        const condition = config.condition as Record<string, unknown> | undefined;
         const lookupOptions =
           raw.lookupOptions &&
           typeof raw.lookupOptions === 'object' &&
@@ -306,6 +307,11 @@ export class FieldOpenApiV2Service {
         if (config.linkFieldId != null) lookupOptions.linkFieldId = config.linkFieldId;
         if (config.lookupFieldId != null) lookupOptions.lookupFieldId = config.lookupFieldId;
         if (config.foreignTableId != null) lookupOptions.foreignTableId = config.foreignTableId;
+        if (condition) {
+          if (condition.filter !== undefined) lookupOptions.filter = condition.filter;
+          if (condition.sort !== undefined) lookupOptions.sort = condition.sort;
+          if (condition.limit !== undefined) lookupOptions.limit = condition.limit;
+        }
 
         raw.lookupOptions = lookupOptions;
         delete raw.config;
@@ -1007,6 +1013,11 @@ export class FieldOpenApiV2Service {
       const linkFieldId = opts.linkFieldId ?? lookupOpts?.linkFieldId;
       const lookupFieldId = opts.lookupFieldId ?? lookupOpts?.lookupFieldId;
       const foreignTableId = opts.foreignTableId ?? lookupOpts?.foreignTableId;
+      const condition = {
+        ...(lookupOpts?.filter !== undefined ? { filter: lookupOpts.filter } : {}),
+        ...(lookupOpts?.sort !== undefined ? { sort: lookupOpts.sort } : {}),
+        ...(lookupOpts?.limit !== undefined ? { limit: lookupOpts.limit } : {}),
+      };
       const shouldIncludeConfig =
         linkFieldId != null && lookupFieldId != null && foreignTableId != null;
       return this.normalizeLegacyTimeZone({
@@ -1025,6 +1036,7 @@ export class FieldOpenApiV2Service {
                 linkFieldId,
                 lookupFieldId,
                 foreignTableId,
+                ...(Object.keys(condition).length > 0 ? { condition } : {}),
               },
             }
           : {}),
@@ -1985,8 +1997,17 @@ export class FieldOpenApiV2Service {
       const hasFilterPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'filter');
       const hasSortPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'sort');
       const hasLimitPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'limit');
+      const currentLookupOpts =
+        currentField?.lookupOptions &&
+        typeof currentField.lookupOptions === 'object' &&
+        !Array.isArray(currentField.lookupOptions)
+          ? (currentField.lookupOptions as Record<string, unknown>)
+          : undefined;
       const shouldClearShowAs =
         !hasShowAs && currentField?.type === 'rollup' && currentField?.options != null;
+      const shouldClearFilter = !hasFilterPatch && currentLookupOpts?.filter !== undefined;
+      const shouldClearSort = !hasSortPatch && currentLookupOpts?.sort !== undefined;
+      const shouldClearLimit = !hasLimitPatch && currentLookupOpts?.limit !== undefined;
       const expression =
         typeof opts.expression === 'string'
           ? opts.expression
@@ -2011,9 +2032,9 @@ export class FieldOpenApiV2Service {
                 ...(linkFieldId != null ? { linkFieldId } : {}),
                 ...(lookupFieldId != null ? { lookupFieldId } : {}),
                 ...(foreignTableId != null ? { foreignTableId } : {}),
-                ...(hasFilterPatch ? { filter: lookupOpts.filter } : {}),
-                ...(hasSortPatch ? { sort: lookupOpts.sort } : {}),
-                ...(hasLimitPatch ? { limit: lookupOpts.limit } : {}),
+                ...(hasFilterPatch || shouldClearFilter ? { filter: lookupOpts.filter } : {}),
+                ...(hasSortPatch || shouldClearSort ? { sort: lookupOpts.sort } : {}),
+                ...(hasLimitPatch || shouldClearLimit ? { limit: lookupOpts.limit } : {}),
               },
             }
           : {}),
