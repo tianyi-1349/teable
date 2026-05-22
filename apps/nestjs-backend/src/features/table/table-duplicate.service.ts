@@ -928,6 +928,11 @@ export class TableDuplicateService {
         foreignKeyName: targetForeignKeyName,
       } = targetOptions as ILinkFieldOptions;
       if (sourceFkHostTableName.includes('junction_')) {
+        const existing = junctionDbTableNameMap[sourceFkHostTableName];
+        if (existing?.targetFkHostTableName.includes('junction_')) {
+          continue;
+        }
+
         junctionDbTableNameMap[sourceFkHostTableName] = {
           sourceSelfKeyName,
           sourceForeignKeyName,

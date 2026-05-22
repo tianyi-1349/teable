@@ -643,6 +643,22 @@ export class TypeCastAndValidate {
           .filter(Boolean) as ILinkCellValue[];
       }
     }
+
+    if (Array.isArray(cellValue)) {
+      const [firstValue] = cellValue;
+      if (typeof firstValue === 'string') {
+        return linkTableRecordMap[firstValue] || null;
+      }
+      if (isObject(firstValue) && 'id' in firstValue && typeof firstValue.id === 'string') {
+        return linkTableRecordMap[firstValue.id] || null;
+      }
+      return null;
+    }
+
+    if (isObject(cellValue) && 'id' in cellValue && typeof cellValue.id === 'string') {
+      return linkTableRecordMap[cellValue.id] || null;
+    }
+
     return linkTableRecordMap[cellValue as string] || null;
   }
 }

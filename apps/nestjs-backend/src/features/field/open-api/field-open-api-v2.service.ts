@@ -1982,6 +1982,9 @@ export class FieldOpenApiV2Service {
       const foreignTableId = opts.foreignTableId ?? lookupOpts?.foreignTableId;
       const hasShowAs = Object.prototype.hasOwnProperty.call(opts, 'showAs');
       const hasExpressionPatch = Object.prototype.hasOwnProperty.call(opts, 'expression');
+      const hasFilterPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'filter');
+      const hasSortPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'sort');
+      const hasLimitPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'limit');
       const shouldClearShowAs =
         !hasShowAs && currentField?.type === 'rollup' && currentField?.options != null;
       const expression =
@@ -2002,6 +2005,18 @@ export class FieldOpenApiV2Service {
           ...(opts.showAs != null ? { showAs: opts.showAs } : {}),
           ...(shouldClearShowAs ? { showAs: null } : {}),
         },
+        ...(lookupOpts
+          ? {
+              lookupOptions: {
+                ...(linkFieldId != null ? { linkFieldId } : {}),
+                ...(lookupFieldId != null ? { lookupFieldId } : {}),
+                ...(foreignTableId != null ? { foreignTableId } : {}),
+                ...(hasFilterPatch ? { filter: lookupOpts.filter } : {}),
+                ...(hasSortPatch ? { sort: lookupOpts.sort } : {}),
+                ...(hasLimitPatch ? { limit: lookupOpts.limit } : {}),
+              },
+            }
+          : {}),
         ...(shouldIncludeConfig
           ? {
               config: {

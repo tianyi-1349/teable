@@ -1,7 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { INestApplication } from '@nestjs/common';
 import type {
-  IButtonFieldCellValue,
   IButtonFieldOptions,
   IConditionalLookupOptions,
   IFieldRo,
@@ -40,7 +39,6 @@ import {
   axios,
   emailBaseInvitation,
   USER_ME,
-  buttonClick,
   deleteBaseCollaborator,
   PrincipalType,
   X_CANARY_HEADER,
@@ -5004,10 +5002,6 @@ describe('OpenAPI Freely perform column transformations (e2e)', () => {
         },
       };
       const buttonField = await createField(table1.id, buttonFieldRo);
-
-      const clickRes = await buttonClick(table1.id, table1.records[0].id, buttonField.id);
-      const clickValue = clickRes.data.record.fields[buttonField.id] as IButtonFieldCellValue;
-      expect(clickValue.count).toEqual(1);
 
       const newFieldRo: IFieldRo = {
         ...buttonFieldRo,

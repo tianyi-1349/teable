@@ -264,6 +264,11 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
       options: {
         expression: 'countall({values})',
       },
+      lookupOptions: {
+        linkFieldId: 'fldLink000000000001',
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+      },
       config: {
         linkFieldId: 'fldLink000000000001',
         lookupFieldId: 'fldLookup000000001',
@@ -1412,6 +1417,56 @@ describe('FieldOpenApiV2Service normalizeFieldVo', () => {
       fkHostTableName: 'bseBase.tblJunction',
       selfKeyName: '__fk_self',
       foreignKeyName: '__fk_foreign',
+    });
+  });
+
+  it('extracts rollup lookup filter metadata from returned table dto', async () => {
+    const service = createNormalizeService();
+    const vo = await service.extractFieldVoFromTableDto(
+      {
+        fields: [
+          {
+            id: 'fldRollup0000000001',
+            name: 'Today Hours',
+            type: 'rollup',
+            options: {
+              expression: 'sum({values})',
+            },
+            lookupOptions: {
+              linkFieldId: 'fldLink000000000001',
+              foreignTableId: 'tblForeign00000001',
+              lookupFieldId: 'fldSource000000001',
+              filter: {
+                conjunction: 'and',
+                filterSet: [
+                  {
+                    fieldId: 'fldDate00000000001',
+                    operator: 'is',
+                    value: { mode: 'today', timeZone: 'utc' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      'fldRollup0000000001'
+    );
+
+    expect(vo.lookupOptions).toMatchObject({
+      linkFieldId: 'fldLink000000000001',
+      foreignTableId: 'tblForeign00000001',
+      lookupFieldId: 'fldSource000000001',
+      filter: {
+        conjunction: 'and',
+        filterSet: [
+          {
+            fieldId: 'fldDate00000000001',
+            operator: 'is',
+            value: { mode: 'today', timeZone: 'utc' },
+          },
+        ],
+      },
     });
   });
 });
