@@ -1,23 +1,9 @@
 import { render } from '@testing-library/react';
-import { act, createRef, forwardRef, useImperativeHandle } from 'react';
+import { act, createRef } from 'react';
+import type * as ReactModule from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Grid, type IGridRef } from './Grid';
 import { SelectionRegionType } from './interface';
-
-const MockInteractionLayer = forwardRef((props: Record<string, unknown>, ref) => {
-  useImperativeHandle(ref, () => interactionApi);
-  return <div data-testid="interaction-layer" data-props={JSON.stringify(Object.keys(props))} />;
-});
-
-MockInteractionLayer.displayName = 'MockInteractionLayer';
-
-const MockInfiniteScroller = forwardRef((props: Record<string, unknown>, ref) => {
-  latestInfiniteScrollerProps = props;
-  useImperativeHandle(ref, () => scrollerApi);
-  return <div data-testid="infinite-scroller" />;
-});
-
-MockInfiniteScroller.displayName = 'MockInfiniteScroller';
 
 const interactionApi = {
   resetState: vi.fn(),
@@ -44,13 +30,34 @@ vi.mock('./hooks', async () => {
   };
 });
 
-vi.mock('./InteractionLayer', () => ({
-  InteractionLayer: MockInteractionLayer,
-}));
+vi.mock('./InteractionLayer', async () => {
+  const { forwardRef, useImperativeHandle } = await vi.importActual<typeof ReactModule>('react');
+  const MockInteractionLayer = forwardRef((props: Record<string, unknown>, ref) => {
+    useImperativeHandle(ref, () => interactionApi);
+    return <div data-testid="interaction-layer" data-props={JSON.stringify(Object.keys(props))} />;
+  });
 
-vi.mock('./InfiniteScroller', () => ({
-  InfiniteScroller: MockInfiniteScroller,
-}));
+  MockInteractionLayer.displayName = 'MockInteractionLayer';
+
+  return {
+    InteractionLayer: MockInteractionLayer,
+  };
+});
+
+vi.mock('./InfiniteScroller', async () => {
+  const { forwardRef, useImperativeHandle } = await vi.importActual<typeof ReactModule>('react');
+  const MockInfiniteScroller = forwardRef((props: Record<string, unknown>, ref) => {
+    latestInfiniteScrollerProps = props;
+    useImperativeHandle(ref, () => scrollerApi);
+    return <div data-testid="infinite-scroller" />;
+  });
+
+  MockInfiniteScroller.displayName = 'MockInfiniteScroller';
+
+  return {
+    InfiniteScroller: MockInfiniteScroller,
+  };
+});
 
 vi.mock('./TouchLayer', () => ({
   TouchLayer: () => <div data-testid="touch-layer" />,

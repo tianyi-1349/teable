@@ -1,5 +1,6 @@
 import { fireEvent, render } from '@testing-library/react';
-import { createRef, forwardRef } from 'react';
+import { createRef } from 'react';
+import type * as ReactModule from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   DEFAULT_COLUMN_RESIZE_STATE,
@@ -18,10 +19,6 @@ import {
   type ILinearRow,
 } from './interface';
 import { CoordinateManager } from './managers';
-
-const MockEditorContainer = forwardRef(() => null);
-
-MockEditorContainer.displayName = 'MockEditorContainer';
 
 let currentRegionType = RegionType.None;
 let mouseCoords = { elX: 180, elY: 20 };
@@ -42,9 +39,16 @@ vi.mock('./CellScroller', () => ({
   CellScroller: () => null,
 }));
 
-vi.mock('./components', () => ({
-  EditorContainer: MockEditorContainer,
-}));
+vi.mock('./components', async () => {
+  const { forwardRef } = await vi.importActual<typeof ReactModule>('react');
+  const MockEditorContainer = forwardRef(() => null);
+
+  MockEditorContainer.displayName = 'MockEditorContainer';
+
+  return {
+    EditorContainer: MockEditorContainer,
+  };
+});
 
 type MockSelectionState = {
   isCellSelection: boolean;

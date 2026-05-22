@@ -3543,6 +3543,9 @@ importers:
 
   packages/v2/core:
     dependencies:
+      '@teable/core':
+        specifier: workspace:*
+        version: link:../../core
       '@teable/formula':
         specifier: workspace:*
         version: link:../../formula
