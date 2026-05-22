@@ -70,7 +70,7 @@ describe('text functions', () => {
       { name: 'SearchNoStart', expression: 'SEARCH("1", {SingleLineText})' },
     ];
     testTable = await createFormulaTestTable(container, formulaFields);
-  });
+  }, 240000);
 
   afterAll(async () => {
     await container.dispose();
