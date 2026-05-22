@@ -76,7 +76,7 @@ describe('numeric functions', () => {
       { name: 'SumArrayAndScalar', expression: 'SUM({MultipleSelect}, 5)' },
     ];
     testTable = await createFormulaTestTable(container, formulaFields);
-  });
+  }, 240000);
 
   afterAll(async () => {
     await container.dispose();
