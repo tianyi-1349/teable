@@ -12,6 +12,7 @@ node_modules
 # testing
 /coverage
 /e2e/.out
+/.next-e2e/
 
 # next.js
 /.next/

@@ -46,7 +46,7 @@ describe('AppPage', () => {
     expect(screen.getByText('应用不可用')).toBeInTheDocument();
     expect(screen.getByText('Sales App')).toBeInTheDocument();
     expect(screen.getByText('这个应用还没有已发布的运行时 URL。')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /打开应用/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /打开应用/ })).toBeNull();
   });
 
   it('renders published app iframe with sandbox and no-referrer policy', () => {
@@ -67,7 +67,7 @@ describe('AppPage', () => {
     );
 
     const iframe = screen.getByTitle('Sales App');
-    const link = screen.getByRole('link', { name: /打开应用/i });
+    const link = screen.getByRole('link', { name: /打开应用/ });
 
     expect(screen.getByText('发布运行时')).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://example.com/published-app');

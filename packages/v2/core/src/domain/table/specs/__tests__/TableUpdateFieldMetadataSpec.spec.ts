@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { BaseId } from '../../../base/BaseId';
-import { Table } from '../../Table';
-import { TableName } from '../../TableName';
 import { DbFieldName } from '../../fields/DbFieldName';
 import { FieldId } from '../../fields/FieldId';
 import { FieldName } from '../../fields/FieldName';
 import { FieldHasError } from '../../fields/types/FieldHasError';
+import { Table } from '../../Table';
+import { TableName } from '../../TableName';
 import { TableUpdateFieldDbFieldNameSpec } from '../TableUpdateFieldDbFieldNameSpec';
 import { TableUpdateFieldHasErrorSpec } from '../TableUpdateFieldHasErrorSpec';
 

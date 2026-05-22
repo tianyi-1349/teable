@@ -110,12 +110,10 @@ export const PublishedAppProvider = ({
     });
   }, [
     allowCopy,
-    allowEdit,
     allowSave,
     base?.icon,
     base?.name,
     canEdit,
-    isAnonymous,
     resource.baseId,
     shareId,
     shareNodeId,

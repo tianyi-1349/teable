@@ -15,7 +15,7 @@ import { RESOURCE_META } from '../decorators/resource_meta.decorator';
 import { IS_TOKEN_ACCESS } from '../decorators/token.decorator';
 import { PermissionService } from '../permission.service';
 import { getTemplateHeader, getBaseShareHeader } from '../utils';
-import { PUBLIC_PUBLISHED_APP_PATHS } from './published-app-paths';
+import { publicPublishedAppPaths } from './published-app-paths';
 
 const i18nKeyCheckIdNotExist = 'httpErrors.permission.checkIdNotExist';
 
@@ -466,7 +466,7 @@ export class PermissionGuard {
    */
   async canActivate(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest();
-    if (PUBLIC_PUBLISHED_APP_PATHS.has(req?.path)) {
+    if (publicPublishedAppPaths.has(req?.path)) {
       return true;
     }
 

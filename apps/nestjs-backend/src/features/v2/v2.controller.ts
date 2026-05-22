@@ -97,6 +97,7 @@ import {
 import { v2CoreTokens } from '@teable/v2-core';
 import type { ICommandBus, IQueryBus } from '@teable/v2-core' with { 'resolution-mode': 'import' };
 import { AggregationOpenApiService } from '../aggregation/open-api/aggregation-open-api.service';
+import { Public } from '../auth/decorators/public.decorator';
 import { CommentOpenApiService } from '../comment/comment-open-api.service';
 import { OrganizationService } from '../organization/organization.service';
 import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
@@ -108,7 +109,6 @@ import { UndoRedoService } from '../undo-redo/open-api/undo-redo.service';
 import { WorkflowCapabilityService } from '../workflow/workflow-capability.service';
 import { WorkflowRunnerService } from '../workflow/workflow-runner.service';
 import { WorkflowService } from '../workflow/workflow.service';
-import { Public } from '../auth/decorators/public.decorator';
 import { V2ContainerService } from './v2-container.service';
 import { V2ExecutionContextFactory } from './v2-execution-context.factory';
 import { V2PublishedAppService } from './v2-published-app.service';

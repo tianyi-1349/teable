@@ -95,6 +95,8 @@ describe('chunkTokens', () => {
 });
 
 describe('decorateAttachmentValue', () => {
+  const imagePreviewUrl = 'https://cdn.example.com/file';
+
   it('falls back to the presigned url for image thumbnails', () => {
     expect(
       decorateAttachmentValue(
@@ -107,13 +109,13 @@ describe('decorateAttachmentValue', () => {
           mimetype: 'image/png',
         },
         {
-          presignedUrl: 'https://cdn.example.com/file',
+          presignedUrl: imagePreviewUrl,
         }
       )
     ).toMatchObject({
-      presignedUrl: 'https://cdn.example.com/file',
-      smThumbnailUrl: 'https://cdn.example.com/file',
-      lgThumbnailUrl: 'https://cdn.example.com/file',
+      presignedUrl: imagePreviewUrl,
+      smThumbnailUrl: imagePreviewUrl,
+      lgThumbnailUrl: imagePreviewUrl,
     });
   });
 

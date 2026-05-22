@@ -14,6 +14,17 @@ import { useRafState } from 'react-use';
 import { LoadingIndicator, ErrorIndicator } from './components';
 import type { IGridTheme } from './configs';
 import { gridTheme, GRID_DEFAULT, DEFAULT_SCROLL_STATE, DEFAULT_MOUSE_STATE } from './configs';
+import {
+  getActiveCellBound,
+  buildColumnWidthMap,
+  buildDefaultRowsInfo,
+  buildGroupRowsInfo,
+  getCellBounds,
+  getCellIndicesAtPosition,
+  getFallbackLinearRow,
+  getGridTotalWidth,
+  getScrollToItemTarget,
+} from './grid-helpers';
 import { useResizeObserver } from './hooks';
 import type { ScrollerRef } from './InfiniteScroller';
 import { InfiniteScroller } from './InfiniteScroller';
@@ -30,25 +41,17 @@ import type {
   IColumnStatistics,
   ICollaborator,
   IGroupPoint,
-  ILinearRow,
   IGroupCollection,
   DragRegionType,
   IColumnLoading,
   IRange,
   ICellError,
 } from './interface';
-import {
-  RegionType,
-  RowControlType,
-  DraggableType,
-  SelectableType,
-  LinearRowType,
-} from './interface';
-import type { ISpriteMap, CombinedSelection, IIndicesMap } from './managers';
+import { RegionType, RowControlType, DraggableType, SelectableType } from './interface';
+import type { ISpriteMap, CombinedSelection } from './managers';
 import { CoordinateManager, SpriteManager, ImageManager } from './managers';
-import { getCellRenderer, type ICell, type IInnerCell } from './renderers';
+import type { ICell, IInnerCell } from './renderers';
 import { TouchLayer } from './TouchLayer';
-import { measuredCanvas } from './utils';
 
 export interface IGridExternalProps {
   theme?: Partial<IGridTheme>;
@@ -282,15 +285,7 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
     setActiveCell,
     getScrollState: () => scrollState,
     getCellIndicesAtPosition: (x: number, y: number): ICellItem | null => {
-      const { scrollLeft, scrollTop } = scrollState;
-
-      const rowIndex = coordInstance.getRowStartIndex(scrollTop + y);
-      const columnIndex = coordInstance.getColumnStartIndex(scrollLeft + x);
-
-      const { type, realIndex } = getLinearRow(rowIndex);
-      if (type !== LinearRowType.Row) return null;
-
-      return [columnIndex, realIndex];
+      return getCellIndicesAtPosition(x, y, scrollState, coordInstance, getLinearRow);
     },
     getContainer: () => containerRef.current,
     setCellLoading: (cells: ICellItem[]) => {
@@ -303,30 +298,7 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
       setCellErrors(cellErrors);
     },
     getCellBounds: (cell: ICellItem) => {
-      const [columnIndex, _rowIndex] = cell;
-      const rowIndex = real2RowIndex(_rowIndex);
-      const { scrollLeft, scrollTop } = scrollState;
-
-      const columnOffsetX = coordInstance.getColumnRelativeOffset(columnIndex, scrollLeft);
-      const columnWidth = coordInstance.getColumnWidth(columnIndex);
-
-      if (columnOffsetX == null || columnWidth == null) {
-        return null;
-      }
-
-      const rowOffsetY = coordInstance.getRowOffset(rowIndex);
-      const rowHeight = coordInstance.getRowHeight(rowIndex);
-
-      if (rowOffsetY == null || rowHeight == null) {
-        return null;
-      }
-
-      return {
-        x: columnOffsetX,
-        y: rowOffsetY - scrollTop,
-        width: columnWidth,
-        height: rowHeight,
-      };
+      return getCellBounds(cell, real2RowIndex, scrollState, coordInstance);
     },
     isEditing: () => {
       return interactionLayerRef.current?.isEditing();
@@ -336,9 +308,12 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   const hasAppendRow = onRowAppend != null;
   const hasAppendColumn = onColumnAppend != null;
   const rowControlCount = rowControls.length;
-  const totalWidth = columns.reduce(
-    (prev, column) => prev + (column.width || defaultColumnWidth),
-    hasAppendColumn ? scrollBufferX + columnAppendBtnWidth : scrollBufferX
+  const totalWidth = getGridTotalWidth(
+    columns,
+    defaultColumnWidth,
+    scrollBufferX,
+    hasAppendColumn,
+    columnAppendBtnWidth
   );
 
   const [forceRenderFlag, setForceRenderFlag] = useState(uniqueId('grid_'));
@@ -353,7 +328,6 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   const interactionLayerRef = useRef<IInteractionLayerRef | null>(null);
   const { ref, width, height } = useResizeObserver<HTMLDivElement>();
 
-  const [activeColumnIndex, activeRowIndex] = activeCell ?? [];
   const hoverRegionType = mouseState.type;
   const hasColumnStatistics = columnStatistics != null;
   const containerHeight = hasColumnStatistics ? height - columnStatisticHeight : height;
@@ -368,87 +342,12 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   }, [rowControlCount, rowIndexVisible, iconSizeMD]);
 
   const defaultRowsInfo = useMemo(() => {
-    return {
-      linearRows: [],
-      real2LinearRowMap: null,
-      pureRowCount: originRowCount,
-      rowCount: hasAppendRow ? originRowCount + 1 : originRowCount,
-      rowHeightMap: hasAppendRow ? { [originRowCount]: appendRowHeight } : undefined,
-    };
+    return buildDefaultRowsInfo(originRowCount, hasAppendRow, appendRowHeight);
   }, [hasAppendRow, originRowCount]);
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const groupRowsInfo = useMemo(() => {
-    if (!groupPoints?.length) return null;
-    let rowIndex = 0;
-    let totalIndex = 0;
-    let currentValue: unknown = null;
-    let collapsedDepth = Number.MAX_VALUE;
-    const linearRows: ILinearRow[] = [];
-    const rowHeightMap: IIndicesMap = {};
-    const real2LinearRowMap: Record<number, number> = {};
-
-    groupPoints.forEach((point) => {
-      const { type } = point;
-      if (type === LinearRowType.Group) {
-        const { id, value, depth, isCollapsed } = point;
-        const isSubGroup = depth > collapsedDepth;
-
-        if (isCollapsed) {
-          collapsedDepth = Math.min(collapsedDepth, depth);
-          if (isSubGroup) return;
-        } else if (!isSubGroup) {
-          collapsedDepth = Number.MAX_VALUE;
-        } else {
-          return;
-        }
-
-        rowHeightMap[totalIndex] = groupHeaderHeight;
-        linearRows.push({
-          id,
-          type: LinearRowType.Group,
-          depth,
-          value,
-          realIndex: rowIndex,
-          isCollapsed: Boolean(isCollapsed),
-        });
-        currentValue = value;
-        totalIndex++;
-      }
-      if (type === LinearRowType.Row) {
-        const count = point.count;
-
-        for (let i = 0; i < count; i++) {
-          real2LinearRowMap[rowIndex + i] = totalIndex + i;
-          linearRows.push({
-            type: LinearRowType.Row,
-            displayIndex: i + 1,
-            realIndex: rowIndex + i,
-          });
-        }
-
-        rowIndex += count;
-        totalIndex += count;
-
-        if (hasAppendRow) {
-          rowHeightMap[totalIndex] = appendRowHeight;
-          linearRows.push({
-            type: LinearRowType.Append,
-            value: currentValue,
-            realIndex: rowIndex - 1,
-          });
-          totalIndex++;
-        }
-      }
-    });
-
-    return {
-      linearRows,
-      real2LinearRowMap,
-      pureRowCount: rowIndex,
-      rowCount: totalIndex,
-      rowHeightMap,
-    };
+    return buildGroupRowsInfo(groupPoints, hasAppendRow, appendRowHeight, groupHeaderHeight);
   }, [groupPoints, hasAppendRow]);
 
   const { rowCount, pureRowCount, rowHeightMap, linearRows, real2LinearRowMap } = useMemo(() => {
@@ -458,19 +357,7 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   const getLinearRow = useCallback(
     (index: number) => {
       if (!linearRows.length) {
-        return (
-          index >= pureRowCount
-            ? {
-                type: LinearRowType.Append,
-                realIndex: index - 1,
-                value: null,
-              }
-            : {
-                type: LinearRowType.Row,
-                displayIndex: index + 1,
-                realIndex: index,
-              }
-        ) as ILinearRow;
+        return getFallbackLinearRow(index, pureRowCount);
       }
       return linearRows[index] ?? { realIndex: -2 };
     },
@@ -486,13 +373,7 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   );
 
   const columnWidthMap = useMemo(() => {
-    return columns.reduce(
-      (acc, column, index) => ({
-        ...acc,
-        [index]: column.width || defaultColumnWidth,
-      }),
-      {}
-    );
+    return buildColumnWidthMap(columns, defaultColumnWidth);
   }, [columns]);
 
   const coordInstance = useMemo<CoordinateManager>(() => {
@@ -528,42 +409,14 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   }, [coordInstance, width, containerHeight, freezeColumnCount]);
 
   const activeCellBound = useMemo(() => {
-    if (activeColumnIndex == null || activeRowIndex == null) {
-      return null;
-    }
-
-    const cell = getCellContent([activeColumnIndex, activeRowIndex]);
-    const cellRenderer = getCellRenderer(cell.type);
-    const originWidth = coordInstance.getColumnWidth(activeColumnIndex);
-    const originHeight = coordInstance.getRowHeight(real2RowIndex(activeRowIndex));
-
-    if (cellRenderer?.measure && measuredCanvas?.ctx != null) {
-      const { width, height, totalHeight } = cellRenderer.measure(cell as never, {
-        theme,
-        ctx: measuredCanvas.ctx,
-        width: originWidth,
-        height: originHeight,
-      });
-      return {
-        rowIndex: activeRowIndex,
-        columnIndex: activeColumnIndex,
-        width,
-        height,
-        totalHeight,
-        scrollTop: 0,
-        scrollEnable: totalHeight > height,
-      };
-    }
-    return {
-      rowIndex: activeRowIndex,
-      columnIndex: activeColumnIndex,
-      width: originWidth,
-      height: originHeight,
-      totalHeight: originHeight,
-      scrollTop: 0,
-      scrollEnable: false,
-    };
-  }, [activeColumnIndex, activeRowIndex, coordInstance, theme, getCellContent, real2RowIndex]);
+    return getActiveCellBound({
+      activeCell,
+      getCellContent,
+      coordInstance,
+      theme,
+      real2RowIndex,
+    });
+  }, [activeCell, coordInstance, theme, getCellContent, real2RowIndex]);
 
   const scrollEnable =
     hoverRegionType !== RegionType.None &&
@@ -591,38 +444,20 @@ const GridBase: ForwardRefRenderFunction<IGridRef, IGridProps> = (props, forward
   const scrollToItem = useCallback(
     (position: [columnIndex: number, rowIndex: number]) => {
       try {
-        const {
-          containerHeight,
-          containerWidth,
-          freezeRegionWidth,
-          freezeColumnCount,
-          rowInitSize,
-        } = coordInstance;
-        const { scrollTop, scrollLeft } = scrollState;
-        const [columnIndex, _rowIndex] = position;
-        const rowIndex = real2RowIndex(_rowIndex);
-        const isFreezeColumn = columnIndex < freezeColumnCount;
+        const { nextScrollLeft, nextScrollTop } = getScrollToItemTarget({
+          position,
+          coordInstance,
+          scrollState,
+          real2RowIndex,
+          cellScrollBuffer,
+        });
 
-        if (!isFreezeColumn) {
-          const offsetX = coordInstance.getColumnOffset(columnIndex);
-          const columnWidth = coordInstance.getColumnWidth(columnIndex);
-          const deltaLeft = Math.min(offsetX - scrollLeft - freezeRegionWidth, 0);
-          const deltaRight = Math.max(offsetX + columnWidth - scrollLeft - containerWidth, 0);
-          const sl = scrollLeft + deltaLeft + deltaRight;
-          if (sl !== scrollLeft) {
-            const scrollBuffer =
-              deltaLeft < 0 ? -cellScrollBuffer : deltaRight > 0 ? cellScrollBuffer : 0;
-            scrollTo(sl + scrollBuffer, undefined);
-          }
+        if (nextScrollLeft != null) {
+          scrollTo(nextScrollLeft, undefined);
         }
 
-        const rowHeight = coordInstance.getRowHeight(rowIndex);
-        const offsetY = coordInstance.getRowOffset(rowIndex);
-        const deltaTop = Math.min(offsetY - scrollTop - rowInitSize, 0);
-        const deltaBottom = Math.max(offsetY + rowHeight - scrollTop - containerHeight, 0);
-        const st = scrollTop + deltaTop + deltaBottom;
-        if (st !== scrollTop) {
-          scrollTo(undefined, st);
+        if (nextScrollTop != null) {
+          scrollTo(undefined, nextScrollTop);
         }
       } catch (error) {
         console.error('scrollToItem error', error);
