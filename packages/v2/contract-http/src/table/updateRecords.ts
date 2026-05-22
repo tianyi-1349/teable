@@ -11,6 +11,7 @@ import {
   type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
+import { toJsonRecord } from '../shared/json';
 import type { ITableRecordDto } from './recordDto';
 import { tableRecordDtoSchema } from './recordDto';
 
@@ -46,15 +47,17 @@ export const mapUpdateRecordsResultToDto = (
 ): Result<IUpdateRecordsResponseDataDto, DomainError> => {
   const recordDtos = result.records?.map((record) => ({
     id: record.id().toString(),
-    fields: Object.fromEntries(
-      record
-        .fields()
-        .entries()
-        .map((entry) => {
-          const fieldIdStr = entry.fieldId.toString();
-          const key = result.fieldKeyMapping.get(fieldIdStr) ?? fieldIdStr;
-          return [key, entry.value.toValue()];
-        })
+    fields: toJsonRecord(
+      Object.fromEntries(
+        record
+          .fields()
+          .entries()
+          .map((entry) => {
+            const fieldIdStr = entry.fieldId.toString();
+            const key = result.fieldKeyMapping.get(fieldIdStr) ?? fieldIdStr;
+            return [key, entry.value.toValue()];
+          })
+      )
     ),
   }));
 

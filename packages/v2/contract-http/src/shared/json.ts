@@ -47,3 +47,14 @@ export const toJsonValue = (value: unknown): JsonValue | undefined => {
 
   return String(value);
 };
+
+export const toJsonRecord = (record: Record<string, unknown>): Record<string, JsonValue> => {
+  const serialized: Record<string, JsonValue> = {};
+  for (const [key, value] of Object.entries(record)) {
+    const jsonValue = toJsonValue(value);
+    if (jsonValue !== undefined) {
+      serialized[key] = jsonValue;
+    }
+  }
+  return serialized;
+};
