@@ -3,7 +3,7 @@ import { ok } from 'neverthrow';
 import type { Result } from 'neverthrow';
 import { z } from 'zod';
 
-import { jsonValueSchema } from '../shared/json';
+import { jsonValueSchema, toJsonValue } from '../shared/json';
 
 export const tableRecordDtoSchema = z.object({
   id: z.string(),
@@ -20,8 +20,9 @@ export const mapTableRecordToDto = (
 ): Result<ITableRecordDto, DomainError> => {
   const fields: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record.fields)) {
-    if (value !== undefined) {
-      fields[key] = value;
+    const serialized = toJsonValue(value);
+    if (serialized !== undefined) {
+      fields[key] = serialized;
     }
   }
   return ok({ id: record.id, fields });
