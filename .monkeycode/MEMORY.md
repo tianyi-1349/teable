@@ -163,6 +163,14 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 当前轮次围绕剩余 P0 任务持续推进实现、验证和文档回写，直到该批任务全部完成
   - 执行过程中优先直接落代码和验证，只有在真实冲突、阻塞或信息缺失时停下
 
+[v2 contract-http 直接依赖 core]
+- Date: 2026-05-22
+- Context: Agent 在修复 `@teable/v2-contract-http` 的 CI 模块解析失败时发现
+- Category: 依赖关系
+- Instructions:
+  - `packages/v2/contract-http/src/share/formSubmitShareView.ts` 直接导入 `@teable/core`
+  - `packages/v2/contract-http/package.json` 需要显式声明 `@teable/core` 的 workspace 依赖，才能保证 CI 和本地解析一致
+
 [published-app 预览与 shell 收口优先保证发布拦截和离线体验]
 - Date: 2026-05-20
 - Context: 用户要求继续执行 published-app 剩余任务并推进 PR7/PR8/PR9 收口
