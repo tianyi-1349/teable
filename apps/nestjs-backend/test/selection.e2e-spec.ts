@@ -1850,6 +1850,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       const viewId = table.views[0].id;
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],
@@ -1872,6 +1873,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       const viewId = table.views[0].id;
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],
@@ -1902,6 +1904,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       });
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],

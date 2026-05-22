@@ -237,12 +237,12 @@ export class FieldOpenApiV2Service {
     // v1 expects a flat options: { expression, formatting, filter, foreignTableId, lookupFieldId, sort, limit }
     if (raw.type === 'conditionalRollup') {
       const config = raw.config as Record<string, unknown> | undefined;
+      const opts =
+        raw.options && typeof raw.options === 'object' && !Array.isArray(raw.options)
+          ? { ...(raw.options as Record<string, unknown>) }
+          : {};
       if (config) {
         const condition = config.condition as Record<string, unknown> | undefined;
-        const opts =
-          raw.options && typeof raw.options === 'object' && !Array.isArray(raw.options)
-            ? { ...(raw.options as Record<string, unknown>) }
-            : {};
         if (config.foreignTableId != null) opts.foreignTableId = config.foreignTableId;
         if (config.lookupFieldId != null) opts.lookupFieldId = config.lookupFieldId;
         if (condition) {
@@ -250,9 +250,9 @@ export class FieldOpenApiV2Service {
           if (condition.sort !== undefined) opts.sort = condition.sort;
           if (condition.limit !== undefined) opts.limit = condition.limit;
         }
-        raw.options = opts;
         delete raw.config;
       }
+      raw.options = opts;
     }
 
     // Translate v2 conditionalLookup DTO to v1 API format.

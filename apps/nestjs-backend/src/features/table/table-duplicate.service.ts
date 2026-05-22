@@ -927,7 +927,10 @@ export class TableDuplicateService {
         selfKeyName: targetSelfKeyName,
         foreignKeyName: targetForeignKeyName,
       } = targetOptions as ILinkFieldOptions;
-      if (sourceFkHostTableName.includes('junction_')) {
+      if (
+        sourceFkHostTableName.includes('junction_') &&
+        targetFkHostTableName.includes('junction_')
+      ) {
         junctionDbTableNameMap[sourceFkHostTableName] = {
           sourceSelfKeyName,
           sourceForeignKeyName,
