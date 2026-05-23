@@ -75,6 +75,7 @@ type ITestFieldOpenApiV2Service = {
   completeLegacyLinkDbConfigForCreate: (
     v2Field: Record<string, unknown>,
     currentTable: {
+      baseId?: () => { toString: () => string };
       dbTableName: () => {
         isErr: () => boolean;
         value: { value: () => { isErr: () => boolean; value: string } };
@@ -191,6 +192,35 @@ describe('FieldOpenApiV2Service convertField', () => {
       },
       expect.anything()
     );
+  });
+
+  it('does not carry stale lookupFieldId when converting link to another foreign table', () => {
+    const service = createService();
+    const mapped = service.mapConvertFieldToV2(
+      {
+        type: 'link',
+        options: {
+          relationship: 'manyOne',
+          foreignTableId: 'tblTarget000000002',
+        },
+      },
+      {
+        type: 'link',
+        options: {
+          relationship: 'manyOne',
+          foreignTableId: 'tblTarget000000001',
+          lookupFieldId: 'fldOldLookup0000001',
+        },
+      }
+    );
+
+    expect(mapped).toEqual({
+      type: 'link',
+      options: {
+        relationship: 'manyOne',
+        foreignTableId: 'tblTarget000000002',
+      },
+    });
   });
 });
 
@@ -1332,6 +1362,57 @@ describe('FieldOpenApiV2Service mapLegacyCreateFieldToV2', () => {
       },
     });
   });
+
+  it('fills link db config for one-way manyMany with single-sided junction naming', async () => {
+    const service = createService();
+    const fieldId = `fld${'s'.repeat(16)}`;
+    const mapped = service.mapLegacyCreateFieldToV2({
+      id: fieldId,
+      type: 'link',
+      options: {
+        relationship: 'manyMany',
+        isOneWay: true,
+        foreignTableId: 'tblForeign00000004',
+        lookupFieldId: 'fldLookup000000004',
+      },
+    });
+
+    const currentTable = {
+      baseId: () => ({
+        toString: () => 'bseTestBaseId',
+      }),
+      dbTableName: () => ({
+        isErr: () => false,
+        value: {
+          value: () => ({ isErr: () => false, value: 'bseTestBaseId.tblCurrentTable0004' }),
+        },
+      }),
+    };
+
+    const completed = await service.completeLegacyLinkDbConfigForCreate(
+      mapped,
+      currentTable,
+      {
+        getById: async () => ({
+          isErr: () => true,
+          value: currentTable,
+        }),
+      },
+      {}
+    );
+
+    expect(completed).toMatchObject({
+      type: 'link',
+      options: {
+        relationship: 'manyMany',
+        isOneWay: true,
+        foreignTableId: 'tblForeign00000004',
+        fkHostTableName: `bseTestBaseId.junction_${fieldId}`,
+        foreignKeyName: `__fk_${fieldId}`,
+      },
+    });
+    expect((completed.options as { symmetricFieldId?: string }).symmetricFieldId).toBeUndefined();
+  });
 });
 
 describe('FieldOpenApiV2Service normalizeFieldVo', () => {
@@ -1746,6 +1827,47 @@ describe('FieldOpenApiV2Service normalizeFieldVo', () => {
       linkFieldId: 'fldLink000000000001',
       foreignTableId: 'tblForeign00000001',
       lookupFieldId: 'fldSource000000001',
+      filter: {
+        conjunction: 'and',
+        filterSet: [
+          {
+            fieldId: 'fldDate00000000001',
+            operator: 'is',
+            value: { mode: 'today', timeZone: 'utc' },
+          },
+        ],
+      },
+    });
+  });
+
+  it('keeps dynamic filter timezone casing in normalized conditional rollup options', () => {
+    const service = createNormalizeService();
+    const vo = service.normalizeFieldVo({
+      id: 'fldRollup0000000002',
+      name: 'Today Hours',
+      type: 'conditionalRollup',
+      options: {
+        expression: 'sum({values})',
+      },
+      config: {
+        foreignTableId: 'tblForeign00000001',
+        lookupFieldId: 'fldSource000000001',
+        condition: {
+          filter: {
+            conjunction: 'and',
+            filterSet: [
+              {
+                fieldId: 'fldDate00000000001',
+                operator: 'is',
+                value: { mode: 'today', timeZone: 'utc' },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(vo.options).toMatchObject({
       filter: {
         conjunction: 'and',
         filterSet: [

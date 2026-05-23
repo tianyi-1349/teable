@@ -392,7 +392,7 @@ export class FieldOpenApiV2Service {
     }
 
     if (raw.options && typeof raw.options === 'object') {
-      raw.options = this.denormalizeLegacyTimeZone(this.stripUndefinedDeep(raw.options));
+      raw.options = this.denormalizeLegacyFieldOptions(this.stripUndefinedDeep(raw.options));
     }
 
     if (raw.lookupOptions && typeof raw.lookupOptions === 'object') {
@@ -896,6 +896,20 @@ export class FieldOpenApiV2Service {
     return normalized;
   }
 
+  private denormalizeLegacyFieldOptions(value: unknown): unknown {
+    const denormalized = this.denormalizeLegacyTimeZone(value);
+    if (!denormalized || typeof denormalized !== 'object' || Array.isArray(denormalized)) {
+      return denormalized;
+    }
+
+    const original = value as Record<string, unknown>;
+    const options = denormalized as Record<string, unknown>;
+    if (original.filter !== undefined) {
+      options.filter = original.filter;
+    }
+    return options;
+  }
+
   private getResultTypePair(raw: Record<string, unknown>): Record<string, unknown> {
     const cellValueType = raw.cellValueType;
     const isMultipleCellValue = raw.isMultipleCellValue;
@@ -1221,9 +1235,14 @@ export class FieldOpenApiV2Service {
 
     let fkHostTableNameValue: string | undefined;
     if (relationship === 'manyMany') {
-      const resolvedSymmetricFieldId = symmetricFieldIdRaw ?? generateFieldId();
-      symmetricFieldIdRaw = resolvedSymmetricFieldId;
-      fkHostTableNameValue = `${currentTable.baseId().toString()}.junction_${fieldIdRaw}_${resolvedSymmetricFieldId}`;
+      if (isOneWay) {
+        symmetricFieldIdRaw = undefined;
+        fkHostTableNameValue = `${currentTable.baseId().toString()}.junction_${fieldIdRaw}`;
+      } else {
+        const resolvedSymmetricFieldId = symmetricFieldIdRaw ?? generateFieldId();
+        symmetricFieldIdRaw = resolvedSymmetricFieldId;
+        fkHostTableNameValue = `${currentTable.baseId().toString()}.junction_${fieldIdRaw}_${resolvedSymmetricFieldId}`;
+      }
     } else if (relationship === 'oneMany') {
       const foreignTableIdResult = TableId.create(foreignTableIdRaw);
       if (foreignTableIdResult.isErr()) {
@@ -2154,6 +2173,10 @@ export class FieldOpenApiV2Service {
         !Array.isArray(currentField.options)
           ? (currentField.options as Record<string, unknown>)
           : undefined;
+      const foreignTableChanged =
+        opts.foreignTableId != null &&
+        currentOpts?.foreignTableId != null &&
+        opts.foreignTableId !== currentOpts.foreignTableId;
 
       return {
         ...base,
@@ -2164,7 +2187,7 @@ export class FieldOpenApiV2Service {
           ...(opts.foreignTableId != null ? { foreignTableId: opts.foreignTableId } : {}),
           ...(opts.lookupFieldId != null
             ? { lookupFieldId: opts.lookupFieldId }
-            : currentOpts?.lookupFieldId != null
+            : currentOpts?.lookupFieldId != null && !foreignTableChanged
               ? { lookupFieldId: currentOpts.lookupFieldId }
               : {}),
           ...(opts.fkHostTableName != null

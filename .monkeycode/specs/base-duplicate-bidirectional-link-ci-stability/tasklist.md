@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，CI 待确认 |
+| 当前状态 | 主线绿灯，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -22,14 +22,15 @@
 | T6 | completed | L2 | 根据证据命中层实施最小补丁 | 已覆盖 create/convert persistence、duplicate link field、duplicate data copy 层 |
 | T7 | completed | L2 | 运行修改层相关 L2 测试 | 已记录 L2 证明句 |
 | T8 | completed | L3 | 运行主线 focused e2e | 已记录 L3 证明句，状态升级为主线绿灯 |
-| T9 | pending | L4 | 触发相关 GitHub Actions workflow | 记录 L4 证明句，状态升级为 CI 确认 |
+| T9 | in_progress | L4 | 触发相关 GitHub Actions workflow | 记录 L4 证明句，状态升级为 CI 确认 |
 | T10 | in_progress | L3 | 清理 Gap List 并检查临时观测代码 | 临时观测代码已清理，CI gap 待关闭 |
 
 ## 下一步执行
 
-1. 触发相关 GitHub Actions workflow，确认 CI 环境结果。
-2. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
-3. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
+1. 提交并推送本轮 CI 红灯兼容映射修复。
+2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
+3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
+4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
 
 ## 证明句记录
 
@@ -41,3 +42,10 @@
 | 2026-05-23 | L2 | `pnpm exec vitest run src/commands/CreateFieldCommand.spec.ts src/commands/TableFieldUpdateSpecs.spec.ts` | 证明 v2 core create/update link config 回归通过，42 tests passed。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` | 证明主线双向 link base duplicate 行为通过，1 test passed，20 skipped。 |
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明 backend 类型边界通过；默认 heap 下 OOM，提升 Node heap 后无类型错误。 |
+| 2026-05-23 | L4 红灯分析 | Integration Tests run `26331170710` failed jobs `77517420959`、`77517420962`、`77517420967` | 证明 CI 红灯集中在 OpenAPI v1/v2 兼容映射层：one-way manyMany junction 命名、conditional rollup 动态 filter timeZone 回读、link convert foreign table 切换时 stale lookupFieldId。 |
+| 2026-05-23 | L2 | `pnpm --filter @teable/backend exec vitest run src/features/field/open-api/field-open-api-v2.service.spec.ts` | 证明字段 OpenAPI 兼容映射回归通过，64 tests passed。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/link-api.e2e-spec.ts -t "should create one way, many many link"` | 证明 one-way manyMany legacy junction 命名行为通过，1 test passed，107 skipped。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/conditional-rollup.e2e-spec.ts -t "should honor today filters in conditional rollups"` | 证明 conditional rollup 动态 date filter 的 `utc` 回读保真行为通过，1 test passed，74 skipped。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/undo-redo.e2e-spec.ts -t "should undo / redo convert link when convert link from one table to another"` | 证明 link convert 切换 foreign table 时不再沿用 stale lookupFieldId，1 test passed，30 skipped。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` | 证明本轮兼容映射补丁未破坏主线双向 link base duplicate 行为，1 test passed，20 skipped。 |
+| 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮兼容映射补丁通过 backend 类型边界。 |

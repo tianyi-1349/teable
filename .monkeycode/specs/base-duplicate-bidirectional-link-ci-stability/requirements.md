@@ -7,10 +7,10 @@
 | 字段 | 内容 |
 |---|---|
 | 主线验收 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
-| 当前状态 | 主线绿灯，CI 待确认 |
+| 当前状态 | 主线绿灯，CI 重跑待确认 |
 | 当前红灯 | 无本地主线红灯 |
-| 当前失败层 | CI workflow 待确认 |
-| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制与 junction 复制主线链路已通过 focused e2e |
+| 当前失败层 | CI integration 红灯已定位到 OpenAPI v1/v2 兼容映射层，本地 focused e2e 已复绿，workflow 重跑待确认 |
+| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换均已通过 focused e2e |
 | 完成门槛 | L2 相关测试通过、主线 focused e2e 通过、相关 CI workflow 通过、Gap List 清零 |
 
 ## Requirements
@@ -61,4 +61,7 @@ WHEN local L2 tests pass, THE SYSTEM SHALL keep the task status as 局部绿灯 
 | 实际 junction table 名 | 已闭合 | focused e2e 通过，证明实际 relation 与 config 在 duplicate 主线中一致 |
 | record insert 使用值 | 已闭合 | focused e2e 通过，证明 `RecordInsertBuilder` 使用值已不再指向 stale single-sided junction table |
 | cache invalidation | 已闭合 | focused e2e 在 create、convert、insert、duplicate 连续链路中通过，证明当前链路使用最新 table/field |
-| related CI workflow | 待确认 | 需要触发并记录相关 GitHub Actions workflow 结果 |
+| one-way manyMany legacy junction 命名 | 已闭合 | `test/link-api.e2e-spec.ts -t "should create one way, many many link"` 通过，证明 one-way manyMany 仍使用单字段 junction 名且不暴露 symmetricFieldId |
+| conditional rollup dynamic filter timeZone 回读 | 已闭合 | `test/conditional-rollup.e2e-spec.ts -t "should honor today filters in conditional rollups"` 通过，证明 filter 内 `timeZone: 'utc'` 回读保持原值 |
+| link convert foreign table stale lookupFieldId | 已闭合 | `test/undo-redo.e2e-spec.ts -t "should undo / redo convert link when convert link from one table to another"` 通过，证明切换 foreign table 时不沿用旧 lookupFieldId |
+| related CI workflow | 待确认 | 需要重新触发并记录相关 GitHub Actions workflow 结果 |
