@@ -452,6 +452,13 @@ export class TableFieldPersistenceBuilder {
     field: ITableFieldPersistenceDTO,
     domainField?: Field
   ): unknown | undefined {
+    if (domainField?.type().toString() === 'link') {
+      const domainOptions = this.extractPersistedOptionsFromField(domainField);
+      if (domainOptions !== undefined) {
+        return domainOptions;
+      }
+      return field.options;
+    }
     if (field.type === 'conditionalLookup') {
       return this.resolveConditionalLookupInnerOptions(field, domainField);
     }

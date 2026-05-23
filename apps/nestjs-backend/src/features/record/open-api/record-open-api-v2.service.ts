@@ -7,6 +7,7 @@ import {
   CellValueType,
   FieldKeyType,
   FieldType,
+  Relationship,
   TimeFormatting,
   formatDateToString,
   isMeTag,
@@ -131,6 +132,154 @@ export class RecordOpenApiV2Service {
       domainTags: error.tags,
       details: error.details,
     });
+  }
+
+  private async getSingleValueLinkFieldIds(tableId: string): Promise<Set<string>> {
+    const fields = await this.fieldService.getFieldsByQuery(tableId);
+    return new Set(
+      fields
+        .filter((field) => {
+          if (field.type !== FieldType.Link) {
+            return false;
+          }
+          const relationship = (field.options as { relationship?: string } | undefined)
+            ?.relationship;
+          return relationship === Relationship.ManyOne || relationship === Relationship.OneOne;
+        })
+        .map((field) => field.id)
+    );
+  }
+
+  private normalizeSingleValueLinkRecord(
+    singleLinkFieldIds: ReadonlySet<string>,
+    record: IRecord
+  ): IRecord {
+    if (!singleLinkFieldIds.size) {
+      return record;
+    }
+
+    const nextFields = { ...record.fields } as Record<string, unknown>;
+    let changed = false;
+
+    for (const fieldId of singleLinkFieldIds) {
+      const value = nextFields[fieldId];
+      if (Array.isArray(value)) {
+        nextFields[fieldId] = value[0] ?? null;
+        changed = true;
+      }
+    }
+
+    return changed ? { ...record, fields: nextFields } : record;
+  }
+
+  private async normalizeSingleValueLinkFields(
+    tableId: string,
+    records: IRecord[]
+  ): Promise<IRecord[]> {
+    if (!records.length) {
+      return records;
+    }
+
+    const singleLinkFieldIds = await this.getSingleValueLinkFieldIds(tableId);
+
+    if (!singleLinkFieldIds.size) {
+      return records;
+    }
+
+    return records.map((record) => this.normalizeSingleValueLinkRecord(singleLinkFieldIds, record));
+  }
+
+  private async normalizeSingleValueLinkField(tableId: string, record: IRecord): Promise<IRecord> {
+    const singleLinkFieldIds = await this.getSingleValueLinkFieldIds(tableId);
+    return this.normalizeSingleValueLinkRecord(singleLinkFieldIds, record);
+  }
+
+  private hasMissingLinkTitles(linkFieldIds: ReadonlySet<string>, record: IRecord): boolean {
+    for (const fieldId of linkFieldIds) {
+      const value = record.fields[fieldId];
+      if (Array.isArray(value)) {
+        if (
+          value.some(
+            (item) =>
+              item &&
+              typeof item === 'object' &&
+              'id' in item &&
+              !('title' in item) &&
+              !('value' in item)
+          )
+        ) {
+          return true;
+        }
+        continue;
+      }
+
+      if (
+        value &&
+        typeof value === 'object' &&
+        'id' in value &&
+        !('title' in value) &&
+        !('value' in value)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private async hydrateRecordsWhenLinkTitlesMissing(
+    tableId: string,
+    records: IRecord[],
+    fieldKeyType: FieldKeyType
+  ): Promise<IRecord[]> {
+    if (!records.length) {
+      return records;
+    }
+
+    const fields = await this.fieldService.getFieldsByQuery(tableId);
+    const linkFieldIds = new Set(
+      fields.filter((field) => field.type === FieldType.Link).map((field) => field.id)
+    );
+
+    if (
+      !linkFieldIds.size ||
+      !records.some((record) => this.hasMissingLinkTitles(linkFieldIds, record))
+    ) {
+      return records;
+    }
+
+    const recordIds = records.map((record) => record.id);
+    const snapshots = await this.recordService.getSnapshotBulkWithPermission(
+      tableId,
+      recordIds,
+      undefined,
+      fieldKeyType,
+      undefined,
+      true
+    );
+    const snapshotMap = new Map(
+      snapshots.map((snapshot) => [snapshot.data.id, snapshot.data as IRecord])
+    );
+
+    return records.map((record) => snapshotMap.get(record.id) ?? record);
+  }
+
+  private async finalizeWriteRecords(
+    tableId: string,
+    records: IRecord[],
+    fieldKeyType: FieldKeyType
+  ): Promise<IRecord[]> {
+    const normalizedRecords = await this.normalizeSingleValueLinkFields(tableId, records);
+    return this.hydrateRecordsWhenLinkTitlesMissing(tableId, normalizedRecords, fieldKeyType);
+  }
+
+  private async finalizeWriteRecord(
+    tableId: string,
+    record: IRecord,
+    fieldKeyType: FieldKeyType
+  ): Promise<IRecord> {
+    const [finalRecord] = await this.finalizeWriteRecords(tableId, [record], fieldKeyType);
+    return finalRecord;
   }
 
   private getUndoRedoEnginePreferenceKey(
@@ -613,7 +762,11 @@ export class RecordOpenApiV2Service {
 
       await this.clearUndoRedoEnginePreference(tableId);
 
-      return result.body.data.record;
+      return this.finalizeWriteRecord(
+        tableId,
+        result.body.data.record as IRecord,
+        updateRecordRo.fieldKeyType ?? FieldKeyType.Name
+      );
     }
     throw new HttpException(internalServerError, HttpStatus.INTERNAL_SERVER_ERROR);
   }
@@ -676,7 +829,11 @@ export class RecordOpenApiV2Service {
       'record.update.response.recordCount',
       updateResult.body.data.records.length
     );
-    return updateResult.body.data.records;
+    return this.finalizeWriteRecords(
+      tableId,
+      updateResult.body.data.records as IRecord[],
+      updateRecordsRo.fieldKeyType ?? FieldKeyType.Name
+    );
   }
 
   async createRecords(
@@ -706,7 +863,11 @@ export class RecordOpenApiV2Service {
     if (result.status === 201 && result.body.ok) {
       await this.clearUndoRedoEnginePreference(tableId);
       return {
-        records: result.body.data.records as IRecord[],
+        records: await this.finalizeWriteRecords(
+          tableId,
+          result.body.data.records as IRecord[],
+          createRecordsRo.fieldKeyType ?? FieldKeyType.Name
+        ),
       };
     }
 
@@ -735,7 +896,11 @@ export class RecordOpenApiV2Service {
 
     if (result.status === 201 && result.body.ok) {
       await this.clearUndoRedoEnginePreference(tableId);
-      return result.body.data.record as IRecord;
+      return this.finalizeWriteRecord(
+        tableId,
+        result.body.data.record as IRecord,
+        FieldKeyType.Name
+      );
     }
 
     if (!result.body.ok) {

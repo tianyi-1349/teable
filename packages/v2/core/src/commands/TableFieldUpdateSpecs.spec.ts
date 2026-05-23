@@ -1789,6 +1789,111 @@ describe('TableFieldUpdateSpecs', () => {
     });
   });
 
+  it('preserves manyMany junction config when replaceOptions updates only notNull semantics', () => {
+    const baseId = createBaseId('t');
+    const hostTableId = createTableId('t');
+    const foreignTableId = createTableId('u');
+    const hostPrimaryId = createFieldId('v');
+    const foreignPrimaryId = createFieldId('w');
+    const linkFieldId = createFieldId('x');
+    const symmetricFieldId = createFieldId('y');
+
+    const foreignBuilder = Table.builder()
+      .withBaseId(baseId)
+      .withId(foreignTableId)
+      .withName(TableName.create('ManyMany Foreign')._unsafeUnwrap());
+    foreignBuilder
+      .field()
+      .singleLineText()
+      .withId(foreignPrimaryId)
+      .withName(FieldName.create('Name')._unsafeUnwrap())
+      .primary()
+      .done();
+    foreignBuilder.view().defaultGrid().done();
+    const foreignTable = foreignBuilder.build()._unsafeUnwrap();
+
+    const linkConfig = LinkFieldConfig.create({
+      relationship: 'manyMany',
+      foreignTableId: foreignTableId.toString(),
+      lookupFieldId: foreignPrimaryId.toString(),
+      symmetricFieldId: symmetricFieldId.toString(),
+      fkHostTableName: `${baseId.toString()}.junction_${linkFieldId.toString()}_${symmetricFieldId.toString()}`,
+      selfKeyName: `__fk_${symmetricFieldId.toString()}`,
+      foreignKeyName: `__fk_${linkFieldId.toString()}`,
+    })._unsafeUnwrap();
+
+    const hostBuilder = Table.builder()
+      .withBaseId(baseId)
+      .withId(hostTableId)
+      .withName(TableName.create('ManyMany Host')._unsafeUnwrap());
+    hostBuilder
+      .field()
+      .singleLineText()
+      .withId(hostPrimaryId)
+      .withName(FieldName.create('Primary')._unsafeUnwrap())
+      .primary()
+      .done();
+    hostBuilder
+      .field()
+      .link()
+      .withId(linkFieldId)
+      .withName(FieldName.create('Link')._unsafeUnwrap())
+      .withConfig(linkConfig)
+      .done();
+    hostBuilder.view().defaultGrid().done();
+    const hostTable = hostBuilder.build()._unsafeUnwrap();
+
+    const currentField = hostTable
+      .getField((field) => field.id().equals(linkFieldId))
+      ._unsafeUnwrap() as LinkField;
+    const specsResult = buildUpdateFieldSpecs(
+      currentField,
+      {
+        type: 'link',
+        notNull: true,
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: foreignTableId.toString(),
+          lookupFieldId: foreignPrimaryId.toString(),
+        },
+        replaceOptions: true,
+      },
+      {
+        hostTable,
+        foreignTables: [foreignTable],
+      }
+    );
+
+    expect(specsResult.isOk()).toBe(true);
+    if (specsResult.isErr()) {
+      return;
+    }
+
+    const linkSpec = specsResult.value.find(
+      (spec): spec is UpdateLinkConfigSpec => spec instanceof UpdateLinkConfigSpec
+    );
+    expect(linkSpec).toBeDefined();
+    if (!linkSpec) {
+      return;
+    }
+
+    const nextConfig = linkSpec.nextConfig();
+    expect(nextConfig.symmetricFieldId()?.toString()).toBe(symmetricFieldId.toString());
+
+    const mutatedTableResult = linkSpec.mutate(hostTable);
+    expect(mutatedTableResult.isOk()).toBe(true);
+    if (mutatedTableResult.isErr()) {
+      return;
+    }
+
+    const updatedField = mutatedTableResult.value
+      .getField((field) => field.id().equals(linkFieldId))
+      ._unsafeUnwrap() as LinkField;
+    expect(updatedField.fkHostTableNameString()._unsafeUnwrap()).toBe(
+      `${baseId.toString()}.junction_${linkFieldId.toString()}_${symmetricFieldId.toString()}`
+    );
+  });
+
   it('defaults link lookupFieldId to the new foreign table primary field when foreignTableId changes', () => {
     const baseId = createBaseId('h');
     const hostTableId = createTableId('h');

@@ -1,4 +1,4 @@
-import { CellValueType, FieldKeyType, FieldType, SortFunc } from '@teable/core';
+import { CellValueType, FieldKeyType, FieldType, Relationship, SortFunc } from '@teable/core';
 import {
   CreateRecordResult,
   CreateRecordsResult,
@@ -551,6 +551,44 @@ describe('RecordOpenApiV2Service', () => {
     expect(cacheDel).toHaveBeenCalledWith(
       `operations:engine:usr${'h'.repeat(16)}:tbl${'c'.repeat(16)}:win${'i'.repeat(16)}`
     );
+  });
+
+  it('normalizes single-value link fields in updateRecord responses', async () => {
+    const linkFieldId = `fld${'l'.repeat(16)}`;
+    getFieldsByQuery.mockResolvedValueOnce([
+      {
+        id: linkFieldId,
+        type: FieldType.Link,
+        options: { relationship: Relationship.ManyOne },
+      },
+    ]);
+    commandExecute.mockResolvedValueOnce({
+      isErr: () => false,
+      value: createUpdateRecordResult({
+        recordId: 'rec1111111111111111',
+        tableId: `tbl${'c'.repeat(16)}`,
+        fields: {
+          [linkFieldId]: [{ id: 'rec2222222222222222', title: 'Linked' }],
+        },
+      }),
+    });
+
+    const result = await service.updateRecord(`tbl${'c'.repeat(16)}`, 'rec1111111111111111', {
+      fieldKeyType: FieldKeyType.Id,
+      record: {
+        fields: {
+          [linkFieldId]: 'Linked',
+        },
+      },
+      typecast: true,
+    });
+
+    expect(result).toEqual({
+      id: 'rec1111111111111111',
+      fields: {
+        [linkFieldId]: { id: 'rec2222222222222222', title: 'Linked' },
+      },
+    });
   });
 
   it('passes batch order through native v2 updateRecords', async () => {

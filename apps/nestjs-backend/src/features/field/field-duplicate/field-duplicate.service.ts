@@ -384,8 +384,9 @@ export class FieldDuplicateService {
           {
             notNull: original.notNull,
             unique: original.unique,
-            dbFieldName: newFieldVo.dbFieldName,
+            dbFieldName: original.dbFieldName,
             isPrimary: original.isPrimary,
+            skipPhysicalConstraint: true,
           },
           dbTableName
         );
@@ -456,8 +457,9 @@ export class FieldDuplicateService {
           {
             notNull: driverField.notNull,
             unique: driverField.unique,
-            dbFieldName: newFieldVo.dbFieldName,
+            dbFieldName: driverField.dbFieldName,
             isPrimary: driverField.isPrimary,
+            skipPhysicalConstraint: true,
           },
           dbTableName
         );
@@ -537,8 +539,9 @@ export class FieldDuplicateService {
           {
             notNull: original.notNull,
             unique: original.unique,
-            dbFieldName: newFieldVo.dbFieldName,
+            dbFieldName: original.dbFieldName,
             isPrimary: original.isPrimary,
+            skipPhysicalConstraint: true,
           },
           dbTableName
         );
@@ -557,14 +560,91 @@ export class FieldDuplicateService {
       }
     });
 
+    const groupedTwoWayFieldIds = new Set(groupedTwoWayFields.flat().map(({ id }) => id));
+    const unpairedTwoWayFields = twoWayFields.filter(({ id }) => !groupedTwoWayFieldIds.has(id));
+
+    const unpairedTwoWayByTable = new Map<string, IFieldWithTableIdJson[]>();
+    for (const field of unpairedTwoWayFields) {
+      const list = unpairedTwoWayByTable.get(field.targetTableId) ?? [];
+      list.push(field);
+      unpairedTwoWayByTable.set(field.targetTableId, list);
+    }
+
+    for (const [targetTableId, tableFields] of unpairedTwoWayByTable.entries()) {
+      const fieldRos: IFieldRo[] = tableFields.map((field) => {
+        const { foreignTableId, relationship } = field.options as ILinkFieldOptions;
+        return {
+          name: field.name,
+          type: field.type as FieldType,
+          description: field.description,
+          dbFieldName: field.dbFieldName,
+          options: {
+            foreignTableId: tableIdMap[foreignTableId],
+            relationship,
+            isOneWay: false,
+          },
+        };
+      });
+
+      const newFieldVos = await this.fieldOpenApiService.createFieldsByRo(targetTableId, fieldRos);
+
+      const { dbTableName } = await this.prismaService.txClient().tableMeta.findUniqueOrThrow({
+        where: {
+          id: targetTableId,
+        },
+        select: {
+          dbTableName: true,
+        },
+      });
+
+      for (let index = 0; index < tableFields.length; index++) {
+        const original = tableFields[index];
+        const newFieldVo = newFieldVos[index];
+        fieldMap[original.id] = newFieldVo.id;
+        const symmetricFieldId = (newFieldVo.options as ILinkFieldOptions).symmetricFieldId;
+        const originalSymmetricFieldId = (original.options as ILinkFieldOptions).symmetricFieldId;
+        if (originalSymmetricFieldId && symmetricFieldId) {
+          fieldMap[originalSymmetricFieldId] = symmetricFieldId;
+        }
+        if ((original.options as ILinkFieldOptions).selfKeyName.startsWith('__fk_')) {
+          fkMap[(original.options as ILinkFieldOptions).selfKeyName] = (
+            newFieldVo.options as ILinkFieldOptions
+          ).selfKeyName;
+        }
+        await this.replenishmentConstraint(
+          newFieldVo.id,
+          targetTableId,
+          original.order,
+          {
+            notNull: original.notNull,
+            unique: original.unique,
+            dbFieldName: original.dbFieldName,
+            isPrimary: original.isPrimary,
+            skipPhysicalConstraint: true,
+          },
+          dbTableName
+        );
+      }
+    }
+
     const twoWayByTable = new Map<
       string,
       Array<{ passiveField: IFieldWithTableIdJson; symmetricField: IFieldWithTableIdJson }>
     >();
     for (const pair of groupedTwoWayFields) {
       // fk would like in this table
-      const index = pair.findIndex((f) => (f.options as ILinkFieldOptions).isOneWay === undefined)!;
-      const passiveIndex = index === -1 ? 0 : index;
+      const explicitTwoWayIndex = pair.findIndex(
+        (f) => (f.options as ILinkFieldOptions).isOneWay === false
+      );
+      const implicitTwoWayIndex = pair.findIndex(
+        (f) => (f.options as ILinkFieldOptions).isOneWay === undefined
+      );
+      const passiveIndex =
+        explicitTwoWayIndex === -1
+          ? implicitTwoWayIndex === -1
+            ? 0
+            : implicitTwoWayIndex
+          : explicitTwoWayIndex;
       const driverIndex = passiveIndex === 0 ? 1 : 0;
       const passiveField = pair[passiveIndex];
       const symmetricField = pair[driverIndex];
@@ -618,8 +698,9 @@ export class FieldDuplicateService {
           {
             notNull: passiveField.notNull,
             unique: passiveField.unique,
-            dbFieldName: newFieldVo.dbFieldName,
+            dbFieldName: passiveField.dbFieldName,
             isPrimary: passiveField.isPrimary,
+            skipPhysicalConstraint: true,
           },
           dbTableName
         );
@@ -680,14 +761,6 @@ export class FieldDuplicateService {
         this.prismaService.txClient()
       );
       if (exists) {
-        // Debug logging for rename operation to diagnose failures
-        // eslint-disable-next-line no-console
-        console.log('[repairSymmetricField] renameColumn info', {
-          targetDbTableName: resolvedDbTableName,
-          genDbFieldName,
-          desiredDbFieldName: dbFieldName,
-          symmetricFieldId: newFieldId,
-        });
         const alterTableSql = this.dbProvider.renameColumn(
           resolvedDbTableName,
           genDbFieldName,
@@ -695,8 +768,6 @@ export class FieldDuplicateService {
         );
 
         for (const sql of alterTableSql) {
-          // eslint-disable-next-line no-console
-          console.log('[repairSymmetricField] executing SQL', sql);
           await this.prismaService.txClient().$executeRawUnsafe(sql);
         }
       }
@@ -711,6 +782,7 @@ export class FieldDuplicateService {
         unique,
         dbFieldName,
         isPrimary,
+        skipPhysicalConstraint: true,
       },
       resolvedDbTableName
     );
@@ -746,7 +818,10 @@ export class FieldDuplicateService {
     for (const field of linkFields) {
       const { options, id } = field;
       const sourceField = sourceFields.find((f) => fieldIdMap[f.id] === id);
-      const { filter, filterByViewId, visibleFieldIds } = sourceField?.options as ILinkFieldOptions;
+      if (!sourceField) {
+        continue;
+      }
+      const { filter, filterByViewId, visibleFieldIds } = sourceField.options as ILinkFieldOptions;
       const moreConfigStr = {
         filter,
         filterByViewId,
@@ -1516,7 +1591,14 @@ export class FieldDuplicateService {
       unique,
       dbFieldName,
       isPrimary,
-    }: { notNull?: boolean; unique?: boolean; dbFieldName: string; isPrimary?: boolean },
+      skipPhysicalConstraint,
+    }: {
+      notNull?: boolean;
+      unique?: boolean;
+      dbFieldName: string;
+      isPrimary?: boolean;
+      skipPhysicalConstraint?: boolean;
+    },
     dbTableName?: string
   ) {
     await this.prismaService.txClient().field.update({
@@ -1525,6 +1607,7 @@ export class FieldDuplicateService {
       },
       data: {
         order,
+        dbFieldName,
       },
     });
     if (!notNull && !unique && !isPrimary) {
@@ -1555,7 +1638,7 @@ export class FieldDuplicateService {
       },
     });
 
-    if (notNull || unique) {
+    if (!skipPhysicalConstraint && (notNull || unique)) {
       const fieldValidationSqls = this.knex.schema
         .alterTable(resolvedDbTableName, (table) => {
           if (unique)

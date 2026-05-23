@@ -3,6 +3,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { CellValueType, DbFieldType, getDefaultFormatting, type IFieldVo } from '@teable/core';
 import { describe, expect, it, vi } from 'vitest';
+
+const { executeUpdateFieldEndpoint } = vi.hoisted(() => ({
+  executeUpdateFieldEndpoint: vi.fn(),
+}));
+
+vi.mock('@teable/v2-contract-http-implementation/handlers', () => ({
+  executeDeleteFieldEndpoint: vi.fn(),
+  executeDuplicateFieldEndpoint: vi.fn(),
+  executeUpdateFieldEndpoint,
+  executeUpdateRecordEndpoint: vi.fn(),
+}));
+
 import { FieldOpenApiV2Service } from './field-open-api-v2.service';
 
 type ITestFieldOpenApiV2Service = {
@@ -51,6 +63,11 @@ type ITestFieldOpenApiV2Service = {
     fieldId: string,
     context: Record<string, unknown>
   ) => Promise<IFieldVo>;
+  convertField: (
+    tableId: string,
+    fieldId: string,
+    fieldRo: Record<string, unknown>
+  ) => Promise<IFieldVo>;
   hasDuplicatedDbFieldName: (
     table: { getFields: () => Array<unknown> },
     dbFieldName: string
@@ -94,6 +111,88 @@ const createService = () =>
     {} as never,
     {} as never
   ) as unknown as ITestFieldOpenApiV2Service;
+
+describe('FieldOpenApiV2Service convertField', () => {
+  it('preserves two-way manyMany junction metadata in update payload', async () => {
+    executeUpdateFieldEndpoint.mockResolvedValue({
+      status: 200,
+      body: { ok: true, value: {} },
+    });
+
+    const service = new FieldOpenApiV2Service(
+      {
+        getContainer: async () => ({
+          resolve: vi.fn().mockReturnValue({}),
+        }),
+      } as never,
+      { createContext: async () => ({ requestId: 'reqTestId' }) } as never,
+      { field: { invalidateTables: vi.fn() } } as never,
+      {} as never,
+      {} as never,
+      {} as never
+    ) as unknown as ITestFieldOpenApiV2Service;
+
+    vi.spyOn(service, 'getFieldFromV2')
+      .mockResolvedValueOnce({
+        id: 'fldLink000000000001',
+        type: 'link',
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: 'tblForeign00000001',
+          lookupFieldId: 'fldLookup000000001',
+          symmetricFieldId: 'fldSymmetric000001',
+          fkHostTableName: 'bseBaseId.junction_fldLink000000000001_fldSymmetric000001',
+          selfKeyName: '__fk_fldSymmetric000001',
+          foreignKeyName: '__fk_fldLink000000000001',
+        },
+      } as IFieldVo)
+      .mockResolvedValueOnce({
+        id: 'fldLink000000000001',
+        type: 'link',
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: 'tblForeign00000001',
+          lookupFieldId: 'fldLookup000000001',
+          symmetricFieldId: 'fldSymmetric000001',
+          fkHostTableName: 'bseBaseId.junction_fldLink000000000001_fldSymmetric000001',
+          selfKeyName: '__fk_fldSymmetric000001',
+          foreignKeyName: '__fk_fldLink000000000001',
+        },
+      } as IFieldVo);
+
+    await service.convertField('tblHost000000000001', 'fldLink000000000001', {
+      type: 'link',
+      notNull: true,
+      options: {
+        relationship: 'manyMany',
+        foreignTableId: 'tblForeign00000001',
+      },
+    });
+
+    expect(executeUpdateFieldEndpoint).toHaveBeenCalledWith(
+      { requestId: 'reqTestId' },
+      {
+        tableId: 'tblHost000000000001',
+        fieldId: 'fldLink000000000001',
+        field: {
+          type: 'link',
+          notNull: true,
+          options: {
+            relationship: 'manyMany',
+            foreignTableId: 'tblForeign00000001',
+            lookupFieldId: 'fldLookup000000001',
+            symmetricFieldId: 'fldSymmetric000001',
+            fkHostTableName: 'bseBaseId.junction_fldLink000000000001_fldSymmetric000001',
+            selfKeyName: '__fk_fldSymmetric000001',
+            foreignKeyName: '__fk_fldLink000000000001',
+          },
+          replaceOptions: true,
+        },
+      },
+      expect.anything()
+    );
+  });
+});
 
 describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
   it('maps lookup convert options with filter/sort/limit', () => {
@@ -296,7 +395,7 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
     });
 
     expect(mapped).toEqual({
-      type: 'rollup',
+      type: 'conditionalRollup',
       options: {
         expression: 'sum({values})',
       },
@@ -310,7 +409,6 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
         },
       },
       config: {
-        linkFieldId: 'fldLink000000000001',
         lookupFieldId: 'fldLookup000000001',
         foreignTableId: 'tblForeign00000001',
         condition: {
@@ -550,6 +648,59 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
     });
   });
 
+  it('preserves rollup config ids when convert only patches lookup filter', () => {
+    const service = createService();
+    const filter = {
+      conjunction: 'and',
+      filterSet: [{ fieldId: 'fldDate00000000001', operator: 'is', value: 'today' }],
+    };
+
+    const mapped = service.mapConvertFieldToV2(
+      {
+        type: 'rollup',
+        options: {
+          expression: 'sum({values})',
+        },
+        lookupOptions: {
+          filter,
+        },
+      },
+      {
+        type: 'rollup',
+        options: {
+          expression: 'sum({values})',
+          showAs: { type: 'email' },
+        },
+        lookupOptions: {
+          linkFieldId: 'fldLink000000000001',
+          lookupFieldId: 'fldLookup000000001',
+          foreignTableId: 'tblForeign00000001',
+        },
+      }
+    );
+
+    expect(mapped).toEqual({
+      type: 'conditionalRollup',
+      options: {
+        expression: 'sum({values})',
+        showAs: null,
+      },
+      lookupOptions: {
+        linkFieldId: 'fldLink000000000001',
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+        filter,
+      },
+      config: {
+        lookupFieldId: 'fldLookup000000001',
+        foreignTableId: 'tblForeign00000001',
+        condition: {
+          filter,
+        },
+      },
+    });
+  });
+
   it('marks formula showAs for clearing when options are replaced', () => {
     const service = createService();
     const mapped = service.mapConvertFieldToV2(
@@ -644,6 +795,46 @@ describe('FieldOpenApiV2Service mapConvertFieldToV2', () => {
       type: 'singleLineText',
       options: {
         showAs: null,
+      },
+    });
+  });
+
+  it('preserves current manyMany junction config when convert payload only patches notNull', () => {
+    const service = createService();
+    const mapped = service.mapConvertFieldToV2(
+      {
+        type: 'link',
+        notNull: true,
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: 'tblForeign00000001',
+        },
+      },
+      {
+        type: 'link',
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: 'tblForeign00000001',
+          lookupFieldId: 'fldLookup000000001',
+          symmetricFieldId: 'fldSymmetric000001',
+          fkHostTableName: 'bseBaseId.junction_fldLink0001_fldSymmetric000001',
+          selfKeyName: '__fk_fldSymmetric000001',
+          foreignKeyName: '__fk_fldLink0001',
+        },
+      }
+    );
+
+    expect(mapped).toEqual({
+      type: 'link',
+      notNull: true,
+      options: {
+        relationship: 'manyMany',
+        foreignTableId: 'tblForeign00000001',
+        lookupFieldId: 'fldLookup000000001',
+        symmetricFieldId: 'fldSymmetric000001',
+        fkHostTableName: 'bseBaseId.junction_fldLink0001_fldSymmetric000001',
+        selfKeyName: '__fk_fldSymmetric000001',
+        foreignKeyName: '__fk_fldLink0001',
       },
     });
   });
@@ -1088,6 +1279,58 @@ describe('FieldOpenApiV2Service mapLegacyCreateFieldToV2', () => {
     expect((completed.options as { selfKeyName: string }).selfKeyName).toMatch(/^__fk_/);
     expect((completed.options as { foreignKeyName: string }).foreignKeyName).toBe('__id');
     expect((completed.options as { symmetricFieldId?: string }).symmetricFieldId).toMatch(/^fld/);
+  });
+
+  it('fills link db config for two-way manyMany with junction table naming', async () => {
+    const service = createService();
+    const fieldId = `fld${'q'.repeat(16)}`;
+    const symmetricFieldId = `fld${'r'.repeat(16)}`;
+    const mapped = service.mapLegacyCreateFieldToV2({
+      id: fieldId,
+      type: 'link',
+      options: {
+        relationship: 'manyMany',
+        foreignTableId: 'tblForeign00000003',
+        lookupFieldId: 'fldLookup000000003',
+        symmetricFieldId,
+      },
+    });
+
+    const currentTable = {
+      baseId: () => ({
+        toString: () => 'bseTestBaseId',
+      }),
+      dbTableName: () => ({
+        isErr: () => false,
+        value: {
+          value: () => ({ isErr: () => false, value: 'bseTestBaseId.tblCurrentTable0003' }),
+        },
+      }),
+    };
+
+    const completed = await service.completeLegacyLinkDbConfigForCreate(
+      mapped,
+      currentTable,
+      {
+        getById: async () => ({
+          isErr: () => true,
+          value: currentTable,
+        }),
+      },
+      {}
+    );
+
+    expect(completed).toMatchObject({
+      type: 'link',
+      options: {
+        relationship: 'manyMany',
+        foreignTableId: 'tblForeign00000003',
+        symmetricFieldId,
+        fkHostTableName: `bseTestBaseId.junction_${fieldId}_${symmetricFieldId}`,
+        selfKeyName: `__fk_${symmetricFieldId}`,
+        foreignKeyName: `__fk_${fieldId}`,
+      },
+    });
   });
 });
 
@@ -1534,6 +1777,16 @@ describe('FieldOpenApiV2Service createField', () => {
           baseId: () => ({
             toString: () => 'bseTestBaseId',
           }),
+          dbTableName: () => ({
+            isErr: () => false,
+            value: {
+              value: () => ({
+                isErr: () => false,
+                value: 'bseTestBaseId.tbl3sYKYH4tDz0IEg91',
+              }),
+            },
+          }),
+          getFields: () => [],
         },
       }),
     };

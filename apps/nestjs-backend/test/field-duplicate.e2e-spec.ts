@@ -12,6 +12,7 @@ import {
   FieldKeyType,
   FieldType,
   generateFieldId,
+  generateWorkflowId,
   Relationship,
   ViewType,
 } from '@teable/core';

@@ -6,6 +6,7 @@ import { match } from 'ts-pattern';
 import type { BaseId } from '../domain/base/BaseId';
 import type { IDomainContext } from '../domain/shared/DomainContext';
 import { domainError, type DomainError } from '../domain/shared/DomainError';
+import { DbTableName } from '../domain/table/DbTableName';
 import { DbFieldName } from '../domain/table/fields/DbFieldName';
 import type { Field } from '../domain/table/fields/Field';
 import {
@@ -1142,13 +1143,58 @@ class CreateLinkFieldSpec implements ICreateTableFieldSpec {
 
   private resolveCreateConfig(
     fieldId: FieldId,
-    _baseId: BaseId
+    baseId: BaseId
   ): Result<LinkFieldConfig, DomainError> {
     if (this.config.hasDbConfig()) {
       return ok(this.config);
     }
 
     const relationship = this.config.relationship().toString();
+    if (relationship === 'manyMany') {
+      const symmetricFieldIdResult = this.config.symmetricFieldId()
+        ? ok(this.config.symmetricFieldId()!)
+        : FieldId.generate();
+
+      return symmetricFieldIdResult.andThen((symmetricFieldId) =>
+        LinkFieldConfig.buildDbConfig({
+          fkHostTableName: DbTableName.rehydrate(
+            `${baseId.toString()}.junction_${fieldId.toString()}_${symmetricFieldId.toString()}`
+          )._unsafeUnwrap(),
+          relationship: this.config.relationship(),
+          fieldId,
+          symmetricFieldId,
+          isOneWay: this.config.isOneWay(),
+        }).andThen((dbConfig) =>
+          dbConfig.fkHostTableName.value().andThen((fkHostTableName) =>
+            dbConfig.selfKeyName.value().andThen((selfKeyName) =>
+              dbConfig.foreignKeyName.value().andThen((foreignKeyName) =>
+                LinkFieldConfig.create({
+                  baseId: this.config.baseId()?.toString(),
+                  relationship: this.config.relationship().toString(),
+                  foreignTableId: this.config.foreignTableId().toString(),
+                  lookupFieldId: this.config.lookupFieldId().toString(),
+                  isOneWay: this.config.isOneWay(),
+                  fkHostTableName,
+                  selfKeyName,
+                  foreignKeyName,
+                  symmetricFieldId: symmetricFieldId.toString(),
+                  filterByViewId:
+                    this.config.filterByViewId() === null
+                      ? null
+                      : this.config.filterByViewId()?.toString(),
+                  visibleFieldIds:
+                    this.config.visibleFieldIds() === null
+                      ? null
+                      : this.config.visibleFieldIds()?.map((id) => id.toString()),
+                  filter: this.config.filter(),
+                })
+              )
+            )
+          )
+        )
+      );
+    }
+
     if (relationship !== 'manyOne' && relationship !== 'oneOne') {
       return ok(this.config);
     }

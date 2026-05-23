@@ -31,6 +31,15 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[base-duplicate CI 稳定性任务使用轻量 SDD 与主线交付协议]
+- Date: 2026-05-23
+- Context: 用户明确要求本任务启动轻量 SDD 模式，并指定遵循主线交付判定协议与 GPT-5.5 主线代码实施手册
+- Instructions:
+  - 处理 `base-duplicate` 双向 link CI 稳定性任务时，先维护 `.monkeycode/specs/base-duplicate-bidirectional-link-ci-stability/requirements.md`、`design.md`、`tasklist.md`
+  - 执行过程必须引用 `.monkeycode/docs/mainline-delivery-gate-protocol.md` 和 `.monkeycode/docs/gpt55-mainline-coding-playbook.md`
+  - 状态判定使用主线验收卡、证据等级、失败链路四问、最小补丁规则、证明句和 Gap List
+  - 局部绿灯只作为 L2 证据，只有主线 focused e2e 与相关 CI workflow 通过且 Gap List 清零后才能进入可交付状态
+
 [Grid runtime 预览验收依赖本地 monitor 页面与聚焦测试集]
 - Date: 2026-05-22
 - Context: Agent 在执行 Grid 运行时真实浏览器收口与 SDK 测试类型清理时发现

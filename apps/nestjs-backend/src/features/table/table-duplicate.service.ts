@@ -251,7 +251,8 @@ export class TableDuplicateService {
         id: {
           in: Object.keys(sourceToTargetFieldMap),
         },
-        type: FieldType.Button,
+        type: { in: [FieldType.Button, FieldType.Link] },
+        isLookup: null,
       },
       select: {
         dbFieldName: true,
@@ -920,7 +921,14 @@ export class TableDuplicateService {
         selfKeyName: sourceSelfKeyName,
         foreignKeyName: sourceForeignKeyName,
       } = sourceOptions as ILinkFieldOptions;
-      const targetField = targetFields.find((f) => f.id === fieldIdMap[sourceField.id])!;
+      const targetFieldId = fieldIdMap[sourceField.id];
+      if (!targetFieldId) {
+        continue;
+      }
+      const targetField = targetFields.find((f) => f.id === targetFieldId);
+      if (!targetField) {
+        continue;
+      }
       const { options: targetOptions } = targetField;
       const {
         fkHostTableName: targetFkHostTableName,
