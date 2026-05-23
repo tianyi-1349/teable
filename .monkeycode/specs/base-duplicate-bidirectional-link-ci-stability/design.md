@@ -58,6 +58,7 @@
 | runtime 使用 | record builder 上游或 cache invalidation 单层 | L2 record/cache spec |
 | schema 建表 | schema creation path 单层 | L2 schema repository spec |
 | record typecast select 写入 | `FieldToSpecVisitor` 单层 | L2 field-to-spec spec 与 L3 record focused e2e |
+| force-v2 header 期望 | 命中的 e2e 断言单层 | L3 record focused e2e 覆盖行为断言与 header 期望 |
 
 ## 验证策略
 

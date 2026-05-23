@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 CI header 期望漂移已本地复核，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 v2 record typecast 兼容修复。
+1. 提交并推送本轮 FORCE_V2_ALL header 期望修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -54,3 +54,6 @@
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "should not auto create options when preventAutoNewOptions is true"` | 证明 OpenAPI v2 explicit update 在真实 backend + DB 下满足 preventAutoNewOptions 兼容语义，1 test passed，44 skipped。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` | 证明本轮 v2 record typecast 修复未破坏主线双向 link base duplicate 行为，1 test passed，20 skipped。 |
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 v2 record typecast 修复通过 backend 类型边界。 |
+| 2026-05-23 | L4 红灯分析 | Integration Tests run `26332102772` failed job `77519742554` | 证明最新 CI 红灯集中在 FORCE_V2_ALL 环境下 sparse single select batch update 用例的 header 期望漂移：CI 返回 `X_TEABLE_V2_HEADER: true`，测试仍按 v1-only header 断言，但省略字段行为断言需要保留。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "preserves omitted singleSelect values in sparse explicit batch updates for v1"` | 证明 FORCE_V2_ALL 下 sparse single select batch update header 期望与 CI 一致，且 omitted singleSelect 值保留行为通过，1 test passed，44 skipped。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "does not fail required singleSelect validation when omitted in another batch row for v1"` | 证明 FORCE_V2_ALL 下 required singleSelect sparse batch update header 期望与 CI 一致，且 omitted row 不触发 required validation，1 test passed，44 skipped。 |

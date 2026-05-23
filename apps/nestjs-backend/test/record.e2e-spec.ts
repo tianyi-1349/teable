@@ -1388,6 +1388,7 @@ describe('OpenAPI RecordController (e2e)', () => {
           },
         });
       };
+      const expectedUpdateRecordsHeader = process.env.FORCE_V2_ALL === 'true' ? 'true' : 'false';
 
       beforeEach(async () => {
         table = await createTable(baseId, {
@@ -1453,7 +1454,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(response.status).toBe(200);
-        expect(response.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(response.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         const refreshed = await getRecords(table.id, {
           fieldKeyType: FieldKeyType.Id,
@@ -1496,7 +1497,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(primeResponse.status).toBe(200);
-        expect(primeResponse.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(primeResponse.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         await convertField(table.id, statusFieldId, {
           name: statusField.name,
@@ -1546,7 +1547,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(response.status).toBe(200);
-        expect(response.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(response.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         const refreshed = await getRecords(table.id, {
           fieldKeyType: FieldKeyType.Id,
