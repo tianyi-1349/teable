@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 CI 红灯兼容映射修复。
+1. 提交并推送本轮 v2 record typecast 兼容修复。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -49,3 +49,8 @@
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/undo-redo.e2e-spec.ts -t "should undo / redo convert link when convert link from one table to another"` | 证明 link convert 切换 foreign table 时不再沿用 stale lookupFieldId，1 test passed，30 skipped。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` | 证明本轮兼容映射补丁未破坏主线双向 link base duplicate 行为，1 test passed，20 skipped。 |
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮兼容映射补丁通过 backend 类型边界。 |
+| 2026-05-23 | L4 红灯分析 | Integration Tests run `26331579419` failed job `77518460586` | 证明最新 CI 红灯集中在 v2 record typecast select 写入层：`preventAutoNewOptions: true` 时 invalid single select 被显式写成 `null`，legacy 兼容期望省略该字段；multiple select 期望只保留有效选项。 |
+| 2026-05-23 | L2 | `pnpm exec vitest run src/domain/table/fields/visitors/FieldToSpecVisitor.spec.ts` | 证明 v2 field-to-spec 在 preventAutoNewOptions 下会把 invalid single select 映射为 noop，multiple select 混合输入只保留有效选项，70 tests passed。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "should not auto create options when preventAutoNewOptions is true"` | 证明 OpenAPI v2 explicit update 在真实 backend + DB 下满足 preventAutoNewOptions 兼容语义，1 test passed，44 skipped。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` | 证明本轮 v2 record typecast 修复未破坏主线双向 link base duplicate 行为，1 test passed，20 skipped。 |
+| 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 v2 record typecast 修复通过 backend 类型边界。 |

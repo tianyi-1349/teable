@@ -6,6 +6,7 @@ import { SetCheckboxValueSpec } from '../../records/specs/values/SetCheckboxValu
 import { SetDateValueSpec } from '../../records/specs/values/SetDateValueSpec';
 import { SetLinkValueByTitleSpec } from '../../records/specs/values/SetLinkValueByTitleSpec';
 import { SetLinkValueSpec } from '../../records/specs/values/SetLinkValueSpec';
+import type { SetMultipleSelectValueSpec } from '../../records/specs/values/SetMultipleSelectValueSpec';
 import { SetNumberValueSpec } from '../../records/specs/values/SetNumberValueSpec';
 import type { SetRatingValueSpec } from '../../records/specs/values/SetRatingValueSpec';
 import { SetSingleLineTextValueSpec } from '../../records/specs/values/SetSingleLineTextValueSpec';
@@ -29,6 +30,7 @@ import { LongTextField } from '../types/LongTextField';
 import { MultipleSelectField } from '../types/MultipleSelectField';
 import { NumberField } from '../types/NumberField';
 import { RatingField } from '../types/RatingField';
+import { SelectAutoNewOptions } from '../types/SelectAutoNewOptions';
 import { SelectOption } from '../types/SelectOption';
 import { SingleLineTextField } from '../types/SingleLineTextField';
 import { SingleSelectField } from '../types/SingleSelectField';
@@ -88,6 +90,20 @@ describe('FieldToSpecVisitor', () => {
       const result = field.accept(visitor);
       expect(result.isOk()).toBe(true);
       // In typecast mode, invalid options are silently ignored
+    });
+
+    it('ignores invalid option when auto-created options are prevented', () => {
+      const strictField = SingleSelectField.create({
+        id: createFieldId('ay'),
+        name: createFieldName('Strict Status'),
+        options,
+        preventAutoNewOptions: SelectAutoNewOptions.prevent(),
+      })._unsafeUnwrap();
+
+      const visitor = FieldToSpecVisitor.create('Invalid', true);
+      const result = strictField.accept(visitor);
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBeInstanceOf(NoopCellValueSpec);
     });
 
     it('accepts null value', () => {
@@ -190,6 +206,36 @@ describe('FieldToSpecVisitor', () => {
       const result = field.accept(visitor);
       expect(result.isOk()).toBe(true);
       // In typecast mode, invalid options are silently ignored
+    });
+
+    it('keeps valid options when auto-created options are prevented', () => {
+      const strictField = MultipleSelectField.create({
+        id: createFieldId('by'),
+        name: createFieldName('Strict Tags'),
+        options,
+        preventAutoNewOptions: SelectAutoNewOptions.prevent(),
+      })._unsafeUnwrap();
+
+      const visitor = FieldToSpecVisitor.create(['Option One', 'Invalid'], true);
+      const result = strictField.accept(visitor);
+      expect(result.isOk()).toBe(true);
+      expect((result._unsafeUnwrap() as SetMultipleSelectValueSpec).value.toValue()).toEqual([
+        'Option One',
+      ]);
+    });
+
+    it('ignores fully invalid options when auto-created options are prevented', () => {
+      const strictField = MultipleSelectField.create({
+        id: createFieldId('bz'),
+        name: createFieldName('Strict Empty Tags'),
+        options,
+        preventAutoNewOptions: SelectAutoNewOptions.prevent(),
+      })._unsafeUnwrap();
+
+      const visitor = FieldToSpecVisitor.create(['Invalid'], true);
+      const result = strictField.accept(visitor);
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBeInstanceOf(NoopCellValueSpec);
     });
 
     it('accepts null value', () => {

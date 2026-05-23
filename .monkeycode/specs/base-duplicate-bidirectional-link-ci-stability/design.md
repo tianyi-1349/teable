@@ -57,6 +57,7 @@
 | repository 回读 | repository mapper 或 rehydrate 单层 | L2 repository/mapper spec |
 | runtime 使用 | record builder 上游或 cache invalidation 单层 | L2 record/cache spec |
 | schema 建表 | schema creation path 单层 | L2 schema repository spec |
+| record typecast select 写入 | `FieldToSpecVisitor` 单层 | L2 field-to-spec spec 与 L3 record focused e2e |
 
 ## 验证策略
 
