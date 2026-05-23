@@ -241,6 +241,12 @@ export class FieldOpenApiV2Service {
         raw.options && typeof raw.options === 'object' && !Array.isArray(raw.options)
           ? { ...(raw.options as Record<string, unknown>) }
           : {};
+      const lookupOptions =
+        raw.lookupOptions &&
+        typeof raw.lookupOptions === 'object' &&
+        !Array.isArray(raw.lookupOptions)
+          ? { ...(raw.lookupOptions as Record<string, unknown>) }
+          : undefined;
       if (config) {
         const condition = config.condition as Record<string, unknown> | undefined;
         if (config.foreignTableId != null) opts.foreignTableId = config.foreignTableId;
@@ -251,6 +257,23 @@ export class FieldOpenApiV2Service {
           if (condition.limit !== undefined) opts.limit = condition.limit;
         }
         delete raw.config;
+      }
+      if (lookupOptions) {
+        if (lookupOptions.foreignTableId != null && opts.foreignTableId == null) {
+          opts.foreignTableId = lookupOptions.foreignTableId;
+        }
+        if (lookupOptions.lookupFieldId != null && opts.lookupFieldId == null) {
+          opts.lookupFieldId = lookupOptions.lookupFieldId;
+        }
+        if (lookupOptions.filter !== undefined && opts.filter === undefined) {
+          opts.filter = lookupOptions.filter;
+        }
+        if (lookupOptions.sort !== undefined && opts.sort === undefined) {
+          opts.sort = lookupOptions.sort;
+        }
+        if (lookupOptions.limit !== undefined && opts.limit === undefined) {
+          opts.limit = lookupOptions.limit;
+        }
       }
       raw.options = opts;
     }
@@ -295,15 +318,14 @@ export class FieldOpenApiV2Service {
 
     if (raw.type === FieldType.Rollup) {
       const config = raw.config as Record<string, unknown> | undefined;
+      const lookupOptions =
+        raw.lookupOptions &&
+        typeof raw.lookupOptions === 'object' &&
+        !Array.isArray(raw.lookupOptions)
+          ? { ...(raw.lookupOptions as Record<string, unknown>) }
+          : {};
       if (config) {
         const condition = config.condition as Record<string, unknown> | undefined;
-        const lookupOptions =
-          raw.lookupOptions &&
-          typeof raw.lookupOptions === 'object' &&
-          !Array.isArray(raw.lookupOptions)
-            ? { ...(raw.lookupOptions as Record<string, unknown>) }
-            : {};
-
         if (config.linkFieldId != null) lookupOptions.linkFieldId = config.linkFieldId;
         if (config.lookupFieldId != null) lookupOptions.lookupFieldId = config.lookupFieldId;
         if (config.foreignTableId != null) lookupOptions.foreignTableId = config.foreignTableId;
@@ -315,6 +337,8 @@ export class FieldOpenApiV2Service {
 
         raw.lookupOptions = lookupOptions;
         delete raw.config;
+      } else if (Object.keys(lookupOptions).length > 0) {
+        raw.lookupOptions = lookupOptions;
       }
     }
 

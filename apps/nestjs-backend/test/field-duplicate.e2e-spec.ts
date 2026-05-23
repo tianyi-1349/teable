@@ -12,18 +12,20 @@ import {
   FieldKeyType,
   FieldType,
   generateFieldId,
-  generateWorkflowId,
   Relationship,
   ViewType,
 } from '@teable/core';
 import type { ICreateBaseVo, ITableFullVo } from '@teable/openapi';
 import {
+  activateWorkflow,
+  buttonClick,
   createField,
-  getFields,
+  createWorkflow,
+  deleteWorkflow,
   duplicateField,
+  getFields,
   createView,
   getView,
-  buttonClick,
   createBase,
 } from '@teable/openapi';
 import { omit, pick } from 'lodash';
@@ -987,15 +989,27 @@ describe('OpenAPI FieldOpenApiController for duplicate field (e2e)', () => {
   describe('duplicate button field', () => {
     let table1: ITableFullVo;
     let table2: ITableFullVo;
+    let workflowId: string;
 
     beforeEach(async () => {
       table1 = await createTable(baseId, { name: 'table1' });
       table2 = await createTable(baseId, { name: 'table2' });
+
+      const workflow = (
+        await createWorkflow(baseId, {
+          name: 'Duplicate field button workflow',
+          trigger: { type: 'buttonClick', config: {} },
+          actions: [{ type: 'runScript', config: { script: 'return input;' } }],
+        })
+      ).data;
+      workflowId = workflow.id;
+      await activateWorkflow(baseId, workflow.id);
     });
 
     afterEach(async () => {
       await permanentDeleteTable(baseId, table1.id);
       await permanentDeleteTable(baseId, table2.id);
+      await deleteWorkflow(baseId, workflowId);
     });
 
     it('should duplicate button field', async () => {
@@ -1006,7 +1020,7 @@ describe('OpenAPI FieldOpenApiController for duplicate field (e2e)', () => {
           label: 'button label',
           color: Colors.Red,
           workflow: {
-            id: generateWorkflowId(),
+            id: workflowId,
             name: 'workflow1',
             isActive: true,
           },
