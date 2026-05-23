@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 CI header 期望漂移已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 table trash 字段恢复 CI 红灯已本地复核，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 FORCE_V2_ALL header 期望修正。
+1. 提交并推送本轮 table trash 字段恢复修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -57,3 +57,6 @@
 | 2026-05-23 | L4 红灯分析 | Integration Tests run `26332102772` failed job `77519742554` | 证明最新 CI 红灯集中在 FORCE_V2_ALL 环境下 sparse single select batch update 用例的 header 期望漂移：CI 返回 `X_TEABLE_V2_HEADER: true`，测试仍按 v1-only header 断言，但省略字段行为断言需要保留。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "preserves omitted singleSelect values in sparse explicit batch updates for v1"` | 证明 FORCE_V2_ALL 下 sparse single select batch update header 期望与 CI 一致，且 omitted singleSelect 值保留行为通过，1 test passed，44 skipped。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "does not fail required singleSelect validation when omitted in another batch row for v1"` | 证明 FORCE_V2_ALL 下 required singleSelect sparse batch update header 期望与 CI 一致，且 omitted row 不触发 required validation，1 test passed，44 skipped。 |
+| 2026-05-23 | L4 红灯分析 | Integration Tests run `26332334293` failed job `77520343947` | 证明最新 CI 红灯集中在 table trash 字段恢复层：字段删除后又删除部分 record，restore 字段值时应跳过已删除 record。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/table-trash.e2e-spec.ts -t "should restore field when some records were deleted after field deletion"` | 证明 table trash 字段恢复在真实 backend + DB 下只更新仍存在的 record，1 test passed，12 skipped。 |
+| 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 table trash 字段恢复修复通过 backend 类型边界。 |
