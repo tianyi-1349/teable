@@ -60,6 +60,7 @@
 | record typecast select 写入 | `FieldToSpecVisitor` 单层 | L2 field-to-spec spec 与 L3 record focused e2e |
 | force-v2 header 期望 | 命中的 e2e 断言单层 | L3 record focused e2e 覆盖行为断言与 header 期望 |
 | table trash 字段恢复 | `TrashService.restoreTableResource` 记录过滤单层 | L3 table-trash focused e2e 覆盖字段恢复与已删除 record 共存场景 |
+| attachment preview URL 缓存响应 | `AttachmentsStorageService` 与 `RecordService` 缓存读取单层 | L3 attachment focused e2e 覆盖 cookie 写入相对 URL 后 Bearer token API 读取绝对 URL |
 
 ## 验证策略
 

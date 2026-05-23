@@ -7,10 +7,10 @@
 | 字段 | 内容 |
 |---|---|
 | 主线验收 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
-| 当前状态 | 主线绿灯，最新 table trash 字段恢复 CI 红灯已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 attachment token absolute URL CI 红灯已本地复核，CI 重跑待确认 |
 | 当前红灯 | 无本地主线红灯 |
-| 当前失败层 | 最新 CI integration 红灯已定位到 table trash 字段恢复层：字段删除后又删除部分 record 时，restore 应只更新仍存在的 record |
-| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record 均已通过 focused e2e |
+| 当前失败层 | 最新 CI integration 红灯已定位到 attachment preview URL cache/response 装饰层：Bearer token API 读取 record 时 local attachment `presignedUrl` 应返回绝对 URL |
+| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record、attachment token API 绝对 URL 均已通过 focused e2e |
 | 完成门槛 | L2 相关测试通过、主线 focused e2e 通过、相关 CI workflow 通过、Gap List 清零 |
 
 ## Requirements
@@ -67,4 +67,5 @@ WHEN local L2 tests pass, THE SYSTEM SHALL keep the task status as 局部绿灯 
 | select preventAutoNewOptions invalid option should be omitted | 已闭合 | `FieldToSpecVisitor.spec.ts` 与 `test/record.e2e-spec.ts -t "should not auto create options when preventAutoNewOptions is true"` 通过，证明 invalid single select 省略更新，multiple select 只保留有效选项 |
 | FORCE_V2_ALL sparse single select header expectation | 已闭合 | `test/record.e2e-spec.ts` 两个 sparse single select focused e2e 在 `FORCE_V2_ALL=true` 下通过，证明 header 期望与 force-v2 CI 环境一致且行为断言仍成立 |
 | table trash field restore skips deleted records | 已闭合 | `test/table-trash.e2e-spec.ts -t "should restore field when some records were deleted after field deletion"` 在 `FORCE_V2_ALL=true` 下通过，证明字段恢复只更新仍存在的 record |
+| attachment token API returns absolute local preview URL | 已闭合 | `test/attachment.e2e-spec.ts -t "should get attachment absolute url by token"` 在 `FORCE_V2_ALL=true` 下通过，证明 Bearer API 读取 record 时 local attachment `presignedUrl` 按 `storagePrefix` 返回绝对 URL |
 | related CI workflow | 待确认 | 需要重新触发并记录相关 GitHub Actions workflow 结果 |

@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 table trash 字段恢复 CI 红灯已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 attachment token absolute URL CI 红灯已本地复核，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 table trash 字段恢复修正。
+1. 提交并推送本轮 attachment token absolute URL 修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -60,3 +60,7 @@
 | 2026-05-23 | L4 红灯分析 | Integration Tests run `26332334293` failed job `77520343947` | 证明最新 CI 红灯集中在 table trash 字段恢复层：字段删除后又删除部分 record，restore 字段值时应跳过已删除 record。 |
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/table-trash.e2e-spec.ts -t "should restore field when some records were deleted after field deletion"` | 证明 table trash 字段恢复在真实 backend + DB 下只更新仍存在的 record，1 test passed，12 skipped。 |
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 table trash 字段恢复修复通过 backend 类型边界。 |
+| 2026-05-23 | L4 红灯分析 | Integration Tests run `26332695583` failed job `77521282937` | 证明最新 CI 红灯集中在 attachment preview URL cache/response 装饰层：cookie 写入路径先缓存 local 相对 URL 后，Bearer token API 读取 record 时仍需要按 `storagePrefix` 返回绝对 `presignedUrl`。 |
+| 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/attachment.e2e-spec.ts -t "should get attachment absolute url by token"` | 证明 attachment token API 在真实 backend + DB 下返回以 `appUrl` 开头的 local absolute `presignedUrl`，1 test passed，4 skipped。 |
+| 2026-05-23 | L2 | `env SECRET_KEY=test-secret pnpm exec vitest run src/features/attachments/plugins/local.spec.ts` | 该 L2 辅助用例在 Nest 模块扫描阶段因既有 `RecordOpenApiModule` imports 循环失败，17 个用例均未进入断言，不能作为本轮修复行为证据。 |
+| 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 attachment preview URL cache/response 修复通过 backend 类型边界。 |

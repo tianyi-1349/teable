@@ -1592,7 +1592,9 @@ export class RecordService {
       );
       previewUrls.forEach((url, index) => {
         if (url) {
-          tokenMap[tokenBatch[index]] = url.url;
+          tokenMap[tokenBatch[index]] = this.attachmentStorageService.resolveResponsePreviewUrl(
+            url.url
+          );
         }
       });
     }
