@@ -7,6 +7,21 @@ interface IEncryptionOptions {
   encoding?: BufferEncoding;
 }
 
+const normalizeCipherInput = (
+  value: string | Buffer,
+  size: number,
+  label: 'key' | 'iv'
+): Buffer => {
+  const source = Buffer.isBuffer(value) ? value : Buffer.from(value);
+  if (source.length === size) {
+    return source;
+  }
+  if (source.length > size) {
+    return source.subarray(0, size);
+  }
+  return crypto.createHash('sha256').update(label).update(source).digest().subarray(0, size);
+};
+
 export class Encryptor<T> {
   private readonly options: Required<IEncryptionOptions>;
 
@@ -20,7 +35,15 @@ export class Encryptor<T> {
   encrypt(data: T): string {
     try {
       const { algorithm, key, iv, encoding } = this.options;
-      const cipher = crypto.createCipheriv(algorithm, key, iv);
+      const cipherInfo = crypto.getCipherInfo(algorithm);
+      if (!cipherInfo?.keyLength || cipherInfo.ivLength == null) {
+        throw new Error(`Unsupported cipher algorithm: ${algorithm}`);
+      }
+      const cipher = crypto.createCipheriv(
+        algorithm,
+        normalizeCipherInput(key, cipherInfo.keyLength, 'key'),
+        normalizeCipherInput(iv, cipherInfo.ivLength, 'iv')
+      );
       const encrypted = cipher.update(JSON.stringify(data), 'utf-8', encoding);
       return encrypted + cipher.final(encoding);
     } catch (error) {
@@ -31,7 +54,15 @@ export class Encryptor<T> {
   decrypt(encryptedData: string): T {
     try {
       const { algorithm, key, iv, encoding } = this.options;
-      const decipher = crypto.createDecipheriv(algorithm, key, iv);
+      const cipherInfo = crypto.getCipherInfo(algorithm);
+      if (!cipherInfo?.keyLength || cipherInfo.ivLength == null) {
+        throw new Error(`Unsupported cipher algorithm: ${algorithm}`);
+      }
+      const decipher = crypto.createDecipheriv(
+        algorithm,
+        normalizeCipherInput(key, cipherInfo.keyLength, 'key'),
+        normalizeCipherInput(iv, cipherInfo.ivLength, 'iv')
+      );
       const decrypted = decipher.update(encryptedData, encoding, 'utf-8');
       return JSON.parse(decrypted + decipher.final('utf-8')) as T;
     } catch (error) {

@@ -8,6 +8,7 @@ export const BASE_SHARE_AUTH = '/share/{shareId}/base/auth';
 
 export const baseShareAuthVoSchema = z.object({
   success: z.boolean(),
+  token: z.string().optional(),
 });
 
 export type IBaseShareAuthVo = z.infer<typeof baseShareAuthVoSchema>;
