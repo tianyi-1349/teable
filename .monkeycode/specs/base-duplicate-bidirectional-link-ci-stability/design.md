@@ -17,11 +17,11 @@
 |---|---|
 | 主线验收 | `base-duplicate` 双向 link focused e2e |
 | 当前红灯 | 无本地红灯；最新 CI 剩余待 L4 复核 |
-| 失败层级 | 最新命中层已闭合：`FieldToSpecVisitor` 的 single select empty-string typecast 兼容层、backend unit spec 的测试装配层、`createRecords` 缺失 snapshot 字段回读层、`record.e2e` user typecast 歧义输入层、`test-e2e-cover` 的 worker 稳定性层，以及 `import-base.e2e` 的 `afterAll` 清理超时层 |
-| 本轮假设 | single select 的 `'' + typecast` 应保持 legacy omitted 语义；backend unit spec 需绕开 `RecordOpenApiModule` 循环扫描，改为最小 provider 装配；v2 `createRecords` 返回缺失 snapshot 字段时应按需回读；coverage shard 需使用进程隔离池稳定 Prisma 生命周期；import-base 定向场景在 CI 覆盖慢路径下需要更宽的 hook timeout 承接 base 清理时长 |
+| 失败层级 | 最新命中层已闭合：`FieldToSpecVisitor` 的 single select empty-string typecast 兼容层、backend unit spec 的测试装配层、`createRecords` 缺失 snapshot 字段回读层、`record.e2e` user typecast 歧义输入层、`test-e2e-cover` 的 worker 稳定性层、backend unit coverage shard `2/4` 的装配链层，以及 `import-base.e2e` 的 `afterAll` 清理超时层 |
+| 本轮假设 | single select 的 `'' + typecast` 应保持 legacy omitted 语义；backend unit spec 需绕开 `RecordOpenApiModule` 循环扫描，改为最小 provider 装配；v2 `createRecords` 返回缺失 snapshot 字段时应按需回读；coverage shard 需使用进程隔离池稳定 Prisma 生命周期，并让纯存在性 spec 直接实例化 service 以避开整模块扫描链；import-base 定向场景在 CI 覆盖慢路径下需要更宽的 hook timeout 承接 base 清理时长 |
 | 目标观测点 | `FieldToSpecVisitor` 返回的 spec 类型、focused e2e record 字段值、命中 unit spec 的 module compile 结果、`createRecords` 返回 payload 的 `autoNumber`、coverage shard `2/4` 的最终汇总、`import-base.e2e` `afterAll` 完成时间 |
 | 允许改动层 | 只允许修改被证据命中的最小层 |
-| 本轮退出条件 | 主线 focused e2e 通过，或出现更窄的新红灯 |
+| 本轮退出条件 | backend unit coverage shard `2/4` 完整通过并进入 L4 workflow 复核 |
 
 ## 失败链路四问
 
@@ -67,6 +67,7 @@
 | record user typecast 歧义输入 | 命中的 e2e 断言单层 | L3 focused e2e 证明唯一邮箱输入可稳定命中当前用户 |
 | e2e coverage worker 池稳定性 | `vitest-e2e.config.ts` 单层 | L3/L4 前置覆盖 shard 命令完整通过 |
 | import-base 清理钩子超时 | 命中的 e2e hook timeout 单层 | L3 focused e2e 证明 base 清理在普通与 coverage 路径下都可完成 |
+| backend unit coverage 装配链 | 命中的 spec 文件单层 | L2 定向 spec 与完整 `pnpm test-unit --coverage --shard=2/4` 证明 coverage 分片通过 |
 
 ## 验证策略
 

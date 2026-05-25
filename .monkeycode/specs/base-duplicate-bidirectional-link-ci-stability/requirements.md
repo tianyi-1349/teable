@@ -7,10 +7,10 @@
 | 字段 | 内容 |
 |---|---|
 | 主线验收 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
-| 当前状态 | 主线绿灯，`record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec` 与 `import-base.e2e` 清理超时新暴露红灯已本地复核关闭，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，`record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `2/4` 装配链新暴露红灯均已本地复核关闭，CI 重跑待确认 |
 | 当前红灯 | 无本地主线红灯 |
-| 当前失败层 | 最新本地命中层已闭合：single select `'' + typecast` 的 legacy omitted 兼容层、`collaborator`/`oauth-server`/`field.service`/`table.service` 的 backend unit 最小装配层、`local.helper.spec` 断言语义、`createRecords` 缺失 snapshot 字段回读层、`record.e2e` user typecast 歧义输入层，以及 `import-base.e2e` 的 `afterAll` 清理超时层 |
-| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record、attachment token API 绝对 URL、link-view-user-filter 多用户 `Me` 候选过滤、single select `'' + typecast` omitted 语义、backend unit spec 最小 provider 装配、`local.helper` 错误语义对齐、`test-e2e-cover` shard `2/4` 在 `pool: 'forks'` 下完整通过、`createRecords` 缺失 `autoNumber` 时自动回读 snapshot、user typecast 使用唯一邮箱输入的 e2e 断言稳定性、`import-base.e2e` 多 link 同表导入在 coverage 路径下的清理稳定性 均已通过本地验证 |
+| 当前失败层 | 最新本地命中层已闭合：single select `'' + typecast` 的 legacy omitted 兼容层、`collaborator`/`oauth-server`/`field.service`/`table.service`/`attachments.service`/`field-deleting.service`/`batch.service`/`plugin.service`/`view.service`/`user.service` 的 backend unit 最小装配层、`local.helper.spec` 断言语义、`createRecords` 缺失 snapshot 字段回读层、`record.e2e` user typecast 歧义输入层，以及 `import-base.e2e` 的 `afterAll` 清理超时层 |
+| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record、attachment token API 绝对 URL、link-view-user-filter 多用户 `Me` 候选过滤、single select `'' + typecast` omitted 语义、backend unit spec 最小 provider 装配、backend unit coverage shard `2/4` 的最小装配链稳定性、`local.helper` 错误语义对齐、`test-e2e-cover` shard `2/4` 在 `pool: 'forks'` 下完整通过、`createRecords` 缺失 `autoNumber` 时自动回读 snapshot、user typecast 使用唯一邮箱输入的 e2e 断言稳定性、`import-base.e2e` 多 link 同表导入在 coverage 路径下的清理稳定性 均已通过本地验证 |
 | 完成门槛 | L2 相关测试通过、主线 focused e2e 通过、相关 CI workflow 通过、Gap List 清零 |
 
 ## Requirements
@@ -73,4 +73,5 @@ WHEN local L2 tests pass, THE SYSTEM SHALL keep the task status as 局部绿灯 
 | record user typecast deterministic input | 已闭合 | `test/record.e2e-spec.ts -t "should update and typecast record"` 通过，证明 user typecast 用例改用唯一邮箱输入后结果稳定 |
 | backend unit `table.service.spec.ts` minimal wiring | 已闭合 | `src/features/table/table.service.spec.ts` 普通与 `--coverage` 路径通过，证明已收敛为最小依赖装配 |
 | import-base cleanup hook timeout under coverage | 已闭合 | `test/import-base.e2e-spec.ts -t "import base with multiple link fields targeting the same table"` 普通与 `--coverage` 路径通过，证明 `afterAll` 清理在 CI 类似慢路径下可完成 |
+| backend unit coverage shard `2/4` minimal wiring chain | 已闭合 | `attachments.service.spec.ts`、`field-deleting.service.spec.ts`、`batch.service.spec.ts`、`plugin.service.spec.ts`、`view.service.spec.ts`、`user.service.spec.ts` 的普通与 `--coverage --shard=2/4` 定向验证通过，且完整 `pnpm test-unit --coverage --shard=2/4` 通过 |
 | related CI workflow | 待确认 | 需要重新触发并记录相关 GitHub Actions workflow 结果 |

@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec` 与 `import-base.e2e` 清理超时红灯已本地复核关闭，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `2/4` 装配链红灯已本地复核关闭，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 CI 稳定性修正。
+1. 提交并推送本轮 backend unit coverage shard `2/4` 最小装配修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -83,3 +83,6 @@
 | 2026-05-25 | L2 | `pnpm exec vitest run --coverage src/features/table/table.service.spec.ts` | 证明 `table.service.spec.ts` 在 coverage 路径下同样通过，1 file passed，5 tests passed。 |
 | 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/import-base.e2e-spec.ts -t "import base with multiple link fields targeting the same table"` | 证明 `import-base.e2e` 多 link 同表导入场景在真实 backend + DB 下通过，且放宽 `afterAll` 超时后清理链路可完成，1 test passed，7 skipped。 |
 | 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts --coverage test/import-base.e2e-spec.ts -t "import base with multiple link fields targeting the same table"` | 证明 `import-base.e2e` 多 link 同表导入场景在 coverage 路径下同样通过，1 file passed，1 test passed，7 skipped。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/attachments/attachments.service.spec.ts src/features/field/field-calculate/field-deleting.service.spec.ts src/features/calculation/batch.service.spec.ts src/features/plugin/plugin.service.spec.ts src/features/view/view.service.spec.ts src/features/user/user.service.spec.ts` | 证明 6 个 backend unit spec 已收敛为直接实例化的最小依赖装配，普通路径通过。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run --coverage --shard=2/4 src/features/attachments/attachments.service.spec.ts src/features/field/field-calculate/field-deleting.service.spec.ts src/features/calculation/batch.service.spec.ts src/features/plugin/plugin.service.spec.ts src/features/view/view.service.spec.ts src/features/user/user.service.spec.ts` | 证明 6 个 backend unit spec 在 coverage shard `2/4` 路径下同样通过，装配链已从整模块扫描收敛到最小依赖实例化。 |
+| 2026-05-25 | L2 | `pnpm test-unit --coverage --shard=2/4` | 证明 backend unit coverage shard `2/4` 本地完整通过，28 files passed，163 tests passed，当前 CI 剩余 gap 收敛到 L4 workflow 确认。 |
