@@ -37,6 +37,7 @@ describe('OpenAPI RecordController (e2e)', () => {
   let app: INestApplication;
 
   const baseId = globalThis.testConfig.baseId;
+  const userEmail = globalThis.testConfig.email;
   const userId = globalThis.testConfig.userId;
 
   beforeAll(async () => {
@@ -204,13 +205,13 @@ describe('OpenAPI RecordController (e2e)', () => {
       });
 
       const res1 = await updateRecord(table.id, table.records[0].id, {
-        record: { fields: { [singleUserField.id]: 'test' } },
+        record: { fields: { [singleUserField.id]: userEmail } },
         fieldKeyType: FieldKeyType.Id,
         typecast: true,
       });
 
       const res2 = await updateRecord(table.id, table.records[0].id, {
-        record: { fields: { [multiUserField.id]: 'test@e2e.com' } },
+        record: { fields: { [multiUserField.id]: userEmail } },
         fieldKeyType: FieldKeyType.Id,
         typecast: true,
       });
@@ -222,12 +223,12 @@ describe('OpenAPI RecordController (e2e)', () => {
       });
 
       expect(res1.fields[singleUserField.id]).toMatchObject({
-        email: 'test@e2e.com',
+        email: userEmail,
         title: 'test',
       });
       expect(res2.fields[multiUserField.id]).toMatchObject([
         {
-          email: 'test@e2e.com',
+          email: userEmail,
           title: 'test',
         },
       ]);

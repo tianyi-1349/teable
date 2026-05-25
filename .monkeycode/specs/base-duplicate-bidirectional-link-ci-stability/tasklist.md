@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast` 与 backend unit 装配红灯已本地复核关闭，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number` 与 `record.e2e` 红灯已本地复核关闭，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -71,3 +71,10 @@
 | 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record-typecast.e2e-spec.ts -t "should create a record with typecast"` | 证明 single select `'' + typecast` 在真实 backend + DB 下回到省略更新语义，record 字段返回 `undefined`，1 test passed，5 skipped。 |
 | 2026-05-25 | L2 | `pnpm exec vitest run src/features/collaborator/collaborator.service.spec.ts` | 证明 collaborator service spec 已收敛为最小 provider 装配，不再被 `RecordOpenApiModule` 循环扫描阻塞，2 tests passed。 |
 | 2026-05-25 | L2 | `pnpm exec vitest run src/features/oauth/oauth-server.service.spec.ts` | 证明 OAuth server service spec 已收敛为最小 provider 装配，且脆弱 mock 清理已修复，23 tests passed。 |
+| 2026-05-25 | L4 红灯分析 | Integration Tests run `26378647845` failed job `77643538056` | 证明新一轮 CI 红灯已收窄到 `field.service.spec.ts`、`local.helper.spec.ts`、`test-e2e-cover` 的 worker 稳定性、`auto-number` 返回体缺失 snapshot 字段，以及 `record.e2e` user typecast 歧义输入。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/field/field.service.spec.ts` | 证明 `field.service.spec.ts` 已改为最小 provider 装配，不再依赖整模块扫描，3 tests passed。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/attachments/plugins/local.helper.spec.ts` | 证明 `local.helper.spec.ts` 已对齐当前 helper 的错误语义，21 tests passed。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/record/open-api/record-open-api-v2.service.spec.ts` | 证明 v2 `createRecords` 在 payload 缺失 snapshot 字段或 `autoNumber` 时会触发按需回读，而字段完整时保持直返，19 tests passed。 |
+| 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/auto-number.e2e-spec.ts` | 证明 auto-number create 链路在真实 backend + DB 下返回连续 `autoNumber`，focused e2e 通过。 |
+| 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record.e2e-spec.ts -t "should update and typecast record"` | 证明 user typecast 用例改用唯一邮箱输入后在真实 backend + DB 下稳定命中当前用户，focused e2e 通过。 |
+| 2026-05-25 | L3 | `env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts --coverage --bail 1 --shard=2/4` | 证明 `vitest-e2e.config.ts` 切换 `pool: 'forks'` 后 `test-e2e-cover` shard `2/4` 完整通过，38 files passed，526 tests passed。 |

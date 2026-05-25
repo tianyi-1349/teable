@@ -264,6 +264,35 @@ export class RecordOpenApiV2Service {
     return records.map((record) => snapshotMap.get(record.id) ?? record);
   }
 
+  private hasMissingCreateSnapshotFields(record: IRecord): boolean {
+    return record.autoNumber == null;
+  }
+
+  private async hydrateCreatedRecordsWhenSnapshotFieldsMissing(
+    tableId: string,
+    records: IRecord[],
+    fieldKeyType: FieldKeyType
+  ): Promise<IRecord[]> {
+    if (!records.length || !records.some((record) => this.hasMissingCreateSnapshotFields(record))) {
+      return records;
+    }
+
+    const recordIds = records.map((record) => record.id);
+    const snapshots = await this.recordService.getSnapshotBulkWithPermission(
+      tableId,
+      recordIds,
+      undefined,
+      fieldKeyType,
+      undefined,
+      true
+    );
+    const snapshotMap = new Map(
+      snapshots.map((snapshot) => [snapshot.data.id, snapshot.data as IRecord])
+    );
+
+    return records.map((record) => snapshotMap.get(record.id) ?? record);
+  }
+
   private async finalizeWriteRecords(
     tableId: string,
     records: IRecord[],
@@ -862,10 +891,15 @@ export class RecordOpenApiV2Service {
 
     if (result.status === 201 && result.body.ok) {
       await this.clearUndoRedoEnginePreference(tableId);
+      const hydratedRecords = await this.hydrateCreatedRecordsWhenSnapshotFieldsMissing(
+        tableId,
+        result.body.data.records as IRecord[],
+        createRecordsRo.fieldKeyType ?? FieldKeyType.Name
+      );
       return {
         records: await this.finalizeWriteRecords(
           tableId,
-          result.body.data.records as IRecord[],
+          hydratedRecords,
           createRecordsRo.fieldKeyType ?? FieldKeyType.Name
         ),
       };

@@ -2,18 +2,74 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { CellValueType, DbFieldType, FieldType, OpName } from '@teable/core';
+import { PrismaService } from '@teable/db-main-prisma';
 import type { IFieldVo, INumberFormatting, ISetFieldPropertyOpContext } from '@teable/core';
-import { GlobalModule } from '../../global/global.module';
-import { FieldModule } from './field.module';
+import type { Knex } from 'knex';
+import { ClsService } from 'nestjs-cls';
+import { mockDeep } from 'vitest-mock-extended';
+import { DB_PROVIDER_SYMBOL } from '../../db-provider/db.provider';
+import type { IDbProvider } from '../../db-provider/db.provider.interface';
+import { BatchService } from '../calculation/batch.service';
+import { DataLoaderService } from '../data-loader/data-loader.service';
+import { TableDomainQueryService } from '../table-domain/table-domain-query.service';
+import { FormulaFieldService } from './field-calculate/formula-field.service';
+import { LinkFieldQueryService } from './field-calculate/link-field-query.service';
 import { FieldService } from './field.service';
 import { applyFieldPropertyOpsAndCreateInstance } from './model/factory';
 
 describe('FieldService', () => {
   let service: FieldService;
+  const prismaService = mockDeep<PrismaService>();
+  const batchService = mockDeep<BatchService>();
+  const dataLoaderService = mockDeep<DataLoaderService>();
+  const clsService = mockDeep<ClsService>();
+  const dbProvider = mockDeep<IDbProvider>();
+  const knex = {} as Knex;
+  const formulaFieldService = mockDeep<FormulaFieldService>();
+  const linkFieldQueryService = mockDeep<LinkFieldQueryService>();
+  const tableDomainQueryService = mockDeep<TableDomainQueryService>();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, FieldModule],
+      providers: [
+        FieldService,
+        {
+          provide: BatchService,
+          useValue: batchService,
+        },
+        {
+          provide: PrismaService,
+          useValue: prismaService,
+        },
+        {
+          provide: DataLoaderService,
+          useValue: dataLoaderService,
+        },
+        {
+          provide: ClsService,
+          useValue: clsService,
+        },
+        {
+          provide: DB_PROVIDER_SYMBOL,
+          useValue: dbProvider,
+        },
+        {
+          provide: 'CUSTOM_KNEX',
+          useValue: knex,
+        },
+        {
+          provide: FormulaFieldService,
+          useValue: formulaFieldService,
+        },
+        {
+          provide: LinkFieldQueryService,
+          useValue: linkFieldQueryService,
+        },
+        {
+          provide: TableDomainQueryService,
+          useValue: tableDomainQueryService,
+        },
+      ],
     }).compile();
 
     service = module.get<FieldService>(FieldService);
