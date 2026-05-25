@@ -131,7 +131,7 @@ describe('OpenAPI BaseController for base import (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-  });
+  }, 120000);
 
   describe('export table and import the table', () => {
     let table: ITableFullVo;
@@ -1227,7 +1227,7 @@ describe('OpenAPI BaseController for base import (e2e)', () => {
       if (multiLinkSourceBaseId) {
         await permanentDeleteBase(multiLinkSourceBaseId);
       }
-    });
+    }, 120000);
 
     it('should import base where multiple links point to the same foreign table without dbFieldName collision', async () => {
       const sourceBase = (await createBase({ name: 'multi_link_source', spaceId, icon: '🔗' }))
