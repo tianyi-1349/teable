@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 attachment token absolute URL CI 红灯已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 `link-view-user-filter` 多用户 `Me` 过滤 CI 红灯已本地复核，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -23,11 +23,11 @@
 | T7 | completed | L2 | 运行修改层相关 L2 测试 | 已记录 L2 证明句 |
 | T8 | completed | L3 | 运行主线 focused e2e | 已记录 L3 证明句，状态升级为主线绿灯 |
 | T9 | in_progress | L4 | 触发相关 GitHub Actions workflow | 记录 L4 证明句，状态升级为 CI 确认 |
-| T10 | in_progress | L3 | 清理 Gap List 并检查临时观测代码 | 临时观测代码已清理，CI gap 待关闭 |
+| T10 | in_progress | L3 | 清理 Gap List 并检查临时观测代码 | 当前无临时观测代码，CI gap 待关闭 |
 
 ## 下一步执行
 
-1. 提交并推送本轮 attachment token absolute URL 修正。
+1. 提交并推送本轮 CI 稳定性修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -64,3 +64,5 @@
 | 2026-05-23 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/attachment.e2e-spec.ts -t "should get attachment absolute url by token"` | 证明 attachment token API 在真实 backend + DB 下返回以 `appUrl` 开头的 local absolute `presignedUrl`，1 test passed，4 skipped。 |
 | 2026-05-23 | L2 | `env SECRET_KEY=test-secret pnpm exec vitest run src/features/attachments/plugins/local.spec.ts` | 该 L2 辅助用例在 Nest 模块扫描阶段因既有 `RecordOpenApiModule` imports 循环失败，17 个用例均未进入断言，不能作为本轮修复行为证据。 |
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 attachment preview URL cache/response 修复通过 backend 类型边界。 |
+| 2026-05-25 | L2 | `pnpm --filter @teable/v2-core exec vitest run src/queries/ListTableRecordsHandler.spec.ts` | 证明 `ListTableRecordsHandler` 已统一兼容大写 `Me` 与历史小写 `me`，并在 `query.filter` 与 `filterLinkCellCandidate` 组合链路中把 user filter 值归一化为 `actorId`，25 tests passed。 |
+| 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/link-view-user-filter.e2e-spec.ts -t "should return only records assigned to current user"` | 证明多用户 `hasAnyOf([Me])` 在真实 backend + DB 下返回当前用户可见候选记录，1 test passed，2 skipped。 |

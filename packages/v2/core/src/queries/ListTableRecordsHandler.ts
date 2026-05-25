@@ -1,3 +1,4 @@
+import { isMeTag } from '@teable/core';
 import { inject, injectable } from '@teable/v2-di';
 import { err, ok, safeTry } from 'neverthrow';
 import type { Result } from 'neverthrow';
@@ -8,7 +9,11 @@ import { domainError, isNotFoundError, type DomainError } from '../domain/shared
 import { type ISpecification } from '../domain/shared/specification/ISpecification';
 import { FieldId } from '../domain/table/fields/FieldId';
 import { FieldKeyType } from '../domain/table/fields/FieldKeyType';
-import { FieldCondition } from '../domain/table/fields/types/FieldCondition';
+import {
+  FieldCondition,
+  type IFilterDTO as FieldConditionFilterDto,
+  type IFilterItemDTO as FieldConditionFilterItemDto,
+} from '../domain/table/fields/types/FieldCondition';
 import type { LinkField } from '../domain/table/fields/types/LinkField';
 import { RecordId } from '../domain/table/records/RecordId';
 import { IncomingLinkCandidateSpec } from '../domain/table/records/specs/IncomingLinkCandidateSpec';
@@ -39,6 +44,131 @@ import {
 } from './RecordFilterDto';
 import { buildRecordConditionSpec, sanitizeRecordFilter } from './RecordFilterMapper';
 import { RecordSearch, resolveVisibleRowSearch } from './RecordSearch';
+
+const userLikeFieldTypes = new Set(['user', 'createdBy', 'lastModifiedBy']);
+
+const isMeValue = (value: string) => isMeTag(value) || value === 'me';
+
+const normalizeMeValue = (value: FieldConditionFilterItemDto['value'], actorId: string) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => (typeof item === 'string' && isMeValue(item) ? actorId : item));
+  }
+  return typeof value === 'string' && isMeValue(value) ? actorId : value;
+};
+
+const normalizeRecordFilterMeValue = (
+  table: Table,
+  filter: RecordFilter,
+  actorId: string
+): Result<RecordFilter, DomainError> => {
+  if (!filter) {
+    return ok(filter);
+  }
+
+  const normalizeNode = (node: RecordFilterNode): Result<RecordFilterNode, DomainError> => {
+    if (isRecordFilterCondition(node)) {
+      const fieldIdResult = FieldId.create(node.fieldId);
+      if (fieldIdResult.isErr()) {
+        return err(fieldIdResult.error);
+      }
+
+      const fieldResult = table.getField((field) => field.id().equals(fieldIdResult.value));
+      if (fieldResult.isErr()) {
+        return err(fieldResult.error);
+      }
+
+      if (!userLikeFieldTypes.has(fieldResult.value.type().toString())) {
+        return ok(node);
+      }
+
+      return ok({
+        ...node,
+        value: normalizeMeValue(node.value, actorId),
+      });
+    }
+
+    if (isRecordFilterGroup(node)) {
+      const items: RecordFilterNode[] = [];
+      for (const item of node.items) {
+        const normalizedItem = normalizeNode(item);
+        if (normalizedItem.isErr()) {
+          return normalizedItem;
+        }
+        items.push(normalizedItem.value);
+      }
+      return ok({
+        conjunction: node.conjunction,
+        items,
+      });
+    }
+
+    if (isRecordFilterNot(node)) {
+      return normalizeNode(node.not).map((normalizedNot) => ({ not: normalizedNot }));
+    }
+
+    return ok(node);
+  };
+
+  return normalizeNode(filter);
+};
+
+const normalizeFieldConditionFilterMeValue = (
+  table: Table,
+  filter: FieldConditionFilterDto,
+  actorId: string
+): Result<FieldConditionFilterDto, DomainError> => {
+  const normalizeItem = (
+    item: FieldConditionFilterItemDto | FieldConditionFilterDto
+  ): Result<FieldConditionFilterItemDto | FieldConditionFilterDto, DomainError> => {
+    if ('filterSet' in item) {
+      const filterSet: Array<FieldConditionFilterItemDto | FieldConditionFilterDto> = [];
+      for (const entry of item.filterSet) {
+        const normalizedEntry = normalizeItem(entry);
+        if (normalizedEntry.isErr()) {
+          return normalizedEntry;
+        }
+        filterSet.push(normalizedEntry.value);
+      }
+      return ok({
+        conjunction: item.conjunction,
+        filterSet,
+      });
+    }
+
+    const fieldIdResult = FieldId.create(item.fieldId);
+    if (fieldIdResult.isErr()) {
+      return err(fieldIdResult.error);
+    }
+
+    const fieldResult = table.getField((field) => field.id().equals(fieldIdResult.value));
+    if (fieldResult.isErr()) {
+      return err(fieldResult.error);
+    }
+
+    if (!userLikeFieldTypes.has(fieldResult.value.type().toString())) {
+      return ok(item);
+    }
+
+    return ok({
+      ...item,
+      value: normalizeMeValue(item.value, actorId),
+    });
+  };
+
+  const filterSet: Array<FieldConditionFilterItemDto | FieldConditionFilterDto> = [];
+  for (const item of filter.filterSet) {
+    const normalizedItem = normalizeItem(item);
+    if (normalizedItem.isErr()) {
+      return normalizedItem;
+    }
+    filterSet.push(normalizedItem.value);
+  }
+
+  return ok({
+    conjunction: filter.conjunction,
+    filterSet,
+  });
+};
 
 export class ListTableRecordsResult {
   private constructor(
@@ -354,7 +484,12 @@ export class ListTableRecordsHandler
           // 2. Resolve effective filter/sort/search inputs with view defaults and permission-aware fields.
           const enabledFieldIds = getEnabledFieldIdSet(context);
           const resolvedFilter = query.filter
-            ? yield* resolveFilterFieldKeys(table, query.filter, query.fieldKeyType)
+            ? yield* resolveFilterFieldKeys(table, query.filter, query.fieldKeyType).andThen(
+                (filter) =>
+                  context.actorId && filter
+                    ? normalizeRecordFilterMeValue(table, filter, context.actorId.toString())
+                    : ok(filter)
+              )
             : undefined;
 
           // Pre-resolve link candidate plan so filterByViewId can inform effectiveView.
@@ -709,7 +844,27 @@ export class ListTableRecordsHandler
         if (rawFilter !== null && rawFilter !== undefined) {
           const conditionResult = FieldCondition.create({ filter: rawFilter });
           if (conditionResult.isOk()) {
-            const specResult = conditionResult.value.toRecordConditionSpec(table);
+            const normalizedFilter = context.actorId
+              ? yield* normalizeFieldConditionFilterMeValue(
+                  table,
+                  rawFilter,
+                  context.actorId.toString()
+                )
+              : rawFilter;
+            const normalizedConditionResult = FieldCondition.create({ filter: normalizedFilter });
+            if (normalizedConditionResult.isErr()) {
+              this.logger.warn('Failed to normalize link field filter', {
+                fieldId,
+                error: normalizedConditionResult.error,
+              });
+              return ok({
+                candidateSpec,
+                linkFilterSpec,
+                filterByViewId: linkField.filterByViewId()?.toString() ?? undefined,
+              });
+            }
+
+            const specResult = normalizedConditionResult.value.toRecordConditionSpec(table);
             if (specResult.isOk()) {
               linkFilterSpec = specResult.value;
             } else {
