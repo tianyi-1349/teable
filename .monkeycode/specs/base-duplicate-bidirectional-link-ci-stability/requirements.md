@@ -7,10 +7,10 @@
 | 字段 | 内容 |
 |---|---|
 | 主线验收 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
-| 当前状态 | 主线绿灯，`link-view-user-filter` 多用户 `Me` 过滤 CI 红灯已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，`record-typecast` 与 backend unit 装配 CI 红灯已本地复核，CI 重跑待确认 |
 | 当前红灯 | 无本地主线红灯 |
-| 当前失败层 | 最新 CI integration 红灯已定位到 v2 `ListTableRecordsHandler` 的 `Me` 标签归一化兼容层：同时携带 `query.filter` 与 `filterLinkCellCandidate` 时，大写 `Me` 未被统一替换为 `actorId` |
-| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record、attachment token API 绝对 URL、link-view-user-filter 多用户 `Me` 候选过滤 均已通过 focused e2e |
+| 当前失败层 | 最新 CI integration 新暴露红灯已定位并本地闭合：single select `'' + typecast` 的 legacy omitted 兼容层，以及 `collaborator`/`oauth-server` 两条 backend unit spec 的测试装配层 |
+| 当前已证实 | create/update persistence、repository 回读、duplicate/import、普通数据复制、junction 复制主线链路、one-way manyMany legacy junction 命名、conditional rollup filter timeZone 回读、link convert foreign table 切换、preventAutoNewOptions 无效选项省略语义、sparse single select batch update 省略字段兼容语义、table trash 字段恢复跳过已删除 record、attachment token API 绝对 URL、link-view-user-filter 多用户 `Me` 候选过滤、single select `'' + typecast` omitted 语义、两条 backend unit spec 最小 provider 装配 均已通过本地验证 |
 | 完成门槛 | L2 相关测试通过、主线 focused e2e 通过、相关 CI workflow 通过、Gap List 清零 |
 
 ## Requirements

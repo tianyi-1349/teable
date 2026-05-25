@@ -16,10 +16,10 @@
 | 字段 | 值 |
 |---|---|
 | 主线验收 | `base-duplicate` 双向 link focused e2e |
-| 当前红灯 | `link-view-user-filter` 多用户 `hasAnyOf([Me])` 返回空结果 |
-| 失败层级 | v2 查询执行前的 `Me` 标签归一化兼容层 |
-| 本轮假设 | `query.filter` 与 link field 自带 filter 并存时，大写 `Me` 在 `ListTableRecordsHandler` 中漏过归一化，导致 user list filter 仍带标签进入查询层 |
-| 目标观测点 | `query.filter` 值、link field filter 值、spec visitor 收到的 user ids |
+| 当前红灯 | 无本地红灯；最新 CI 剩余待 L4 复核 |
+| 失败层级 | 最新命中层已闭合：`FieldToSpecVisitor` 的 single select empty-string typecast 兼容层，以及 backend unit spec 的测试装配层 |
+| 本轮假设 | single select 的 `'' + typecast` 应保持 legacy omitted 语义；backend unit spec 需绕开 `RecordOpenApiModule` 循环扫描，改为最小 provider 装配 |
+| 目标观测点 | `FieldToSpecVisitor` 返回的 spec 类型、focused e2e record 字段值、两条 backend unit spec 的 module compile 结果 |
 | 允许改动层 | 只允许修改被证据命中的最小层 |
 | 本轮退出条件 | 主线 focused e2e 通过，或出现更窄的新红灯 |
 
@@ -62,6 +62,7 @@
 | table trash 字段恢复 | `TrashService.restoreTableResource` 记录过滤单层 | L3 table-trash focused e2e 覆盖字段恢复与已删除 record 共存场景 |
 | attachment preview URL 缓存响应 | `AttachmentsStorageService` 与 `RecordService` 缓存读取单层 | L3 attachment focused e2e 覆盖 cookie 写入相对 URL 后 Bearer token API 读取绝对 URL |
 | link-view-user-filter `Me` 归一化 | `ListTableRecordsHandler` 单层 | L2 handler spec 与 L3 focused e2e 覆盖大写 `Me` 和历史小写 `me` 兼容 |
+| backend unit spec 装配 | 命中的 spec 文件单层 | L2 focused unit spec 证明最小 provider 装配可通过 |
 
 ## 验证策略
 

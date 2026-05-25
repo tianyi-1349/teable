@@ -112,6 +112,13 @@ describe('FieldToSpecVisitor', () => {
       expect(result.isOk()).toBe(true);
     });
 
+    it('omits empty string in typecast mode', () => {
+      const visitor = FieldToSpecVisitor.create('', true);
+      const result = field.accept(visitor);
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBeInstanceOf(NoopCellValueSpec);
+    });
+
     it('extracts title from object input in typecast mode', () => {
       const visitor = FieldToSpecVisitor.create({ title: 'Option One' }, true);
       const result = field.accept(visitor);

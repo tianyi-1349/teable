@@ -265,7 +265,9 @@ export class FieldToSpecVisitor extends AbstractFieldVisitor<ICellValueSpec> {
 
     const strValue = normalizeCellDisplayValue(this.value);
     if (!strValue) {
-      return ok(new SetSingleSelectValueSpec(field.id(), CellValue.null()));
+      return this.typecast
+        ? ok(NoopCellValueSpec.create())
+        : ok(new SetSingleSelectValueSpec(field.id(), CellValue.null()));
     }
 
     const options = field.selectOptions();

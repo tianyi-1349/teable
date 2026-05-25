@@ -9,28 +9,61 @@ import { PrismaService } from '@teable/db-main-prisma';
 import type { Mock, MockInstance } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 import { CacheService } from '../../cache/cache.service';
+import { oauthConfig } from '../../configs/oauth.config';
 import { CustomHttpException } from '../../custom.exception';
-import { GlobalModule } from '../../global/global.module';
+import { AccessTokenService } from '../access-token/access-token.service';
 import { OAuthServerService } from './oauth-server.service';
-import { OAuthModule } from './oauth.module';
+import { OAuthTxStore } from './oauth-tx-store';
+import { PkceService } from './pkce.service';
 
 describe('OAuthServerService', () => {
   let service: OAuthServerService;
   const prismaService = mockDeep<PrismaService>();
   const cacheService = mockDeep<CacheService>();
   const jwtService = mockDeep<JwtService>();
+  const accessTokenService = mockDeep<AccessTokenService>();
+  const oauthTxStore = mockDeep<OAuthTxStore>();
+  const oauth2Config = {
+    accessTokenExpireIn: '10m',
+    refreshTokenExpireIn: '30d',
+    transactionExpireIn: '5m',
+    codeExpireIn: '5m',
+    authorizedExpireIn: '7d',
+    tokenRateLimit: 30,
+    tokenRateWindow: '15m',
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, OAuthModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaService)
-      .overrideProvider(CacheService)
-      .useValue(cacheService)
-      .overrideProvider(JwtService)
-      .useValue(jwtService)
-      .compile();
+      providers: [
+        OAuthServerService,
+        PkceService,
+        {
+          provide: PrismaService,
+          useValue: prismaService,
+        },
+        {
+          provide: CacheService,
+          useValue: cacheService,
+        },
+        {
+          provide: AccessTokenService,
+          useValue: accessTokenService,
+        },
+        {
+          provide: JwtService,
+          useValue: jwtService,
+        },
+        {
+          provide: OAuthTxStore,
+          useValue: oauthTxStore,
+        },
+        {
+          provide: oauthConfig.KEY,
+          useValue: oauth2Config,
+        },
+      ],
+    }).compile();
 
     service = module.get<OAuthServerService>(OAuthServerService);
 
@@ -44,6 +77,8 @@ describe('OAuthServerService', () => {
 
     // Default: rate limit not exceeded
     cacheService.incr.mockResolvedValue(1);
+    accessTokenService.createAccessToken.mockReset();
+    oauthTxStore.load.mockReset();
   });
 
   it('should be defined', () => {
@@ -62,7 +97,7 @@ describe('OAuthServerService', () => {
     });
 
     afterEach(() => {
-      done.mockReset();
+      done?.mockReset();
       vitest.restoreAllMocks();
     });
 
@@ -193,9 +228,9 @@ describe('OAuthServerService', () => {
     });
 
     afterEach(() => {
-      mockDone.mockReset();
-      mockGetRefreshToken.mockReset();
-      mockGenerateAccessToken.mockReset();
+      mockDone?.mockReset();
+      mockGetRefreshToken?.mockReset();
+      mockGenerateAccessToken?.mockReset();
     });
 
     it('should exchange code for tokens successfully', async () => {
@@ -343,7 +378,8 @@ describe('OAuthServerService', () => {
       mockGetRefreshToken?.mockReset();
       mockGenerateAccessToken?.mockReset();
       mockUpdateRefreshToken?.mockReset();
-      mockDone.mockReset();
+      mockFindAuthorized?.mockReset();
+      mockDone?.mockReset();
     });
 
     it('should refresh token successfully', async () => {

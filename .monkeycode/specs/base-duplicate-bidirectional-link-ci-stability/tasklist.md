@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 `link-view-user-filter` 多用户 `Me` 过滤 CI 红灯已本地复核，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast` 与 backend unit 装配红灯已本地复核关闭，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -66,3 +66,8 @@
 | 2026-05-23 | L2 | `env NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter @teable/backend typecheck` | 证明本轮 attachment preview URL cache/response 修复通过 backend 类型边界。 |
 | 2026-05-25 | L2 | `pnpm --filter @teable/v2-core exec vitest run src/queries/ListTableRecordsHandler.spec.ts` | 证明 `ListTableRecordsHandler` 已统一兼容大写 `Me` 与历史小写 `me`，并在 `query.filter` 与 `filterLinkCellCandidate` 组合链路中把 user filter 值归一化为 `actorId`，25 tests passed。 |
 | 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/link-view-user-filter.e2e-spec.ts -t "should return only records assigned to current user"` | 证明多用户 `hasAnyOf([Me])` 在真实 backend + DB 下返回当前用户可见候选记录，1 test passed，2 skipped。 |
+| 2026-05-25 | L4 红灯分析 | Integration Tests run `26377517159` failed jobs `77640356420`、`77640356455`、`77640356475`、`77640356499` | 证明本轮 CI 新红灯分成两类：v2 single select `'' + typecast` 被写成 `null` 的 legacy omitted 兼容回归，以及两条 backend unit spec 仍走整模块扫描导致 `RecordOpenApiModule` imports 循环装配失败。 |
+| 2026-05-25 | L2 | `pnpm --filter @teable/v2-core exec vitest run src/domain/table/fields/visitors/FieldToSpecVisitor.spec.ts` | 证明 single select 在 `typecast: true` 且输入空字符串时返回 `NoopCellValueSpec`，保持 legacy omitted 语义，71 tests passed。 |
+| 2026-05-25 | L3 | `pnpm pre-test-e2e && env CI=1 SECRET_KEY=test-secret FORCE_V2_ALL=true V2_COMPUTED_UPDATE_MODE=sync pnpm exec vitest run --config ./vitest-e2e.config.ts test/record-typecast.e2e-spec.ts -t "should create a record with typecast"` | 证明 single select `'' + typecast` 在真实 backend + DB 下回到省略更新语义，record 字段返回 `undefined`，1 test passed，5 skipped。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/collaborator/collaborator.service.spec.ts` | 证明 collaborator service spec 已收敛为最小 provider 装配，不再被 `RecordOpenApiModule` 循环扫描阻塞，2 tests passed。 |
+| 2026-05-25 | L2 | `pnpm exec vitest run src/features/oauth/oauth-server.service.spec.ts` | 证明 OAuth server service spec 已收敛为最小 provider 装配，且脆弱 mock 清理已修复，23 tests passed。 |
