@@ -102,6 +102,12 @@ const createContainerMock = (): DependencyContainer =>
     ),
     registerInstance: vi.fn(),
     resolve: vi.fn((token: symbol) => {
+      if (token === v2CoreTokens.attachmentLookupService) {
+        return { listAttachmentsByTokens: vi.fn(), listAttachmentsByAttachmentIds: vi.fn() };
+      }
+      if (token === v2CoreTokens.attachmentValueDecoratorService) {
+        return { decorateValues: vi.fn() };
+      }
       if (token === v2PostgresDbTokens.db) {
         return { destroy: vi.fn() };
       }
@@ -264,6 +270,12 @@ describe('V2ContainerService', () => {
       ),
       registerInstance: vi.fn(),
       resolve: vi.fn((token: symbol) => {
+        if (token === v2CoreTokens.attachmentLookupService) {
+          return { listAttachmentsByTokens: vi.fn(), listAttachmentsByAttachmentIds: vi.fn() };
+        }
+        if (token === v2CoreTokens.attachmentValueDecoratorService) {
+          return { decorateValues: vi.fn() };
+        }
         if (token === v2RecordRepositoryPostgresTokens.computedUpdatePollingConfig) {
           return { enabled: true };
         }

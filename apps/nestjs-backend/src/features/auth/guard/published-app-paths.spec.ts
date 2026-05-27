@@ -3,6 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthGuard } from './auth.guard';
 import { PermissionGuard } from './permission.guard';
 
+class TestPermissionGuard extends PermissionGuard {
+  override async permissionCheckWithPublicFallback(
+    ...args: Parameters<PermissionGuard['permissionCheckWithPublicFallback']>
+  ): Promise<boolean> {
+    return super.permissionCheckWithPublicFallback(...args);
+  }
+}
+
 const createContext = (path: string, url = path) =>
   ({
     switchToHttp: () => ({
@@ -37,9 +45,9 @@ describe('published app guard paths', () => {
   });
 
   it('allows the exact publishedApps routes through the permission guard', async () => {
-    const guard = new PermissionGuard(new Reflector(), { get: vi.fn() } as never, {} as never);
-    const fallbackSpy = vi.spyOn(guard as any, 'permissionCheckWithPublicFallback') as any;
-    fallbackSpy.mockImplementation(async () => true as never);
+    const guard = new TestPermissionGuard(new Reflector(), { get: vi.fn() } as never, {} as never);
+    const fallbackSpy = vi.spyOn(guard, 'permissionCheckWithPublicFallback');
+    fallbackSpy.mockResolvedValue(true);
 
     await expect(
       guard.canActivate(createContext('/api/v2/publishedApps/getNodeRuntime'))
@@ -49,9 +57,9 @@ describe('published app guard paths', () => {
   });
 
   it('does not treat near-matching publishedApps routes as public in the permission guard', async () => {
-    const guard = new PermissionGuard(new Reflector(), { get: vi.fn() } as never, {} as never);
-    const fallbackSpy = vi.spyOn(guard as any, 'permissionCheckWithPublicFallback') as any;
-    fallbackSpy.mockImplementation(async () => true as never);
+    const guard = new TestPermissionGuard(new Reflector(), { get: vi.fn() } as never, {} as never);
+    const fallbackSpy = vi.spyOn(guard, 'permissionCheckWithPublicFallback');
+    fallbackSpy.mockResolvedValue(true);
 
     await expect(
       guard.canActivate(createContext('/api/v2/publishedApps/getNodeRuntime/extra'))

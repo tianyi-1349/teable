@@ -1,51 +1,67 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import type { Action } from '@teable/core';
 import { Role, getPermissions } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
+import { JwtService } from '@nestjs/jwt';
 import { noop } from 'lodash';
 import { ClsService } from 'nestjs-cls';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import { getError } from '../../../test/utils/get-error';
-import { GlobalModule } from '../../global/global.module';
 import type { IClsStore } from '../../types/cls';
-import { PermissionModule } from './permission.module';
+import { CollaboratorModel } from '../model/collaborator';
+import { TemplateModel } from '../model/template';
 import { PermissionService } from './permission.service';
 
 describe('PermissionService', () => {
   let service: PermissionService;
   let prismaServiceMock: DeepMockProxy<PrismaService>;
   let clsServiceMock: DeepMockProxy<ClsService<IClsStore>>;
+  let collaboratorModelMock: DeepMockProxy<CollaboratorModel>;
+  let templateModelMock: DeepMockProxy<TemplateModel>;
+  let jwtServiceMock: DeepMockProxy<JwtService>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prismaServiceMock = mockDeep<PrismaService>();
     clsServiceMock = mockDeep<ClsService<IClsStore>>();
+    collaboratorModelMock = mockDeep<CollaboratorModel>();
+    templateModelMock = mockDeep<TemplateModel>();
+    jwtServiceMock = mockDeep<JwtService>();
 
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, PermissionModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaServiceMock)
-      .overrideProvider(ClsService)
-      .useValue(clsServiceMock)
-      .compile();
-
-    service = module.get<PermissionService>(PermissionService);
+    service = new PermissionService(
+      prismaServiceMock,
+      clsServiceMock,
+      collaboratorModelMock,
+      templateModelMock,
+      jwtServiceMock
+    );
   });
 
   afterEach(() => {
     mockReset(prismaServiceMock);
     mockReset(clsServiceMock);
+    mockReset(collaboratorModelMock);
+    mockReset(templateModelMock);
+    mockReset(jwtServiceMock);
   });
 
   describe('getRoleBySpaceId', () => {
     it('should return a SpaceRole', async () => {
       const spaceId = 'space-id';
-      const roleName = 'space-role';
-      prismaServiceMock.collaborator.findMany.mockResolvedValue([{ roleName } as any]);
+      const roleName = Role.Editor;
+      collaboratorModelMock.getCollaboratorRawByResourceId.mockResolvedValue([
+        { roleName, principalId: 'user-id' } as any,
+      ]);
+      clsServiceMock.get.mockImplementation((key) => {
+        if (key === 'user.id') {
+          return 'user-id' as never;
+        }
+        if (key === 'organization.departments') {
+          return [] as never;
+        }
+        return undefined as never;
+      });
       prismaServiceMock.space.findFirst.mockResolvedValue({ deletedTime: null } as any);
       const result = await service['getRoleBySpaceId'](spaceId);
       expect(result).toBe(roleName);
@@ -53,7 +69,16 @@ describe('PermissionService', () => {
 
     it('should throw a ForbiddenException if collaborator is not found', async () => {
       const spaceId = 'space-id1';
-      prismaServiceMock.collaborator.findMany.mockResolvedValue([]);
+      collaboratorModelMock.getCollaboratorRawByResourceId.mockResolvedValue([]);
+      clsServiceMock.get.mockImplementation((key) => {
+        if (key === 'user.id') {
+          return 'user-id' as never;
+        }
+        if (key === 'organization.departments') {
+          return [] as never;
+        }
+        return undefined as never;
+      });
       prismaServiceMock.space.findFirst.mockResolvedValue({ deletedTime: null } as any);
       const res = await service['getRoleBySpaceId'](spaceId);
       expect(res).toBeNull();
@@ -63,15 +88,35 @@ describe('PermissionService', () => {
   describe('getRoleByBaseId', () => {
     it('should return a BaseRole', async () => {
       const baseId = 'base-id';
-      const roleName = 'base-role';
-      prismaServiceMock.collaborator.findMany.mockResolvedValue([{ roleName } as any]);
+      const roleName = Role.Creator;
+      collaboratorModelMock.getCollaboratorRawByResourceId.mockResolvedValue([
+        { roleName, principalId: 'user-id' } as any,
+      ]);
+      clsServiceMock.get.mockImplementation((key) => {
+        if (key === 'user.id') {
+          return 'user-id' as never;
+        }
+        if (key === 'organization.departments') {
+          return [] as never;
+        }
+        return undefined as never;
+      });
       const result = await service['getRoleByBaseId'](baseId);
       expect(result).toBe(roleName);
     });
 
     it('should return null if collaborator is not found', async () => {
       const baseId = 'base-id1';
-      prismaServiceMock.collaborator.findMany.mockResolvedValue([]);
+      collaboratorModelMock.getCollaboratorRawByResourceId.mockResolvedValue([]);
+      clsServiceMock.get.mockImplementation((key) => {
+        if (key === 'user.id') {
+          return 'user-id' as never;
+        }
+        if (key === 'organization.departments') {
+          return [] as never;
+        }
+        return undefined as never;
+      });
       const result = await service['getRoleByBaseId'](baseId);
       expect(result).toBeNull();
     });

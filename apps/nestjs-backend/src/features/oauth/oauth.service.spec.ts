@@ -1,19 +1,13 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import { GlobalModule } from '../../global/global.module';
-import { OAuthModule } from './oauth.module';
+import { PrismaService } from '@teable/db-main-prisma';
+import { ClsService } from 'nestjs-cls';
+import { mockDeep } from 'vitest-mock-extended';
 import { OAuthService } from './oauth.service';
 
 describe('OauthService', () => {
   let service: OAuthService;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, OAuthModule],
-      providers: [OAuthService],
-    }).compile();
-
-    service = module.get<OAuthService>(OAuthService);
+    service = new OAuthService(mockDeep<PrismaService>(), mockDeep<ClsService>());
   });
 
   it('should be defined', () => {

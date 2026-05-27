@@ -251,7 +251,7 @@ export const GridViewBase = (props: IGridViewProps) => {
       }
       await copy(selection);
     },
-    [copy, view?.shareMeta?.allowCopy]
+    [copy, t, view?.shareMeta?.allowCopy]
   );
 
   const onColumnStatisticClick = useCallback(

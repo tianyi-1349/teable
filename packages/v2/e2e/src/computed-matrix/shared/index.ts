@@ -22,6 +22,6 @@ export type {
   TestContext,
   ValueTransition,
 } from './types';
-export { createFieldIdGenerator, getFieldValues } from './generators';
+export { createFieldIdGenerator, getFieldValues, getFormulaExpression } from './generators';
 export { getExpectedResult, getExpectedSteps, verifyResult, verifySteps } from './validators';
 export { createTestContext } from './setup';

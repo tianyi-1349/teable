@@ -16,6 +16,7 @@ import {
   generateChoiceId,
   HttpErrorCode,
   IdPrefix,
+  Relationship,
   nullsToUndefined,
 } from '@teable/core';
 import type { PrismaService } from '@teable/db-main-prisma';
@@ -620,8 +621,14 @@ export class TypeCastAndValidate {
     cellValue: unknown,
     linkTableRecordMap: Record<string, { id: string; title?: string }>
   ): ILinkCellValue[] | ILinkCellValue | null {
-    const { isMultipleCellValue } = this.field;
-    if (isMultipleCellValue) {
+    const relationship = (this.field as LinkFieldDto).options?.relationship;
+    const isSingleRelationship =
+      relationship === Relationship.ManyOne || relationship === Relationship.OneOne;
+    const isMultipleCellValue =
+      relationship != null
+        ? relationship === Relationship.ManyMany || relationship === Relationship.OneMany
+        : this.field.isMultipleCellValue;
+    if (isMultipleCellValue && !isSingleRelationship) {
       if (typeof cellValue === 'string') {
         return cellValue
           .split(',')
@@ -643,6 +650,22 @@ export class TypeCastAndValidate {
           .filter(Boolean) as ILinkCellValue[];
       }
     }
+
+    if (Array.isArray(cellValue)) {
+      const [firstValue] = cellValue;
+      if (typeof firstValue === 'string') {
+        return linkTableRecordMap[firstValue] || null;
+      }
+      if (isObject(firstValue) && 'id' in firstValue && typeof firstValue.id === 'string') {
+        return linkTableRecordMap[firstValue.id] || null;
+      }
+      return null;
+    }
+
+    if (isObject(cellValue) && 'id' in cellValue && typeof cellValue.id === 'string') {
+      return linkTableRecordMap[cellValue.id] || null;
+    }
+
     return linkTableRecordMap[cellValue as string] || null;
   }
 }

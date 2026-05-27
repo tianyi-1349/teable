@@ -46,6 +46,7 @@ const NEXT_BUILD_ENV_SENTRY_SOURCEMAPS_UPLOAD = trueEnv.includes(
 );
 
 const NEXTJS_SOCKET_PORT = process.env.SOCKET_PORT || '3001';
+const NEXT_DIST_DIR = process.env.NEXT_DIST_DIR;
 
 if (!NEXT_BUILD_ENV_SOURCEMAPS) {
   console.log(
@@ -120,7 +121,8 @@ const nextConfig = {
       : undefined,
   crossOrigin: 'anonymous',
   reactStrictMode: true,
-  allowedDevOrigins: ['*.monkeycode-ai.online'],
+  allowedDevOrigins: ['.monkeycode-ai.online', 'localhost', '127.0.0.1'],
+  ...(NEXT_DIST_DIR ? { distDir: NEXT_DIST_DIR } : {}),
   productionBrowserSourceMaps: NEXT_BUILD_ENV_SOURCEMAPS === true,
   // Transpile packages that use React to ensure single React instance
   transpilePackages: [

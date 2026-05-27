@@ -294,7 +294,6 @@ describe('DashboardController', () => {
           pluginId: res.data.id,
         })
       );
-      await deletePlugin(res.data.id);
       expect(error?.status).toBe(404);
       expect(installRes.data.name).toBe('dddd');
     });

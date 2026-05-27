@@ -43,7 +43,7 @@ export default defineConfig({
     testTimeout: timeout,
     hookTimeout: timeout,
     passWithNoTests: true,
-    pool: 'threads',
+    pool: 'forks',
     fileParallelism: false,
     coverage: {
       provider: 'v8',

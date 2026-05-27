@@ -411,7 +411,16 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
 
     // No unpublished apps, proceed with publishing
     publishBaseMutate({ title, description: description || '' });
-  }, [title, description, selectedNodeIds, validationResult, treeItems, publishBaseMutate, t]);
+  }, [
+    title,
+    description,
+    selectedNodeIds,
+    validationResult,
+    treeItems,
+    publishBaseMutate,
+    primaryBlockingIssue?.message,
+    t,
+  ]);
 
   const handleContinuePublish = useCallback(() => {
     setUnpublishedAppsDialogOpen(false);

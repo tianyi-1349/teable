@@ -32,8 +32,6 @@ import {
   HttpErrorCode,
   identify,
   IdPrefix,
-  isImage,
-  isPdf,
   mergeFilter,
   mergeWithDefaultFilter,
   mergeWithDefaultSort,
@@ -74,10 +72,7 @@ import type { IClsStore } from '../../types/cls';
 import { convertValueToStringify, string2Hash } from '../../utils';
 import { handleDBValidationErrors } from '../../utils/db-validation-error';
 import { generateFilterItem } from '../../utils/filter';
-import {
-  generateTableThumbnailPath,
-  getTableThumbnailToken,
-} from '../../utils/generate-thumbnail-path';
+import { getTableThumbnailToken } from '../../utils/generate-thumbnail-path';
 import { Timing } from '../../utils/timing';
 import { AttachmentsStorageService } from '../attachments/attachments-storage.service';
 import StorageAdapter from '../attachments/plugins/adapter';
@@ -1597,7 +1592,9 @@ export class RecordService {
       );
       previewUrls.forEach((url, index) => {
         if (url) {
-          tokenMap[tokenBatch[index]] = url.url;
+          tokenMap[tokenBatch[index]] = this.attachmentStorageService.resolveResponsePreviewUrl(
+            url.url
+          );
         }
       });
     }
@@ -1682,7 +1679,6 @@ export class RecordService {
           ));
         let smThumbnailUrl: string | undefined;
         let lgThumbnailUrl: string | undefined;
-        const isImg = isImage(mimetype);
         const thumbnailMimetype = resolveThumbnailMimetype(mimetype);
         if (thumbnailPathTokenMap && thumbnailPathTokenMap[token]) {
           const { sm: smThumbnailPath, lg: lgThumbnailPath } = thumbnailPathTokenMap[token]!;

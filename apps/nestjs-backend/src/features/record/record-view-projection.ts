@@ -1,5 +1,4 @@
-import { FieldKeyType } from '@teable/core';
-import type { IColumnMeta } from '@teable/core';
+import type { FieldKeyType, IColumnMeta } from '@teable/core';
 
 type IFieldKeySource = {
   id: string;

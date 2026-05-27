@@ -25,6 +25,7 @@ import {
   TableUpdateFieldNameSpec,
   ViewColumnMeta,
 } from '@teable/v2-core';
+import { UpdateLinkConfigSpec } from '../../../../core/src/domain/table/specs/field-updates/UpdateLinkConfigSpec';
 import type { V1TeableDatabase } from '@teable/v2-postgres-schema';
 import {
   DummyDriver,
@@ -524,21 +525,162 @@ describe('TableMetaUpdateVisitor', () => {
     const { db, visitor } = createVisitor(fixture.table);
     const { linkField } = fixture;
 
-    const optionOnly = visitor.visitUpdateLinkConfig({
-      fieldId: () => linkField.id(),
-      isRelationshipChanging: () => false,
-      isOneWayChanging: () => false,
-    } as never);
-    const storageUpdate = visitor.visitUpdateLinkConfig({
-      fieldId: () => linkField.id(),
-      isRelationshipChanging: () => true,
-      isOneWayChanging: () => false,
-    } as never);
+    const optionOnlyNextConfig = LinkFieldConfig.create({
+      relationship: 'manyOne',
+      foreignTableId: linkField.foreignTableId().toString(),
+      lookupFieldId: linkField.lookupFieldId().toString(),
+      fkHostTableName: 'link_relations',
+      selfKeyName: '__self_id',
+      foreignKeyName: '__foreign_id',
+      filterByViewId: 'viw1234567890123456',
+    })._unsafeUnwrap();
+
+    const storageNextConfig = LinkFieldConfig.create({
+      relationship: 'oneOne',
+      foreignTableId: linkField.foreignTableId().toString(),
+      lookupFieldId: linkField.lookupFieldId().toString(),
+      fkHostTableName: 'link_relations',
+      selfKeyName: '__id',
+      foreignKeyName: '__fk_link_field',
+    })._unsafeUnwrap();
+
+    const optionOnly = visitor.visitUpdateLinkConfig(
+      UpdateLinkConfigSpec.create(linkField.id(), linkField.config(), optionOnlyNextConfig)
+    );
+    const storageUpdate = visitor.visitUpdateLinkConfig(
+      UpdateLinkConfigSpec.create(linkField.id(), linkField.config(), storageNextConfig)
+    );
 
     expect(optionOnly.isOk()).toBe(true);
     expect(storageUpdate.isOk()).toBe(true);
     expect(compileStatements(db, optionOnly._unsafeUnwrap())[0]?.sql).toContain('"options" = $1');
     expect(compileStatements(db, storageUpdate._unsafeUnwrap())[0]?.sql).toContain('"meta" = $2');
+  });
+
+  it('serializes updated link config instead of stale table options', () => {
+    const baseId = BaseId.create(`bse${'m'.repeat(16)}`)._unsafeUnwrap();
+    const tableId = TableId.create(`tbl${'m'.repeat(16)}`)._unsafeUnwrap();
+    const foreignTableId = TableId.create(`tbl${'n'.repeat(16)}`)._unsafeUnwrap();
+    const lookupFieldId = FieldId.create(`fld${'o'.repeat(16)}`)._unsafeUnwrap();
+    const linkFieldId = FieldId.create(`fld${'p'.repeat(16)}`)._unsafeUnwrap();
+    const symmetricFieldId = FieldId.create(`fld${'q'.repeat(16)}`)._unsafeUnwrap();
+
+    const builder = Table.builder()
+      .withBaseId(baseId)
+      .withId(tableId)
+      .withName(TableName.create('Link Config Table')._unsafeUnwrap());
+    builder
+      .field()
+      .singleLineText()
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .primary()
+      .done();
+    builder
+      .field()
+      .link()
+      .withId(linkFieldId)
+      .withName(FieldName.create('Related')._unsafeUnwrap())
+      .withConfig(
+        LinkFieldConfig.create({
+          relationship: 'manyMany',
+          foreignTableId: foreignTableId.toString(),
+          lookupFieldId: lookupFieldId.toString(),
+          symmetricFieldId: symmetricFieldId.toString(),
+          fkHostTableName: 'bsemmmmmmmmmmmmmmmm.junction_old_link',
+          selfKeyName: '__fk_old_self',
+          foreignKeyName: '__fk_old_foreign',
+        })._unsafeUnwrap()
+      )
+      .done();
+    builder.view().defaultGrid().done();
+
+    const table = builder.build()._unsafeUnwrap().clone(new DefaultTableMapper())._unsafeUnwrap();
+    const linkField = table.getFields()[1]!;
+    const { db, visitor } = createVisitor(table);
+
+    const nextConfig = LinkFieldConfig.create({
+      relationship: 'manyMany',
+      foreignTableId: foreignTableId.toString(),
+      lookupFieldId: lookupFieldId.toString(),
+      symmetricFieldId: symmetricFieldId.toString(),
+      fkHostTableName: 'bsemmmmmmmmmmmmmmmm.junction_fldpppppppppppppppp_fldqqqqqqqqqqqqqqqq',
+      selfKeyName: '__fk_fldzzzzzzzzzzzzzzzz',
+      foreignKeyName: '__fk_fldbbbbbbbbbbbbbbbb',
+    })._unsafeUnwrap();
+
+    const result = visitor.visitUpdateLinkConfig(
+      UpdateLinkConfigSpec.create(linkField.id(), linkField.config(), nextConfig)
+    );
+
+    expect(result.isOk()).toBe(true);
+    const compiled = compileStatements(db, result._unsafeUnwrap())[0]!;
+    const serializedOptions = compiled.parameters[0];
+    expect(typeof serializedOptions).toBe('string');
+    expect(serializedOptions).toContain('junction_fldpppppppppppppppp_fldqqqqqqqqqqqqqqqq');
+    expect(serializedOptions).toContain('__fk_fldzzzzzzzzzzzzzzzz');
+    expect(serializedOptions).toContain('__fk_fldbbbbbbbbbbbbbbbb');
+  });
+
+  it('serializes preserved link db config from mutated table when next config omits it', () => {
+    const baseId = BaseId.create(`bse${'r'.repeat(16)}`)._unsafeUnwrap();
+    const tableId = TableId.create(`tbl${'r'.repeat(16)}`)._unsafeUnwrap();
+    const foreignTableId = TableId.create(`tbl${'s'.repeat(16)}`)._unsafeUnwrap();
+    const lookupFieldId = FieldId.create(`fld${'t'.repeat(16)}`)._unsafeUnwrap();
+    const linkFieldId = FieldId.create(`fld${'u'.repeat(16)}`)._unsafeUnwrap();
+    const symmetricFieldId = FieldId.create(`fld${'v'.repeat(16)}`)._unsafeUnwrap();
+    const junctionTableName = `${baseId.toString()}.junction_${linkFieldId.toString()}_${symmetricFieldId.toString()}`;
+
+    const builder = Table.builder()
+      .withBaseId(baseId)
+      .withId(tableId)
+      .withName(TableName.create('Preserved Link Config Table')._unsafeUnwrap());
+    builder
+      .field()
+      .singleLineText()
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .primary()
+      .done();
+    builder
+      .field()
+      .link()
+      .withId(linkFieldId)
+      .withName(FieldName.create('Related')._unsafeUnwrap())
+      .withConfig(
+        LinkFieldConfig.create({
+          relationship: 'manyMany',
+          foreignTableId: foreignTableId.toString(),
+          lookupFieldId: lookupFieldId.toString(),
+          symmetricFieldId: symmetricFieldId.toString(),
+          fkHostTableName: junctionTableName,
+          selfKeyName: `__fk_${symmetricFieldId.toString()}`,
+          foreignKeyName: `__fk_${linkFieldId.toString()}`,
+        })._unsafeUnwrap()
+      )
+      .done();
+    builder.view().defaultGrid().done();
+
+    const table = builder.build()._unsafeUnwrap().clone(new DefaultTableMapper())._unsafeUnwrap();
+    const linkField = table.getFields()[1]!;
+    const { db, visitor } = createVisitor(table);
+
+    const nextConfigWithoutDbConfig = LinkFieldConfig.create({
+      relationship: 'manyMany',
+      foreignTableId: foreignTableId.toString(),
+      lookupFieldId: lookupFieldId.toString(),
+      symmetricFieldId: symmetricFieldId.toString(),
+    })._unsafeUnwrap();
+
+    const result = visitor.visitUpdateLinkConfig(
+      UpdateLinkConfigSpec.create(linkField.id(), linkField.config(), nextConfigWithoutDbConfig)
+    );
+
+    expect(result.isOk()).toBe(true);
+    const compiled = compileStatements(db, result._unsafeUnwrap())[0]!;
+    const serializedOptions = compiled.parameters[0];
+    expect(typeof serializedOptions).toBe('string');
+    expect(serializedOptions).toContain(junctionTableName);
+    expect(serializedOptions).toContain(`__fk_${symmetricFieldId.toString()}`);
+    expect(serializedOptions).toContain(`__fk_${linkFieldId.toString()}`);
   });
 
   it('uses storage metadata updates for rollup config changes', () => {

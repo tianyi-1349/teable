@@ -10,7 +10,9 @@ import { FieldName } from '../domain/table/fields/FieldName';
 import type { LinkFieldConfigValue } from '../domain/table/fields/types/LinkFieldConfig';
 import { LinkFieldConfig } from '../domain/table/fields/types/LinkFieldConfig';
 import { SelectOption } from '../domain/table/fields/types/SelectOption';
+import { UserMultiplicity } from '../domain/table/fields/types/UserMultiplicity';
 import { RecordId } from '../domain/table/records/RecordId';
+import { RecordConditionLiteralValue } from '../domain/table/records/specs/RecordConditionValues';
 import { NoopRecordConditionSpecVisitor } from '../domain/table/records/specs/visitors/NoopRecordConditionSpecVisitor';
 import { TableUpdateViewColumnMetaSpec } from '../domain/table/specs/TableUpdateViewColumnMetaSpec';
 import { TableUpdateViewQueryDefaultsSpec } from '../domain/table/specs/TableUpdateViewQueryDefaultsSpec';
@@ -115,6 +117,28 @@ class RecordingSpecVisitor extends NoopRecordConditionSpecVisitor {
   }
 }
 
+class UserFilterValueVisitor extends NoopRecordConditionSpecVisitor {
+  readonly values: Array<string | number | boolean> = [];
+
+  override visitUserIs(...args: Parameters<NoopRecordConditionSpecVisitor['visitUserIs']>) {
+    const value = args[0].value();
+    if (value instanceof RecordConditionLiteralValue) {
+      this.values.push(value.toValue());
+    }
+    return super.visitUserIs(...args);
+  }
+
+  override visitUserHasAnyOf(
+    ...args: Parameters<NoopRecordConditionSpecVisitor['visitUserHasAnyOf']>
+  ) {
+    const value = args[0].value();
+    if (value && 'toValues' in value && typeof value.toValues === 'function') {
+      this.values.push(...(value.toValues() as Array<string | number | boolean>));
+    }
+    return super.visitUserHasAnyOf(...args);
+  }
+}
+
 describe('ListTableRecordsHandler', () => {
   it('returns records without a filter', async () => {
     const table = buildTable();
@@ -181,6 +205,207 @@ describe('ListTableRecordsHandler', () => {
 
     expect(result.isOk()).toBe(true);
     expect(captured.spec).toBeDefined();
+  });
+
+  it('replaces Me in link candidate view filters with the current actor id', async () => {
+    const tableBuilder = Table.builder()
+      .withBaseId(createBaseId('m'))
+      .withName(TableName.create('Foreign Records')._unsafeUnwrap());
+    tableBuilder
+      .field()
+      .singleLineText()
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .done();
+    tableBuilder.field().user().withName(FieldName.create('Assignee')._unsafeUnwrap()).done();
+    tableBuilder.view().defaultGrid().done();
+    const table = tableBuilder.build()._unsafeUnwrap();
+    const assigneeField = table
+      .getField((field) => field.name().toString() === 'Assignee')
+      ._unsafeUnwrap();
+    const hostTable = buildHostTableReferencing(table, 'manyMany', {
+      filter: {
+        conjunction: 'and',
+        filterSet: [
+          {
+            fieldId: assigneeField.id().toString(),
+            operator: 'is',
+            value: 'me',
+          },
+        ],
+      },
+    });
+
+    const tableRepository = new MemoryTableRepository();
+    await tableRepository.insert(createContext(), table);
+    await tableRepository.insert(createContext(), hostTable);
+
+    const captured: { spec?: unknown } = {};
+    const recordQueryRepo: ITableRecordQueryRepository = {
+      find: async (_context, _table, spec) => {
+        captured.spec = spec;
+        return ok({ records: [], total: 0 });
+      },
+      findOne: async () => err(domainError.notFound({ message: 'Not found' })),
+      async *findStream() {
+        yield* [];
+      },
+    };
+
+    const queryResult = ListTableRecordsQuery.create({
+      tableId: table.id().toString(),
+      filterLinkCellCandidate: hostTable
+        .getField((field) => field.name().toString() === 'Incoming Link')
+        ._unsafeUnwrap()
+        .id()
+        .toString(),
+    });
+    const handler = new ListTableRecordsHandler(tableRepository, recordQueryRepo, new NoopLogger());
+    const result = await handler.handle(createContext(), queryResult._unsafeUnwrap());
+
+    expect(result.isOk()).toBe(true);
+    expect(captured.spec).toBeDefined();
+
+    const visitor = new UserFilterValueVisitor();
+    const acceptResult = (
+      captured.spec as { accept: (visitor: UserFilterValueVisitor) => { isOk: () => boolean } }
+    ).accept(visitor);
+    expect(acceptResult.isOk()).toBe(true);
+    expect(visitor.values).toContain(createContext().actorId.toString());
+  });
+
+  it('replaces Me in request user list filters with the current actor id', async () => {
+    const tableBuilder = Table.builder()
+      .withBaseId(createBaseId('n'))
+      .withName(TableName.create('Multi User Records')._unsafeUnwrap());
+    tableBuilder
+      .field()
+      .singleLineText()
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .done();
+    tableBuilder
+      .field()
+      .user()
+      .withName(FieldName.create('Assignees')._unsafeUnwrap())
+      .withMultiplicity(UserMultiplicity.multiple())
+      .done();
+    tableBuilder.view().defaultGrid().done();
+    const table = tableBuilder.build()._unsafeUnwrap();
+    const assigneesField = table
+      .getField((field) => field.name().toString() === 'Assignees')
+      ._unsafeUnwrap();
+
+    const tableRepository = new MemoryTableRepository();
+    await tableRepository.insert(createContext(), table);
+
+    const captured: { spec?: unknown } = {};
+    const recordQueryRepo: ITableRecordQueryRepository = {
+      find: async (_context, _table, spec) => {
+        captured.spec = spec;
+        return ok({ records: [], total: 0 });
+      },
+      findOne: async () => err(domainError.notFound({ message: 'Not found' })),
+      async *findStream() {
+        yield* [];
+      },
+    };
+
+    const queryResult = ListTableRecordsQuery.create({
+      tableId: table.id().toString(),
+      filter: {
+        fieldId: assigneesField.id().toString(),
+        operator: 'hasAnyOf',
+        value: ['me'],
+      },
+    });
+    const handler = new ListTableRecordsHandler(tableRepository, recordQueryRepo, new NoopLogger());
+    const result = await handler.handle(createContext(), queryResult._unsafeUnwrap());
+
+    expect(result.isOk()).toBe(true);
+    expect(captured.spec).toBeDefined();
+
+    const visitor = new UserFilterValueVisitor();
+    const acceptResult = (
+      captured.spec as { accept: (visitor: UserFilterValueVisitor) => { isOk: () => boolean } }
+    ).accept(visitor);
+    expect(acceptResult.isOk()).toBe(true);
+    expect(visitor.values).toContain(createContext().actorId.toString());
+  });
+
+  it('replaces uppercase Me across request and link candidate filters in the same query', async () => {
+    const tableBuilder = Table.builder()
+      .withBaseId(createBaseId('o'))
+      .withName(TableName.create('Combined Me Filters')._unsafeUnwrap());
+    tableBuilder
+      .field()
+      .singleLineText()
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .done();
+    tableBuilder
+      .field()
+      .user()
+      .withName(FieldName.create('Assignees')._unsafeUnwrap())
+      .withMultiplicity(UserMultiplicity.multiple())
+      .done();
+    tableBuilder.view().defaultGrid().done();
+    const table = tableBuilder.build()._unsafeUnwrap();
+    const assigneesField = table
+      .getField((field) => field.name().toString() === 'Assignees')
+      ._unsafeUnwrap();
+    const hostTable = buildHostTableReferencing(table, 'manyMany', {
+      filter: {
+        conjunction: 'and',
+        filterSet: [
+          {
+            fieldId: assigneesField.id().toString(),
+            operator: 'hasAnyOf',
+            value: ['Me'],
+          },
+        ],
+      },
+    });
+
+    const tableRepository = new MemoryTableRepository();
+    await tableRepository.insert(createContext(), table);
+    await tableRepository.insert(createContext(), hostTable);
+
+    const captured: { spec?: unknown } = {};
+    const recordQueryRepo: ITableRecordQueryRepository = {
+      find: async (_context, _table, spec) => {
+        captured.spec = spec;
+        return ok({ records: [], total: 0 });
+      },
+      findOne: async () => err(domainError.notFound({ message: 'Not found' })),
+      async *findStream() {
+        yield* [];
+      },
+    };
+
+    const queryResult = ListTableRecordsQuery.create({
+      tableId: table.id().toString(),
+      filter: {
+        fieldId: assigneesField.id().toString(),
+        operator: 'hasAnyOf',
+        value: ['Me'],
+      },
+      filterLinkCellCandidate: hostTable
+        .getField((field) => field.name().toString() === 'Incoming Link')
+        ._unsafeUnwrap()
+        .id()
+        .toString(),
+    });
+    const handler = new ListTableRecordsHandler(tableRepository, recordQueryRepo, new NoopLogger());
+    const result = await handler.handle(createContext(), queryResult._unsafeUnwrap());
+
+    expect(result.isOk()).toBe(true);
+    expect(captured.spec).toBeDefined();
+
+    const visitor = new UserFilterValueVisitor();
+    const acceptResult = (
+      captured.spec as { accept: (visitor: UserFilterValueVisitor) => { isOk: () => boolean } }
+    ).accept(visitor);
+    expect(acceptResult.isOk()).toBe(true);
+    expect(visitor.values).toContain(createContext().actorId.toString());
+    expect(visitor.values).not.toContain('Me');
   });
 
   it('drops filters for disabled fields from the permission read source', async () => {
@@ -277,7 +502,7 @@ describe('ListTableRecordsHandler', () => {
     });
     const handler = new ListTableRecordsHandler(tableRepository, recordQueryRepo, new NoopLogger());
     const result = await handler.handle(createContext(), queryResult._unsafeUnwrap());
-    expect(result._unsafeUnwrapErr().message).toContain('Filter field not found');
+    expect(result._unsafeUnwrapErr().message).toContain('Field not found');
   });
 
   it('propagates query repository errors', async () => {

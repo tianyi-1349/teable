@@ -1,30 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { UnauthorizedException } from '@nestjs/common';
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import { PrismaService } from '@teable/db-main-prisma';
+import { ClsService } from 'nestjs-cls';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
-import { GlobalModule } from '../../global/global.module';
+import type { IClsStore } from '../../types/cls';
+import { PerformanceCacheService } from '../../performance-cache';
 import { AccessTokenModel } from '../model/access-token';
-import { AccessTokenModule } from './access-token.module';
 import { AccessTokenService } from './access-token.service';
 
 describe('AccessTokenService', () => {
   let accessTokenService: AccessTokenService;
   const prismaService = mockDeep<PrismaService>();
   const accessTokenModel = mockDeep<AccessTokenModel>();
+  const clsService = mockDeep<ClsService<IClsStore>>();
+  const performanceCacheService = mockDeep<PerformanceCacheService>();
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, AccessTokenModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaService)
-      .overrideProvider(AccessTokenModel)
-      .useValue(accessTokenModel)
-      .compile();
-
-    accessTokenService = module.get<AccessTokenService>(AccessTokenService);
+    accessTokenService = new AccessTokenService(
+      prismaService,
+      clsService,
+      accessTokenModel,
+      performanceCacheService
+    );
 
     prismaService.txClient.mockImplementation(() => {
       return prismaService;

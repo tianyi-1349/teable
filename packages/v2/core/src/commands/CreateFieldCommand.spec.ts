@@ -648,4 +648,35 @@ describe('CreateFieldCommand', () => {
     expect(uniqueResult.isErr()).toBe(true);
     expect(uniqueResult._unsafeUnwrapErr().message).toContain('unique');
   });
+
+  it('hydrates manyMany link db config during create', () => {
+    const baseId = `bse${'m'.repeat(16)}`;
+    const tableId = `tbl${'n'.repeat(16)}`;
+
+    const resolvedInput = resolveTableFieldInputName(
+      {
+        type: 'link',
+        name: 'Hydrated Link',
+        options: {
+          relationship: 'manyMany',
+          foreignTableId: `tbl${'o'.repeat(16)}`,
+          lookupFieldId: `fld${'p'.repeat(16)}`,
+        },
+      },
+      []
+    )._unsafeUnwrap();
+
+    const spec = parseTableFieldSpec(resolvedInput, { isPrimary: false })._unsafeUnwrap();
+    const field = spec
+      .createField({
+        baseId: BaseId.create(baseId)._unsafeUnwrap(),
+        tableId: TableId.create(tableId)._unsafeUnwrap(),
+      })
+      ._unsafeUnwrap() as LinkField;
+
+    expect(field.symmetricFieldId()?.toString()).toMatch(/^fld/);
+    expect(field.fkHostTableNameString()._unsafeUnwrap()).toBe(
+      `${baseId}.junction_${field.id().toString()}_${field.symmetricFieldId()!.toString()}`
+    );
+  });
 });

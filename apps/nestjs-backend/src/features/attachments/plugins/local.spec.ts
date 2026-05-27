@@ -5,15 +5,14 @@ import { join, resolve } from 'path';
 import { Test } from '@nestjs/testing';
 import type { TestingModule } from '@nestjs/testing';
 import * as fse from 'fs-extra';
+import { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import { getError } from '../../../../test/utils/get-error';
 import { CacheService } from '../../../cache/cache.service';
 import type { IAttachmentLocalTokenCache } from '../../../cache/types';
 import { baseConfig } from '../../../configs/base.config';
 import { storageConfig } from '../../../configs/storage';
-import { GlobalModule } from '../../../global/global.module';
 import { LocalStorage } from './local';
-import { StorageModule } from './storage.module';
 import type { ILocalFileUpload } from './types';
 
 vi.mock('fs-extra');
@@ -57,7 +56,6 @@ describe('LocalStorage', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [StorageModule, GlobalModule],
       providers: [
         LocalStorage,
         {
@@ -71,6 +69,10 @@ describe('LocalStorage', () => {
         {
           provide: baseConfig.KEY,
           useValue: mockBaseConfig,
+        },
+        {
+          provide: ClsService,
+          useValue: { get: vi.fn() },
         },
       ],
     }).compile();

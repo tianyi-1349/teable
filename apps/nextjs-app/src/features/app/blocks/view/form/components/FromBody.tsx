@@ -162,11 +162,11 @@ export const FormBody = (props: IFormBodyProps) => {
         )}
       >
         {coverUrl && (
-            <img
-              src={previewUrl(coverUrl)}
-              alt={t('oauth:authorization.cardCoverAlt')}
-              className="absolute inset-0 size-full object-cover"
-            />
+          <img
+            src={previewUrl(coverUrl)}
+            alt={t('oauth:authorization.cardCoverAlt')}
+            className="absolute inset-0 size-full object-cover"
+          />
         )}
       </div>
 

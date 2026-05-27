@@ -31,17 +31,13 @@ describe('TableResourcePage', () => {
       </TableResourcePage>
     );
 
-    expect(screen.getByText('Published view')).toBeInTheDocument();
-    expect(
-      screen.getByText('Editing actions stay locked in read-only published runtime.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Copy actions stay suppressed by published permissions.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Save actions stay suppressed by published permissions.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Read-only')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.publishedViewTitle')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.publishedViewDescription')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableDesktopGuidance')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableReadonly')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableDenyCopy')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableDenySave')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.readOnly')).toBeInTheDocument();
   });
 
   it('shows compact mobile and enabled permission guidance when share permissions allow it', () => {
@@ -63,23 +59,15 @@ describe('TableResourcePage', () => {
       </TableResourcePage>
     );
 
-    expect(
-      screen.getByText('Compact mobile browsing is active for published views.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableMobileGuidance')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableAllowEdit')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableAllowCopy')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.tableAllowSave')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Edits stay available in published runtime where the shared view allows them.'
+        'system.publishedApp.interactive • system.publishedApp.copyEnabled • system.publishedApp.saveEnabled'
       )
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Copy actions remain available from the shared view runtime.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Save actions can surface when the shared view runtime exposes them.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Interactive • copy enabled • save enabled')).toBeInTheDocument();
-    expect(
-      screen.getByText('Mobile layout keeps published interactions compact and read-only safe.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.mobileHint')).toBeInTheDocument();
   });
 });

@@ -107,25 +107,22 @@ const mapFieldUpdatedChanges = (
 
   for (const [property, value] of Object.entries(changes)) {
     mapped[property] = {
-      oldValue: serializeChangeValue(value.oldValue),
-      newValue: serializeChangeValue(value.newValue),
+      oldValue: serializeFieldUpdatedChangeValue(value.oldValue),
+      newValue: serializeFieldUpdatedChangeValue(value.newValue),
     };
   }
 
   return mapped;
 };
 
-const serializeChangeValue = (value: unknown): JsonValue | undefined => {
+export const serializeFieldUpdatedChangeValue = (value: unknown): JsonValue | undefined => {
   if (value == null) return value;
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
 
   if (Array.isArray(value)) {
-    return value.flatMap((item) => {
-      const serialized = serializeChangeValue(item);
-      return serialized === undefined ? [] : [serialized];
-    });
+    return serializeArrayChangeValue(value);
   }
 
   if (value instanceof Date) {
@@ -133,30 +130,46 @@ const serializeChangeValue = (value: unknown): JsonValue | undefined => {
   }
 
   if (value instanceof Object) {
-    const dtoResult = callObjectMethod(value, 'toDto');
-    if (dtoResult !== undefined) {
-      return unwrapResultLike(dtoResult);
-    }
-
-    const valueResult = callObjectMethod(value, 'value');
-    if (valueResult !== undefined) {
-      return unwrapResultLike(valueResult);
-    }
-
-    if (
-      'toString' in value &&
-      typeof value.toString === 'function' &&
-      value.constructor?.name !== 'Object'
-    ) {
-      return value.toString();
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [key, serializeChangeValue(nested)])
-    );
+    return serializeObjectChangeValue(value);
   }
 
   return String(value);
+};
+
+const serializeArrayChangeValue = (value: unknown[]): JsonValue[] => {
+  return value.flatMap((item) => {
+    const serialized = serializeFieldUpdatedChangeValue(item);
+    return serialized === undefined ? [] : [serialized];
+  });
+};
+
+const serializeObjectChangeValue = (value: object): JsonValue | undefined => {
+  const dtoResult = callObjectMethod(value, 'toDto');
+  if (dtoResult !== undefined) {
+    return unwrapResultLike(dtoResult);
+  }
+
+  const valueResult = callObjectMethod(value, 'value');
+  if (valueResult !== undefined) {
+    return unwrapResultLike(valueResult);
+  }
+
+  if (
+    'toString' in value &&
+    typeof value.toString === 'function' &&
+    value.constructor?.name !== 'Object'
+  ) {
+    return value.toString();
+  }
+
+  const serialized: Record<string, JsonValue> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    const serializedNested = serializeFieldUpdatedChangeValue(nested);
+    if (serializedNested !== undefined) {
+      serialized[key] = serializedNested;
+    }
+  }
+  return serialized;
 };
 
 const callObjectMethod = (target: object, methodName: string): unknown => {
@@ -178,7 +191,7 @@ const isResultLike = (value: unknown): value is { isOk: () => boolean; value: un
 
 const unwrapResultLike = (value: unknown): JsonValue | undefined => {
   if (isResultLike(value)) {
-    return value.isOk() ? serializeChangeValue(value.value) : undefined;
+    return value.isOk() ? serializeFieldUpdatedChangeValue(value.value) : undefined;
   }
-  return serializeChangeValue(value);
+  return serializeFieldUpdatedChangeValue(value);
 };

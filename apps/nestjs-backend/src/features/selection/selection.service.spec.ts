@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { faker } from '@faker-js/faker';
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import type {
   IDatetimeFormatting,
   IFieldOptionsVo,
@@ -26,21 +24,20 @@ import {
 } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import { RangeType } from '@teable/openapi';
+import type { IThresholdConfig } from '../../configs/threshold.config';
+import { EventEmitterService } from '../../event-emitter/event-emitter.service';
 import { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
-import { GlobalModule } from '../../global/global.module';
 import type { IClsStore } from '../../types/cls';
 import type { IAggregationService } from '../aggregation/aggregation.service.interface';
-import { AGGREGATION_SERVICE_SYMBOL } from '../aggregation/aggregation.service.symbol';
 import { FieldCreatingService } from '../field/field-calculate/field-creating.service';
 import { FieldSupplementService } from '../field/field-calculate/field-supplement.service';
 import { FieldService } from '../field/field.service';
 import { createFieldInstanceByVo } from '../field/model/factory';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
 import { RecordService } from '../record/record.service';
-import { SelectionModule } from './selection.module';
 import { SelectionService } from './selection.service';
 
 describe('selectionService', () => {
@@ -53,28 +50,81 @@ describe('selectionService', () => {
   let fieldSupplementService: FieldSupplementService;
   let clsService: ClsService<IClsStore>;
   let aggregationService: IAggregationService;
+  let eventEmitterService: EventEmitterService;
+  let thresholdConfig: IThresholdConfig;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, SelectionModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(mockDeep<PrismaService>())
-      .compile();
-
-    selectionService = module.get<SelectionService>(SelectionService);
-    fieldService = module.get<FieldService>(FieldService);
-    recordService = module.get<RecordService>(RecordService);
-    recordOpenApiService = module.get<RecordOpenApiService>(RecordOpenApiService);
-    fieldCreatingService = module.get<FieldCreatingService>(FieldCreatingService);
-    fieldSupplementService = module.get<FieldSupplementService>(FieldSupplementService);
-    clsService = module.get<ClsService<IClsStore>>(ClsService);
-    aggregationService = module.get<IAggregationService>(AGGREGATION_SERVICE_SYMBOL);
-
-    prismaService = module.get<PrismaService>(
-      PrismaService
-    ) as unknown as DeepMockProxy<PrismaService>;
+    prismaService = mockDeep<PrismaService>();
     mockReset(prismaService);
+
+    recordService = {
+      getDocIdsByQuery: vi.fn(),
+      getRecordsFields: vi.fn(),
+    } as unknown as RecordService;
+    fieldService = {
+      getDocIdsByQuery: vi.fn(),
+      getFieldsByQuery: vi.fn(),
+      getFieldInstances: vi.fn(),
+    } as unknown as FieldService;
+    recordOpenApiService = {
+      updateRecords: vi.fn(),
+      createRecords: vi.fn(),
+      validateFieldsAndTypecast: vi.fn(),
+    } as unknown as RecordOpenApiService;
+    fieldCreatingService = {
+      alterCreateField: vi.fn(),
+    } as unknown as FieldCreatingService;
+    fieldSupplementService = {
+      prepareCreateField: vi.fn(),
+    } as unknown as FieldSupplementService;
+    aggregationService = {
+      performRowCount: vi.fn(),
+    } as unknown as IAggregationService;
+    eventEmitterService = mockDeep<EventEmitterService>();
+    thresholdConfig = {
+      maxReadRows: 1000,
+      maxCopyCells: 10000,
+      maxPasteCells: 10000,
+    } as IThresholdConfig;
+
+    const store: Record<string, unknown> = {};
+    const getValue = (path: string) =>
+      path
+        .split('.')
+        .reduce<unknown>((acc, key) => (acc as Record<string, unknown> | undefined)?.[key], store);
+    const setValue = (path: string, value: unknown) => {
+      const keys = path.split('.');
+      let target = store;
+      for (const key of keys.slice(0, -1)) {
+        target[key] = (target[key] as Record<string, unknown>) ?? {};
+        target = target[key] as Record<string, unknown>;
+      }
+      target[keys[keys.length - 1]] = value;
+    };
+
+    clsService = {
+      get: vi.fn((path: string) => getValue(path)),
+      set: vi.fn((path: string, value: unknown) => setValue(path, value)),
+      run: vi.fn(async (callback: () => unknown) => await callback()),
+      runWith: vi.fn(async (values: Record<string, unknown>, callback: () => unknown) => {
+        Object.keys(store).forEach((key) => delete store[key]);
+        Object.assign(store, values);
+        return await callback();
+      }),
+    } as unknown as ClsService<IClsStore>;
+
+    selectionService = new SelectionService(
+      recordService,
+      fieldService,
+      prismaService,
+      aggregationService,
+      recordOpenApiService,
+      fieldCreatingService,
+      fieldSupplementService,
+      eventEmitterService,
+      clsService,
+      thresholdConfig
+    );
   });
 
   const tableId = 'table1';
@@ -186,7 +236,6 @@ describe('selectionService', () => {
 
   describe('expandColumns', () => {
     it('should expand the columns and create new fields', async () => {
-      vi.spyOn(fieldService as any, 'generateDbFieldName').mockReturnValue('fieldName');
       // Mock dependencies
       const tableId = 'table1';
       // const viewId = 'view1';

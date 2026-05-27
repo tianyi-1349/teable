@@ -1,6 +1,7 @@
 name: Linting and Types
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - develop

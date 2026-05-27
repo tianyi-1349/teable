@@ -107,7 +107,7 @@ describe('v2 http record compatibility (P0)', () => {
       body: JSON.stringify({ tableId, records }),
     });
     const raw = await response.json();
-    expect(response.status).toBe(status);
+    expect(response.status, JSON.stringify(raw)).toBe(status);
     if (status === 201) {
       const parsed = createRecordsOkResponseSchema.safeParse(raw);
       expect(parsed.success).toBe(true);

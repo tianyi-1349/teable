@@ -49,7 +49,7 @@ export class BaseShareOpenController {
       sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
-    return { success: true };
+    return { success: true, token };
   }
 
   @Public()

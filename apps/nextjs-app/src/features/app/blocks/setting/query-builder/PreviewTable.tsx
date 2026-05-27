@@ -85,7 +85,7 @@ export const PreviewTable = ({ query: queryRaw }: { query: IGetRecordsRo }) => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [mode, query, tableId, page, pageSize]);
+  }, [mode, query, tableId, page, pageSize, t]);
 
   const getCellContent = useCallback<(cell: ICellItem) => ICell>(
     (cell) => {

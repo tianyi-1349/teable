@@ -15,6 +15,9 @@ describe('assertAllRecordIdsFound', () => {
 });
 
 describe('buildSnapshotsFromDbRecords', () => {
+  const recAId = 'recA';
+  const recACreatedTime = '2026-03-18T00:00:00.000Z';
+
   const primaryField = {
     id: 'fldTitle',
     name: 'Title',
@@ -35,35 +38,35 @@ describe('buildSnapshotsFromDbRecords', () => {
           __last_modified_by: 'usrC',
         },
         {
-          __id: 'recA',
+          __id: recAId,
           __version: 1,
           __auto_number: 11,
-          __created_time: new Date('2026-03-18T00:00:00.000Z'),
+          __created_time: new Date(recACreatedTime),
           __last_modified_time: undefined,
           __created_by: 'usrA',
           __last_modified_by: undefined,
         },
       ],
-      { recA: 0, recB: 1 },
+      { [recAId]: 0, recB: 1 },
       primaryField,
       FieldKeyType.Name,
       CellFormat.Json,
       (record) => ({
-        Title: record.__id === 'recA' ? 'Alpha' : 'Beta',
+        Title: record.__id === recAId ? 'Alpha' : 'Beta',
       })
     );
 
     expect(snapshots).toEqual([
       {
-        id: 'recA',
+        id: recAId,
         v: 1,
         type: 'json0',
         data: {
           fields: { Title: 'Alpha' },
           name: 'string:Alpha',
-          id: 'recA',
+          id: recAId,
           autoNumber: 11,
-          createdTime: '2026-03-18T00:00:00.000Z',
+          createdTime: recACreatedTime,
           lastModifiedTime: undefined,
           createdBy: 'usrA',
           lastModifiedBy: undefined,
@@ -91,16 +94,16 @@ describe('buildSnapshotsFromDbRecords', () => {
     const snapshots = buildSnapshotsFromDbRecords(
       [
         {
-          __id: 'recA',
+          __id: recAId,
           __version: 1,
           __auto_number: 1,
-          __created_time: new Date('2026-03-18T00:00:00.000Z'),
+          __created_time: new Date(recACreatedTime),
           __last_modified_time: undefined,
           __created_by: 'usrA',
           __last_modified_by: undefined,
         },
       ],
-      { recA: 0 },
+      { [recAId]: 0 },
       primaryField,
       FieldKeyType.Id,
       CellFormat.Text,

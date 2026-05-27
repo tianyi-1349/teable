@@ -1,4 +1,4 @@
-import { CellValueType, FieldKeyType, FieldType, SortFunc } from '@teable/core';
+import { CellValueType, FieldKeyType, FieldType, Relationship, SortFunc } from '@teable/core';
 import {
   CreateRecordResult,
   CreateRecordsResult,
@@ -553,6 +553,44 @@ describe('RecordOpenApiV2Service', () => {
     );
   });
 
+  it('normalizes single-value link fields in updateRecord responses', async () => {
+    const linkFieldId = `fld${'l'.repeat(16)}`;
+    getFieldsByQuery.mockResolvedValueOnce([
+      {
+        id: linkFieldId,
+        type: FieldType.Link,
+        options: { relationship: Relationship.ManyOne },
+      },
+    ]);
+    commandExecute.mockResolvedValueOnce({
+      isErr: () => false,
+      value: createUpdateRecordResult({
+        recordId: 'rec1111111111111111',
+        tableId: `tbl${'c'.repeat(16)}`,
+        fields: {
+          [linkFieldId]: [{ id: 'rec2222222222222222', title: 'Linked' }],
+        },
+      }),
+    });
+
+    const result = await service.updateRecord(`tbl${'c'.repeat(16)}`, 'rec1111111111111111', {
+      fieldKeyType: FieldKeyType.Id,
+      record: {
+        fields: {
+          [linkFieldId]: 'Linked',
+        },
+      },
+      typecast: true,
+    });
+
+    expect(result).toEqual({
+      id: 'rec1111111111111111',
+      fields: {
+        [linkFieldId]: { id: 'rec2222222222222222', title: 'Linked' },
+      },
+    });
+  });
+
   it('passes batch order through native v2 updateRecords', async () => {
     commandExecute.mockResolvedValueOnce({
       isErr: () => false,
@@ -660,7 +698,11 @@ describe('RecordOpenApiV2Service', () => {
     ]);
   });
 
-  it('returns the v2 createRecords payload directly without reloading legacy snapshots', async () => {
+  it('reloads createRecords snapshots when the v2 payload omits snapshot fields', async () => {
+    getSnapshotBulkWithPermission.mockResolvedValueOnce([
+      { data: { id: 'rec1111111111111111', autoNumber: 1, fields: { status: 'Done' } } },
+      { data: { id: 'rec2222222222222222', autoNumber: 2, fields: { status: 'Open' } } },
+    ]);
     commandExecute.mockResolvedValueOnce({
       isErr: () => false,
       value: createCreateRecordsResult({
@@ -680,13 +722,72 @@ describe('RecordOpenApiV2Service', () => {
 
     expect(result).toEqual({
       records: [
-        { id: 'rec1111111111111111', fields: { status: 'Done' } },
-        { id: 'rec2222222222222222', fields: { status: 'Open' } },
+        { id: 'rec1111111111111111', autoNumber: 1, fields: { status: 'Done' } },
+        { id: 'rec2222222222222222', autoNumber: 2, fields: { status: 'Open' } },
       ],
     });
-    expect(getSnapshotBulkWithPermission).not.toHaveBeenCalled();
+    expect(getSnapshotBulkWithPermission).toHaveBeenCalledTimes(1);
     expect(cacheDel).toHaveBeenCalledWith(
       `operations:engine:usr${'h'.repeat(16)}:tbl${'c'.repeat(16)}:win${'i'.repeat(16)}`
+    );
+  });
+
+  it('skips snapshot reload when createRecords payload already includes autoNumber', async () => {
+    const result = await (
+      service as unknown as {
+        hydrateCreatedRecordsWhenSnapshotFieldsMissing: (
+          tableId: string,
+          records: Array<{ id: string; autoNumber?: number; fields: Record<string, unknown> }>,
+          fieldKeyType: FieldKeyType
+        ) => Promise<Array<{ id: string; autoNumber?: number; fields: Record<string, unknown> }>>;
+      }
+    ).hydrateCreatedRecordsWhenSnapshotFieldsMissing(
+      `tbl${'c'.repeat(16)}`,
+      [{ id: 'rec1111111111111111', autoNumber: 7, fields: { status: 'Done' } }],
+      FieldKeyType.Name
+    );
+
+    expect(result).toEqual([
+      { id: 'rec1111111111111111', autoNumber: 7, fields: { status: 'Done' } },
+    ]);
+    expect(getSnapshotBulkWithPermission).not.toHaveBeenCalled();
+  });
+
+  it('reloads createRecords snapshots when the v2 payload misses autoNumber', async () => {
+    getSnapshotBulkWithPermission.mockResolvedValueOnce([
+      {
+        data: {
+          id: 'rec1111111111111111',
+          autoNumber: 7,
+          fields: { status: 'Done' },
+        },
+      },
+    ]);
+    commandExecute.mockResolvedValueOnce({
+      isErr: () => false,
+      value: createCreateRecordsResult({
+        tableId: `tbl${'c'.repeat(16)}`,
+        records: [{ id: 'rec1111111111111111', fields: { [statusFieldId]: 'Done' } }],
+        fieldKeyMapping: new Map([[statusFieldId, 'status']]),
+      }),
+    });
+
+    const result = await service.createRecords(`tbl${'c'.repeat(16)}`, {
+      fieldKeyType: FieldKeyType.Name,
+      records: [{ fields: { status: 'Done' } }],
+    });
+
+    expect(result).toEqual({
+      records: [{ id: 'rec1111111111111111', autoNumber: 7, fields: { status: 'Done' } }],
+    });
+    expect(getSnapshotBulkWithPermission).toHaveBeenCalledTimes(1);
+    expect(getSnapshotBulkWithPermission).toHaveBeenCalledWith(
+      `tbl${'c'.repeat(16)}`,
+      ['rec1111111111111111'],
+      undefined,
+      FieldKeyType.Name,
+      undefined,
+      true
     );
   });
 

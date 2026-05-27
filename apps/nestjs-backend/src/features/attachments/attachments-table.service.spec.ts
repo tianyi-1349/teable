@@ -1,7 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import type { IAttachmentCellValue, IRecord } from '@teable/core';
 import { FieldType } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
@@ -9,8 +7,6 @@ import type { Mock } from 'vitest';
 import { vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import type { IChangeRecord } from '../../event-emitter/events';
-import { GlobalModule } from '../../global/global.module';
-import { AttachmentsTableModule } from './attachments-table.module';
 import { AttachmentsTableService } from './attachments-table.service';
 
 describe('AttachmentsService', () => {
@@ -37,16 +33,8 @@ describe('AttachmentsService', () => {
   ];
   const mockAttachmentFields = [{ id: 'field1' }, { id: 'field2' }];
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, AttachmentsTableModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaService)
-
-      .compile();
-
-    service = module.get<AttachmentsTableService>(AttachmentsTableService);
+  beforeEach(() => {
+    service = new AttachmentsTableService(prismaService);
     prismaService.txClient.mockImplementation(() => {
       return prismaService;
     });

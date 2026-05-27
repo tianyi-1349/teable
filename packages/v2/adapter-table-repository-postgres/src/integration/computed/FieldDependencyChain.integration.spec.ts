@@ -613,7 +613,7 @@ describe('FieldDependencyChain Integration Tests', () => {
       const aNameId = aFields.get('Name')!;
 
       // TableB: Name, Link, Lookup (lookups A.Computed)
-      await createTable(commandBus, baseId, {
+      const { fieldIds: bFields } = await createTable(commandBus, baseId, {
         name: 'TargetLookupComputed',
         fields: [
           { type: 'singleLineText', name: 'Name', isPrimary: true },

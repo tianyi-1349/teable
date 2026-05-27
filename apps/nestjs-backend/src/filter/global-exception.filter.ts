@@ -1,4 +1,4 @@
-import type { ExceptionFilter, HttpException } from '@nestjs/common';
+import type { ArgumentsHost, ExceptionFilter, HttpException } from '@nestjs/common';
 import {
   BadRequestException,
   Catch,
@@ -9,7 +9,6 @@ import {
   NotImplementedException,
   Optional,
   UnauthorizedException,
-  ArgumentsHost,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/nestjs';

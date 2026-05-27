@@ -237,22 +237,57 @@ export class FieldOpenApiV2Service {
     // v1 expects a flat options: { expression, formatting, filter, foreignTableId, lookupFieldId, sort, limit }
     if (raw.type === 'conditionalRollup') {
       const config = raw.config as Record<string, unknown> | undefined;
+      const opts =
+        raw.options && typeof raw.options === 'object' && !Array.isArray(raw.options)
+          ? { ...(raw.options as Record<string, unknown>) }
+          : {};
+      const lookupOptions: Record<string, unknown> =
+        raw.lookupOptions &&
+        typeof raw.lookupOptions === 'object' &&
+        !Array.isArray(raw.lookupOptions)
+          ? { ...(raw.lookupOptions as Record<string, unknown>) }
+          : {};
       if (config) {
         const condition = config.condition as Record<string, unknown> | undefined;
-        const opts =
-          raw.options && typeof raw.options === 'object' && !Array.isArray(raw.options)
-            ? { ...(raw.options as Record<string, unknown>) }
-            : {};
         if (config.foreignTableId != null) opts.foreignTableId = config.foreignTableId;
         if (config.lookupFieldId != null) opts.lookupFieldId = config.lookupFieldId;
+        if (config.foreignTableId != null) lookupOptions.foreignTableId = config.foreignTableId;
+        if (config.lookupFieldId != null) lookupOptions.lookupFieldId = config.lookupFieldId;
         if (condition) {
-          if (condition.filter !== undefined) opts.filter = condition.filter;
-          if (condition.sort !== undefined) opts.sort = condition.sort;
-          if (condition.limit !== undefined) opts.limit = condition.limit;
+          if (condition.filter !== undefined) {
+            opts.filter = condition.filter;
+            lookupOptions.filter = condition.filter;
+          }
+          if (condition.sort !== undefined) {
+            opts.sort = condition.sort;
+            lookupOptions.sort = condition.sort;
+          }
+          if (condition.limit !== undefined) {
+            opts.limit = condition.limit;
+            lookupOptions.limit = condition.limit;
+          }
         }
-        raw.options = opts;
         delete raw.config;
       }
+      if (lookupOptions.foreignTableId != null && opts.foreignTableId == null) {
+        opts.foreignTableId = lookupOptions.foreignTableId;
+      }
+      if (lookupOptions.lookupFieldId != null && opts.lookupFieldId == null) {
+        opts.lookupFieldId = lookupOptions.lookupFieldId;
+      }
+      if (lookupOptions.filter !== undefined && opts.filter === undefined) {
+        opts.filter = lookupOptions.filter;
+      }
+      if (lookupOptions.sort !== undefined && opts.sort === undefined) {
+        opts.sort = lookupOptions.sort;
+      }
+      if (lookupOptions.limit !== undefined && opts.limit === undefined) {
+        opts.limit = lookupOptions.limit;
+      }
+      if (Object.keys(lookupOptions).length > 0) {
+        raw.lookupOptions = lookupOptions;
+      }
+      raw.options = opts;
     }
 
     // Translate v2 conditionalLookup DTO to v1 API format.
@@ -295,20 +330,27 @@ export class FieldOpenApiV2Service {
 
     if (raw.type === FieldType.Rollup) {
       const config = raw.config as Record<string, unknown> | undefined;
+      const lookupOptions =
+        raw.lookupOptions &&
+        typeof raw.lookupOptions === 'object' &&
+        !Array.isArray(raw.lookupOptions)
+          ? { ...(raw.lookupOptions as Record<string, unknown>) }
+          : {};
       if (config) {
-        const lookupOptions =
-          raw.lookupOptions &&
-          typeof raw.lookupOptions === 'object' &&
-          !Array.isArray(raw.lookupOptions)
-            ? { ...(raw.lookupOptions as Record<string, unknown>) }
-            : {};
-
+        const condition = config.condition as Record<string, unknown> | undefined;
         if (config.linkFieldId != null) lookupOptions.linkFieldId = config.linkFieldId;
         if (config.lookupFieldId != null) lookupOptions.lookupFieldId = config.lookupFieldId;
         if (config.foreignTableId != null) lookupOptions.foreignTableId = config.foreignTableId;
+        if (condition) {
+          if (condition.filter !== undefined) lookupOptions.filter = condition.filter;
+          if (condition.sort !== undefined) lookupOptions.sort = condition.sort;
+          if (condition.limit !== undefined) lookupOptions.limit = condition.limit;
+        }
 
         raw.lookupOptions = lookupOptions;
         delete raw.config;
+      } else if (Object.keys(lookupOptions).length > 0) {
+        raw.lookupOptions = lookupOptions;
       }
     }
 
@@ -350,7 +392,7 @@ export class FieldOpenApiV2Service {
     }
 
     if (raw.options && typeof raw.options === 'object') {
-      raw.options = this.denormalizeLegacyTimeZone(this.stripUndefinedDeep(raw.options));
+      raw.options = this.denormalizeLegacyFieldOptions(this.stripUndefinedDeep(raw.options));
     }
 
     if (raw.lookupOptions && typeof raw.lookupOptions === 'object') {
@@ -854,6 +896,20 @@ export class FieldOpenApiV2Service {
     return normalized;
   }
 
+  private denormalizeLegacyFieldOptions(value: unknown): unknown {
+    const denormalized = this.denormalizeLegacyTimeZone(value);
+    if (!denormalized || typeof denormalized !== 'object' || Array.isArray(denormalized)) {
+      return denormalized;
+    }
+
+    const original = value as Record<string, unknown>;
+    const options = denormalized as Record<string, unknown>;
+    if (original.filter !== undefined) {
+      options.filter = original.filter;
+    }
+    return options;
+  }
+
   private getResultTypePair(raw: Record<string, unknown>): Record<string, unknown> {
     const cellValueType = raw.cellValueType;
     const isMultipleCellValue = raw.isMultipleCellValue;
@@ -1007,6 +1063,11 @@ export class FieldOpenApiV2Service {
       const linkFieldId = opts.linkFieldId ?? lookupOpts?.linkFieldId;
       const lookupFieldId = opts.lookupFieldId ?? lookupOpts?.lookupFieldId;
       const foreignTableId = opts.foreignTableId ?? lookupOpts?.foreignTableId;
+      const condition = {
+        ...(lookupOpts?.filter !== undefined ? { filter: lookupOpts.filter } : {}),
+        ...(lookupOpts?.sort !== undefined ? { sort: lookupOpts.sort } : {}),
+        ...(lookupOpts?.limit !== undefined ? { limit: lookupOpts.limit } : {}),
+      };
       const shouldIncludeConfig =
         linkFieldId != null && lookupFieldId != null && foreignTableId != null;
       return this.normalizeLegacyTimeZone({
@@ -1025,6 +1086,7 @@ export class FieldOpenApiV2Service {
                 linkFieldId,
                 lookupFieldId,
                 foreignTableId,
+                ...(Object.keys(condition).length > 0 ? { condition } : {}),
               },
             }
           : {}),
@@ -1159,7 +1221,7 @@ export class FieldOpenApiV2Service {
 
     const relationship = relationshipResult.value.toString();
     const isOneWay = options.isOneWay === true;
-    if (relationship === 'manyMany' || (relationship === 'oneMany' && isOneWay)) {
+    if (relationship === 'oneMany' && isOneWay) {
       return v2Field;
     }
 
@@ -1168,8 +1230,20 @@ export class FieldOpenApiV2Service {
       return v2Field;
     }
 
+    let symmetricFieldIdRaw =
+      typeof options.symmetricFieldId === 'string' ? options.symmetricFieldId : undefined;
+
     let fkHostTableNameValue: string | undefined;
-    if (relationship === 'oneMany') {
+    if (relationship === 'manyMany') {
+      if (isOneWay) {
+        symmetricFieldIdRaw = undefined;
+        fkHostTableNameValue = `${currentTable.baseId().toString()}.junction_${fieldIdRaw}`;
+      } else {
+        const resolvedSymmetricFieldId = symmetricFieldIdRaw ?? generateFieldId();
+        symmetricFieldIdRaw = resolvedSymmetricFieldId;
+        fkHostTableNameValue = `${currentTable.baseId().toString()}.junction_${fieldIdRaw}_${resolvedSymmetricFieldId}`;
+      }
+    } else if (relationship === 'oneMany') {
       const foreignTableIdResult = TableId.create(foreignTableIdRaw);
       if (foreignTableIdResult.isErr()) {
         return v2Field;
@@ -1195,8 +1269,6 @@ export class FieldOpenApiV2Service {
       return v2Field;
     }
 
-    let symmetricFieldIdRaw =
-      typeof options.symmetricFieldId === 'string' ? options.symmetricFieldId : undefined;
     if (relationship === 'oneMany' && !isOneWay && !symmetricFieldIdRaw) {
       symmetricFieldIdRaw = generateFieldId();
     }
@@ -1971,19 +2043,34 @@ export class FieldOpenApiV2Service {
         ro.lookupOptions && typeof ro.lookupOptions === 'object' && !Array.isArray(ro.lookupOptions)
           ? (ro.lookupOptions as Record<string, unknown>)
           : undefined;
+      const currentLookupOpts =
+        currentField?.lookupOptions &&
+        typeof currentField.lookupOptions === 'object' &&
+        !Array.isArray(currentField.lookupOptions)
+          ? (currentField.lookupOptions as Record<string, unknown>)
+          : undefined;
       const currentOpts =
         currentField?.options &&
         typeof currentField.options === 'object' &&
         !Array.isArray(currentField.options)
           ? (currentField.options as Record<string, unknown>)
           : undefined;
-      const linkFieldId = opts.linkFieldId ?? lookupOpts?.linkFieldId;
-      const lookupFieldId = opts.lookupFieldId ?? lookupOpts?.lookupFieldId;
-      const foreignTableId = opts.foreignTableId ?? lookupOpts?.foreignTableId;
+      const linkFieldId =
+        opts.linkFieldId ?? lookupOpts?.linkFieldId ?? currentLookupOpts?.linkFieldId;
+      const lookupFieldId =
+        opts.lookupFieldId ?? lookupOpts?.lookupFieldId ?? currentLookupOpts?.lookupFieldId;
+      const foreignTableId =
+        opts.foreignTableId ?? lookupOpts?.foreignTableId ?? currentLookupOpts?.foreignTableId;
       const hasShowAs = Object.prototype.hasOwnProperty.call(opts, 'showAs');
       const hasExpressionPatch = Object.prototype.hasOwnProperty.call(opts, 'expression');
+      const hasFilterPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'filter');
+      const hasSortPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'sort');
+      const hasLimitPatch = Object.prototype.hasOwnProperty.call(lookupOpts ?? {}, 'limit');
       const shouldClearShowAs =
         !hasShowAs && currentField?.type === 'rollup' && currentField?.options != null;
+      const shouldClearFilter = !hasFilterPatch && currentLookupOpts?.filter !== undefined;
+      const shouldClearSort = !hasSortPatch && currentLookupOpts?.sort !== undefined;
+      const shouldClearLimit = !hasLimitPatch && currentLookupOpts?.limit !== undefined;
       const expression =
         typeof opts.expression === 'string'
           ? opts.expression
@@ -1992,6 +2079,50 @@ export class FieldOpenApiV2Service {
             : undefined;
       const shouldIncludeConfig =
         linkFieldId != null && lookupFieldId != null && foreignTableId != null;
+      const shouldIncludeCondition =
+        hasFilterPatch ||
+        hasSortPatch ||
+        hasLimitPatch ||
+        shouldClearFilter ||
+        shouldClearSort ||
+        shouldClearLimit;
+      const resultTypePair = this.getResultTypePair(ro as Record<string, unknown>);
+      const nextLookupOptions: Record<string, unknown> = {
+        ...(linkFieldId != null ? { linkFieldId } : {}),
+        ...(lookupFieldId != null ? { lookupFieldId } : {}),
+        ...(foreignTableId != null ? { foreignTableId } : {}),
+        ...(hasFilterPatch || shouldClearFilter ? { filter: lookupOpts?.filter } : {}),
+        ...(hasSortPatch || shouldClearSort ? { sort: lookupOpts?.sort } : {}),
+        ...(hasLimitPatch || shouldClearLimit ? { limit: lookupOpts?.limit } : {}),
+      };
+      if (shouldIncludeConfig && shouldIncludeCondition) {
+        return {
+          ...base,
+          type: 'conditionalRollup',
+          ...resultTypePair,
+          options: {
+            ...(expression != null ? { expression } : {}),
+            ...(opts.formatting != null ? { formatting: opts.formatting } : {}),
+            ...(opts.timeZone != null ? { timeZone: opts.timeZone } : {}),
+            ...(opts.showAs != null ? { showAs: opts.showAs } : {}),
+            ...(shouldClearShowAs ? { showAs: null } : {}),
+          },
+          ...(lookupOpts
+            ? {
+                lookupOptions: nextLookupOptions,
+              }
+            : {}),
+          config: {
+            foreignTableId,
+            lookupFieldId,
+            condition: {
+              ...(hasFilterPatch || shouldClearFilter ? { filter: lookupOpts?.filter } : {}),
+              ...(hasSortPatch || shouldClearSort ? { sort: lookupOpts?.sort } : {}),
+              ...(hasLimitPatch || shouldClearLimit ? { limit: lookupOpts?.limit } : {}),
+            },
+          },
+        };
+      }
       return {
         ...base,
         type: 'rollup',
@@ -2002,19 +2133,96 @@ export class FieldOpenApiV2Service {
           ...(opts.showAs != null ? { showAs: opts.showAs } : {}),
           ...(shouldClearShowAs ? { showAs: null } : {}),
         },
+        ...(lookupOpts
+          ? {
+              lookupOptions: nextLookupOptions,
+            }
+          : {}),
         ...(shouldIncludeConfig
           ? {
               config: {
                 linkFieldId,
                 lookupFieldId,
                 foreignTableId,
+                ...(shouldIncludeCondition
+                  ? {
+                      condition: {
+                        ...(hasFilterPatch || shouldClearFilter
+                          ? { filter: lookupOpts?.filter }
+                          : {}),
+                        ...(hasSortPatch || shouldClearSort ? { sort: lookupOpts?.sort } : {}),
+                        ...(hasLimitPatch || shouldClearLimit ? { limit: lookupOpts?.limit } : {}),
+                      },
+                    }
+                  : {}),
               },
             }
           : {}),
       };
     }
 
-    // Case 5: Formula
+    // Case 5: Link
+    if (ro.type === FieldType.Link) {
+      const opts =
+        ro.options && typeof ro.options === 'object' && !Array.isArray(ro.options)
+          ? (ro.options as Record<string, unknown>)
+          : {};
+      const currentOpts =
+        currentField?.options &&
+        typeof currentField.options === 'object' &&
+        !Array.isArray(currentField.options)
+          ? (currentField.options as Record<string, unknown>)
+          : undefined;
+      const foreignTableChanged =
+        opts.foreignTableId != null &&
+        currentOpts?.foreignTableId != null &&
+        opts.foreignTableId !== currentOpts.foreignTableId;
+
+      return {
+        ...base,
+        type: FieldType.Link,
+        options: {
+          ...(opts.baseId != null ? { baseId: opts.baseId } : {}),
+          ...(opts.relationship != null ? { relationship: opts.relationship } : {}),
+          ...(opts.foreignTableId != null ? { foreignTableId: opts.foreignTableId } : {}),
+          ...(opts.lookupFieldId != null
+            ? { lookupFieldId: opts.lookupFieldId }
+            : currentOpts?.lookupFieldId != null && !foreignTableChanged
+              ? { lookupFieldId: currentOpts.lookupFieldId }
+              : {}),
+          ...(opts.fkHostTableName != null
+            ? { fkHostTableName: opts.fkHostTableName }
+            : currentOpts?.fkHostTableName != null
+              ? { fkHostTableName: currentOpts.fkHostTableName }
+              : {}),
+          ...(opts.selfKeyName != null
+            ? { selfKeyName: opts.selfKeyName }
+            : currentOpts?.selfKeyName != null
+              ? { selfKeyName: currentOpts.selfKeyName }
+              : {}),
+          ...(opts.foreignKeyName != null
+            ? { foreignKeyName: opts.foreignKeyName }
+            : currentOpts?.foreignKeyName != null
+              ? { foreignKeyName: currentOpts.foreignKeyName }
+              : {}),
+          ...(opts.isOneWay != null ? { isOneWay: opts.isOneWay } : {}),
+          ...(opts.symmetricFieldId != null
+            ? { symmetricFieldId: opts.symmetricFieldId }
+            : currentOpts?.symmetricFieldId != null && opts.isOneWay !== true
+              ? { symmetricFieldId: currentOpts.symmetricFieldId }
+              : {}),
+          ...(Object.prototype.hasOwnProperty.call(opts, 'filterByViewId')
+            ? { filterByViewId: opts.filterByViewId }
+            : {}),
+          ...(Object.prototype.hasOwnProperty.call(opts, 'visibleFieldIds')
+            ? { visibleFieldIds: opts.visibleFieldIds }
+            : {}),
+          ...(opts.filter != null ? { filter: opts.filter } : {}),
+        },
+      };
+    }
+
+    // Case 6: Formula
     if (ro.type === 'formula') {
       const opts = (ro.options ?? {}) as Record<string, unknown>;
       const currentOpts =
@@ -2050,7 +2258,7 @@ export class FieldOpenApiV2Service {
       };
     }
 
-    // Case 6: Default pass-through
+    // Case 7: Default pass-through
     const shouldClearShowAsOnPassThrough =
       (ro.type === FieldType.SingleLineText || ro.type === FieldType.Number) &&
       ro.options != null &&

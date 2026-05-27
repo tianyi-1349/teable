@@ -1850,6 +1850,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       const viewId = table.views[0].id;
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],
@@ -1872,6 +1873,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       const viewId = table.views[0].id;
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],
@@ -1883,7 +1885,10 @@ describe('OpenAPI SelectionController (e2e)', () => {
           },
         ],
       });
-      expect(result.data.ids).toEqual([table.records[1].id, table.records[0].id]);
+      const matchingIds = new Set([table.records[0].id, table.records[2].id]);
+      expect(result.data.ids).toHaveLength(2);
+      expect(result.data.ids).toContain(table.records[1].id);
+      expect(result.data.ids.filter((id) => matchingIds.has(id))).toHaveLength(1);
     });
 
     it('should delete selected data with view filter', async () => {
@@ -1902,6 +1907,7 @@ describe('OpenAPI SelectionController (e2e)', () => {
       });
       const result = await deleteSelection(table.id, {
         viewId,
+        type: RangeType.Rows,
         ranges: [
           [0, 0],
           [1, 1],

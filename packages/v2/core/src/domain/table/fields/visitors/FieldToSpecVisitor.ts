@@ -265,7 +265,9 @@ export class FieldToSpecVisitor extends AbstractFieldVisitor<ICellValueSpec> {
 
     const strValue = normalizeCellDisplayValue(this.value);
     if (!strValue) {
-      return ok(new SetSingleSelectValueSpec(field.id(), CellValue.null()));
+      return this.typecast
+        ? ok(NoopCellValueSpec.create())
+        : ok(new SetSingleSelectValueSpec(field.id(), CellValue.null()));
     }
 
     const options = field.selectOptions();
@@ -285,8 +287,9 @@ export class FieldToSpecVisitor extends AbstractFieldVisitor<ICellValueSpec> {
 
     // 3. Option not found
     if (this.typecast) {
-      // TODO: Auto-create option requires Table.updateField() support
-      // For now, return null for non-existent options
+      if (field.preventAutoNewOptions().toBoolean()) {
+        return ok(NoopCellValueSpec.create());
+      }
       return ok(new SetSingleSelectValueSpec(field.id(), CellValue.null()));
     }
 
@@ -364,12 +367,11 @@ export class FieldToSpecVisitor extends AbstractFieldVisitor<ICellValueSpec> {
       );
     }
 
-    return ok(
-      new SetMultipleSelectValueSpec(
-        field.id(),
-        CellValue.fromValidated(result.length > 0 ? result : null)
-      )
-    );
+    if (result.length === 0 && this.typecast && field.preventAutoNewOptions().toBoolean()) {
+      return ok(NoopCellValueSpec.create());
+    }
+
+    return ok(new SetMultipleSelectValueSpec(field.id(), CellValue.fromValidated(result)));
   }
 
   // ============ Link Field ============

@@ -12,23 +12,23 @@ type IWebServerMode = (typeof webServerModes)[number];
 const isCI = ['true', '1'].includes(process.env?.CI ?? '');
 const webServerMode = (process.env?.E2E_WEBSERVER_MODE as IWebServerMode) ?? 'NOT_SET';
 
-const webServerPort = 3000;
+const webServerPort = 3100;
 const outputDir = path.join(__dirname, 'e2e/.out');
 
 type IWebServerConfig = { cmd: string; timeout: number; retries: number };
 const webServerConfigs: Record<IWebServerMode, IWebServerConfig> = {
   START: {
-    cmd: `yarn start -p ${webServerPort}`,
+    cmd: `pnpm exec next start -p ${webServerPort}`,
     timeout: isCI ? 90_000 : 30_000,
     retries: isCI ? 3 : 1,
   },
   DEV: {
-    cmd: `yarn dev -p ${webServerPort}`,
+    cmd: `pnpm exec next dev -p ${webServerPort}`,
     timeout: 30_000,
     retries: 1,
   },
   BUILD_AND_START: {
-    cmd: `NEXT_IGNORE_TYPECHECKS=1 yarn build --no-lint && yarn start -p ${webServerPort}`,
+    cmd: `NEXT_IGNORE_TYPECHECKS=1 pnpm exec next build --no-lint && pnpm exec next start -p ${webServerPort}`,
     timeout: isCI ? 180_000 : 120_000,
     retries: isCI ? 3 : 1,
   },
@@ -89,10 +89,14 @@ const config: PlaywrightTestConfig = {
     port: webServerPort,
     timeout: webServerConfig.timeout,
     reuseExistingServer: !isCI,
-    env: getNextJsEnv(),
+    env: {
+      ...getNextJsEnv(),
+      NEXT_DIST_DIR: '.next-e2e',
+    },
   },
 
   use: {
+    baseURL: `http://127.0.0.1:${webServerPort}`,
     // Retry a test if it's failing with enabled tracing. This allows you to analyse the DOM, console logs, network traffic etc.
     // More information: https://playwright.dev/docs/trace-viewer
     trace: 'retry-with-trace',

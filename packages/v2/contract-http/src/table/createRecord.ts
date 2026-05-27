@@ -13,6 +13,7 @@ import {
   type IApiOkResponseDto,
   type IApiResponseDto,
 } from '../shared/http';
+import { toJsonRecord } from '../shared/json';
 import type { ITableRecordDto } from './recordDto';
 import { tableRecordDtoSchema } from './recordDto';
 
@@ -69,7 +70,7 @@ export const mapCreateRecordResultToDto = (
 
   const recordDto: ITableRecordDto = {
     id: result.record.id().toString(),
-    fields,
+    fields: toJsonRecord(fields),
   };
 
   return ok({

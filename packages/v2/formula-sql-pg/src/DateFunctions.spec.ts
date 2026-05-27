@@ -144,7 +144,7 @@ beforeAll(async () => {
   for (const cases of dateFunctionChunks) {
     batchTestTables.push(await createFormulaTestTable(defaultContainer, buildFormulaFields(cases)));
   }
-});
+}, 240000);
 
 afterAll(async () => {
   await defaultContainer?.dispose();

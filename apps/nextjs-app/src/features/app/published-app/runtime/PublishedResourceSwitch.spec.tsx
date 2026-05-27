@@ -35,10 +35,8 @@ describe('PublishedResourceSwitch', () => {
       </PublishedResourceSwitch>
     );
 
-    expect(screen.getByText('Access denied')).toBeInTheDocument();
-    expect(
-      screen.getByText('This page is outside the published scope for this app.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.accessDeniedTitle')).toBeInTheDocument();
+    expect(screen.getByText('system.publishedApp.accessDeniedDescription')).toBeInTheDocument();
   });
 
   it('keeps share root rendering when no current resource is selected', () => {

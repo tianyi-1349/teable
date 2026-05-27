@@ -1,18 +1,22 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import { GlobalModule } from '../../global/global.module';
-import { TableModule } from './table.module';
+import { PrismaService } from '@teable/db-main-prisma';
+import type { Knex } from 'knex';
+import { ClsService } from 'nestjs-cls';
+import { mockDeep } from 'vitest-mock-extended';
+import type { IDbProvider } from '../../db-provider/db.provider.interface';
+import { BatchService } from '../calculation/batch.service';
 import { TableService } from './table.service';
 
 describe('TableService', () => {
   let service: TableService;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, TableModule],
-    }).compile();
-
-    service = module.get<TableService>(TableService);
+    service = new TableService(
+      mockDeep<ClsService>(),
+      mockDeep<PrismaService>(),
+      mockDeep<BatchService>(),
+      mockDeep<IDbProvider>(),
+      {} as Knex
+    );
   });
 
   it('should be defined', () => {

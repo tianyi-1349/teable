@@ -791,11 +791,15 @@ export class TrashService {
             const { fields, records } = snapshot as ICreateFieldsOperation['result'];
             await this.fieldOpenApiService.createFields(tableId, fields);
             if (records) {
-              const existingSnapshots = await this.recordService.getSnapshotBulk(
-                tableId,
-                records.map((r) => r.id)
+              const recordIds = records.map((r) => r.id);
+              const { dbTableName } = await prisma.tableMeta.findUniqueOrThrow({
+                where: { id: tableId },
+                select: { dbTableName: true },
+              });
+              const existingRows = await prisma.$queryRawUnsafe<{ __id: string }[]>(
+                this.knex(dbTableName).select('__id').whereIn('__id', recordIds).toQuery()
               );
-              const existingIdSet = new Set(existingSnapshots.map((s) => s.data.id));
+              const existingIdSet = new Set(existingRows.map((r) => r.__id));
               const filteredRecords = records.filter((r) => existingIdSet.has(r.id));
               if (filteredRecords.length) {
                 await this.recordOpenApiService.updateRecords(tableId, {

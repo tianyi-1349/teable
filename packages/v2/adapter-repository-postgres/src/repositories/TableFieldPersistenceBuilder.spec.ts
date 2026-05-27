@@ -11,6 +11,7 @@ import {
   FieldName,
   FormulaExpression,
   FormulaField,
+  LinkFieldConfig,
   LookupField,
   LookupOptions,
   NumberField,
@@ -23,6 +24,7 @@ import {
   TableName,
   TimeZone,
 } from '@teable/v2-core';
+import { LinkField } from '../../../core/src/domain/table/fields/types/LinkField';
 import { describe, expect, it } from 'vitest';
 
 import { TableFieldPersistenceBuilder } from './TableFieldPersistenceBuilder';
@@ -323,6 +325,174 @@ describe('TableFieldPersistenceBuilder', () => {
       linkFieldId: `fld${'o'.repeat(16)}`,
       foreignTableId: `tbl${'o'.repeat(16)}`,
       lookupFieldId: valuesFieldId.toString(),
+    });
+  });
+
+  it('prefers current link field options over stale dto options', () => {
+    const baseId = BaseId.create(`bse${'u'.repeat(16)}`)._unsafeUnwrap();
+    const tableId = TableId.create(`tbl${'u'.repeat(16)}`)._unsafeUnwrap();
+    const foreignTableId = TableId.create(`tbl${'v'.repeat(16)}`)._unsafeUnwrap();
+    const primaryFieldId = FieldId.create(`fld${'u'.repeat(16)}`)._unsafeUnwrap();
+    const linkFieldId = FieldId.create(`fld${'v'.repeat(16)}`)._unsafeUnwrap();
+    const lookupFieldId = FieldId.create(`fld${'w'.repeat(16)}`)._unsafeUnwrap();
+    const symmetricFieldId = FieldId.create(`fld${'x'.repeat(16)}`)._unsafeUnwrap();
+
+    const builder = Table.builder()
+      .withBaseId(baseId)
+      .withId(tableId)
+      .withName(TableName.create('Link Field Fallback')._unsafeUnwrap());
+
+    builder
+      .field()
+      .singleLineText()
+      .withId(primaryFieldId)
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .primary()
+      .done();
+
+    builder
+      .field()
+      .link()
+      .withId(linkFieldId)
+      .withName(FieldName.create('Related')._unsafeUnwrap())
+      .withConfig(
+        LinkFieldConfig.create({
+          relationship: 'manyMany',
+          foreignTableId: foreignTableId.toString(),
+          lookupFieldId: lookupFieldId.toString(),
+          symmetricFieldId: symmetricFieldId.toString(),
+          fkHostTableName: 'bseuuuuuuuuuuuuuuuu.junction_old_link',
+          selfKeyName: '__fk_old_self',
+          foreignKeyName: '__fk_old_foreign',
+        })._unsafeUnwrap()
+      )
+      .done();
+    builder.view().defaultGrid().done();
+
+    const table = builder.build()._unsafeUnwrap();
+    const mapper = new DefaultTableMapper();
+    const dto = mapper.toDTO(table)._unsafeUnwrap();
+    const linkDto = dto.fields.find((field) => field.id === linkFieldId.toString());
+    if (!linkDto || linkDto.type !== 'link') {
+      throw new Error('Link DTO not found');
+    }
+
+    linkDto.options = {
+      relationship: 'manyMany',
+      foreignTableId: foreignTableId.toString(),
+      lookupFieldId: lookupFieldId.toString(),
+      symmetricFieldId: symmetricFieldId.toString(),
+      fkHostTableName: 'bseuuuuuuuuuuuuuuuu.junction_old_link',
+      selfKeyName: '__fk_old_self',
+      foreignKeyName: '__fk_old_foreign',
+    };
+
+    const field = table.getField((candidate) => candidate.id().equals(linkFieldId))._unsafeUnwrap();
+    const updatedField = LinkField.create({
+      id: field.id(),
+      name: field.name(),
+      config: LinkFieldConfig.create({
+        relationship: 'manyMany',
+        foreignTableId: foreignTableId.toString(),
+        lookupFieldId: lookupFieldId.toString(),
+        symmetricFieldId: symmetricFieldId.toString(),
+        fkHostTableName: 'bseuuuuuuuuuuuuuuuu.junction_fldvvvvvvvvvvvvvvvv_fldxxxxxxxxxxxxxxxx',
+        selfKeyName: '__fk_fldxxxxxxxxxxxxxxxx',
+        foreignKeyName: '__fk_fldvvvvvvvvvvvvvvvv',
+      })._unsafeUnwrap(),
+      meta: field.type().toString() === 'link' ? (field as LinkField).meta() : undefined,
+    })._unsafeUnwrap();
+
+    const persistenceBuilder = new TableFieldPersistenceBuilder({
+      table,
+      tableMapper: mapper,
+      now: new Date('2026-04-09T00:00:00.000Z'),
+      actorId: ActorId.create('system')._unsafeUnwrap().toString(),
+      dto,
+    });
+
+    const row = persistenceBuilder.buildRowForField(updatedField)._unsafeUnwrap();
+
+    expect(JSON.parse(row.options ?? 'null')).toMatchObject({
+      fkHostTableName: 'bseuuuuuuuuuuuuuuuu.junction_fldvvvvvvvvvvvvvvvv_fldxxxxxxxxxxxxxxxx',
+      selfKeyName: '__fk_fldxxxxxxxxxxxxxxxx',
+      foreignKeyName: '__fk_fldvvvvvvvvvvvvvvvv',
+      symmetricFieldId: symmetricFieldId.toString(),
+    });
+  });
+
+  it('falls back to dto link options when the domain field cannot serialize db config yet', () => {
+    const baseId = BaseId.create(`bse${'y'.repeat(16)}`)._unsafeUnwrap();
+    const tableId = TableId.create(`tbl${'y'.repeat(16)}`)._unsafeUnwrap();
+    const foreignTableId = TableId.create(`tbl${'z'.repeat(16)}`)._unsafeUnwrap();
+    const primaryFieldId = FieldId.create(`fld${'y'.repeat(16)}`)._unsafeUnwrap();
+    const linkFieldId = FieldId.create(`fld${'z'.repeat(16)}`)._unsafeUnwrap();
+    const lookupFieldId = FieldId.create(`fld${'a'.repeat(16)}`)._unsafeUnwrap();
+    const symmetricFieldId = FieldId.create(`fld${'b'.repeat(16)}`)._unsafeUnwrap();
+
+    const builder = Table.builder()
+      .withBaseId(baseId)
+      .withId(tableId)
+      .withName(TableName.create('Link DTO Fallback')._unsafeUnwrap());
+
+    builder
+      .field()
+      .singleLineText()
+      .withId(primaryFieldId)
+      .withName(FieldName.create('Title')._unsafeUnwrap())
+      .primary()
+      .done();
+
+    builder
+      .field()
+      .link()
+      .withId(linkFieldId)
+      .withName(FieldName.create('Related')._unsafeUnwrap())
+      .withConfig(
+        LinkFieldConfig.create({
+          relationship: 'manyMany',
+          foreignTableId: foreignTableId.toString(),
+          lookupFieldId: lookupFieldId.toString(),
+          symmetricFieldId: symmetricFieldId.toString(),
+        })._unsafeUnwrap()
+      )
+      .done();
+    builder.view().defaultGrid().done();
+
+    const table = builder.build()._unsafeUnwrap();
+    const mapper = new DefaultTableMapper();
+    const dto = mapper.toDTO(table)._unsafeUnwrap();
+    const linkDto = dto.fields.find((field) => field.id === linkFieldId.toString());
+    if (!linkDto || linkDto.type !== 'link') {
+      throw new Error('Link DTO not found');
+    }
+
+    linkDto.options = {
+      relationship: 'manyMany',
+      foreignTableId: foreignTableId.toString(),
+      lookupFieldId: lookupFieldId.toString(),
+      symmetricFieldId: symmetricFieldId.toString(),
+      fkHostTableName: 'bseyyyyyyyyyyyyyyyy.junction_fldzzzzzzzzzzzzzzzz_fldbbbbbbbbbbbbbbbb',
+      selfKeyName: '__fk_fldbbbbbbbbbbbbbbbb',
+      foreignKeyName: '__fk_fldzzzzzzzzzzzzzzzz',
+    };
+
+    const field = table.getField((candidate) => candidate.id().equals(linkFieldId))._unsafeUnwrap();
+    const persistenceBuilder = new TableFieldPersistenceBuilder({
+      table,
+      tableMapper: mapper,
+      now: new Date('2026-04-09T00:00:00.000Z'),
+      actorId: ActorId.create('system')._unsafeUnwrap().toString(),
+      dto,
+    });
+
+    const row = persistenceBuilder.buildRowForField(field)._unsafeUnwrap();
+
+    expect(JSON.parse(row.options ?? 'null')).toMatchObject({
+      lookupFieldId: lookupFieldId.toString(),
+      fkHostTableName: 'bseyyyyyyyyyyyyyyyy.junction_fldzzzzzzzzzzzzzzzz_fldbbbbbbbbbbbbbbbb',
+      selfKeyName: '__fk_fldbbbbbbbbbbbbbbbb',
+      foreignKeyName: '__fk_fldzzzzzzzzzzzzzzzz',
     });
   });
 });

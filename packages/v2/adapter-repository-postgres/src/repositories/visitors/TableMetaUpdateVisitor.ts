@@ -874,11 +874,72 @@ export class TableMetaUpdateVisitor
   visitUpdateLinkConfig(
     spec: UpdateLinkConfigSpec
   ): Result<ReadonlyArray<TableUpdateBuilder>, DomainError> {
-    if (spec.isRelationshipChanging() || spec.isOneWayChanging()) {
-      // Relationship or oneWay changes can alter meta (hasOrderColumn) and storage metadata.
-      return this.buildFieldStorageMetadataUpdate(spec.fieldId());
+    const currentFieldResult = this.params.table.getField((f) => f.id().equals(spec.fieldId()));
+    if (currentFieldResult.isErr()) return err(currentFieldResult.error);
+
+    const currentField = currentFieldResult.value;
+    if (currentField.type().toString() !== 'link') {
+      return err(domainError.validation({ message: 'Field is not a link field' }));
     }
-    return this.buildFieldOptionsUpdate(spec.fieldId());
+
+    return spec.mutate(this.params.table).andThen((updatedTable) => {
+      const mutatedFieldResult = updatedTable.getField((f) => f.id().equals(spec.fieldId()));
+      if (mutatedFieldResult.isErr()) return err(mutatedFieldResult.error);
+
+      const mutatedField = mutatedFieldResult.value;
+      if (mutatedField.type().toString() !== 'link') {
+        return err(domainError.validation({ message: 'Field is not a link field' }));
+      }
+
+      const rowResult = this.fieldRowBuilder.buildRowForField(mutatedField);
+      if (rowResult.isErr()) return err(rowResult.error);
+
+      this.trackFieldVersionTouch(spec.fieldId());
+
+      if (spec.isRelationshipChanging() || spec.isOneWayChanging()) {
+        // Relationship or oneWay changes can alter meta (hasOrderColumn) and storage metadata.
+        const row = rowResult.value;
+        const statements: ReadonlyArray<TableUpdateBuilder> = [
+          this.params.db
+            .updateTable('field')
+            .set({
+              options: row.options,
+              meta: row.meta,
+              cell_value_type: row.cell_value_type,
+              is_multiple_cell_value: row.is_multiple_cell_value,
+              db_field_type: row.db_field_type,
+              is_lookup: row.is_lookup,
+              is_conditional_lookup: row.is_conditional_lookup,
+              lookup_linked_field_id: row.lookup_linked_field_id,
+              lookup_options: row.lookup_options,
+              version: this.fieldVersionIncrement,
+              last_modified_time: this.params.now,
+              last_modified_by: this.params.actorId,
+            })
+            .where('id', '=', spec.fieldId().toString())
+            .where('table_id', '=', this.params.table.id().toString())
+            .where('deleted_time', 'is', null),
+        ];
+
+        return this.addCond(statements).map(() => statements);
+      }
+
+      const statements: ReadonlyArray<TableUpdateBuilder> = [
+        this.params.db
+          .updateTable('field')
+          .set({
+            options: rowResult.value.options,
+            version: this.fieldVersionIncrement,
+            last_modified_time: this.params.now,
+            last_modified_by: this.params.actorId,
+          })
+          .where('id', '=', spec.fieldId().toString())
+          .where('table_id', '=', this.params.table.id().toString())
+          .where('deleted_time', 'is', null),
+      ];
+
+      return this.addCond(statements).map(() => statements);
+    });
   }
 
   visitUpdateLinkRelationship(

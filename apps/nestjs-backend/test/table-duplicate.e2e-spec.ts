@@ -18,12 +18,14 @@ import {
   SortFunc,
   FieldKeyType,
   Colors,
-  generateWorkflowId,
   Relationship,
 } from '@teable/core';
 import type { ICreateBaseVo, IDuplicateTableVo, ITableFullVo } from '@teable/openapi';
 import {
+  activateWorkflow,
   createField,
+  createWorkflow,
+  deleteWorkflow,
   getFields,
   duplicateTable,
   installViewPlugin,
@@ -790,10 +792,21 @@ describe('OpenAPI TableController for duplicate (e2e)', () => {
   describe('duplicate table with button field', () => {
     let table: ITableFullVo;
     let duplicateTableData: IDuplicateTableVo;
+    let workflowId: string;
     beforeAll(async () => {
       table = await createTable(baseId, {
         name: 'mainTable',
       });
+
+      const workflow = (
+        await createWorkflow(baseId, {
+          name: 'Duplicate button workflow',
+          trigger: { type: 'buttonClick', config: {} },
+          actions: [{ type: 'runScript', config: { script: 'return input;' } }],
+        })
+      ).data;
+      workflowId = workflow.id;
+      await activateWorkflow(baseId, workflow.id);
 
       const field = (
         await createField(table.id, {
@@ -802,8 +815,8 @@ describe('OpenAPI TableController for duplicate (e2e)', () => {
             label: 'click me',
             color: Colors.Teal,
             workflow: {
-              id: generateWorkflowId(),
-              name: 'test',
+              id: workflow.id,
+              name: workflow.name,
               isActive: true,
             },
           },
@@ -825,6 +838,7 @@ describe('OpenAPI TableController for duplicate (e2e)', () => {
     afterAll(async () => {
       await permanentDeleteTable(baseId, table.id);
       await permanentDeleteTable(baseId, duplicateTableData.id);
+      await deleteWorkflow(baseId, workflowId);
     });
 
     it('should duplicate button field without workflow and clear click count', async () => {

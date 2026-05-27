@@ -2,12 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpErrorCode } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import { UploadType } from '@teable/openapi';
+import { ClsService } from 'nestjs-cls';
 import sharp from 'sharp';
 import { CacheService } from '../../cache/cache.service';
+import { BaseConfig, type IBaseConfig } from '../../configs/base.config';
 import { IStorageConfig, StorageConfig } from '../../configs/storage';
 import { CustomHttpException } from '../../custom.exception';
 import { EventEmitterService } from '../../event-emitter/event-emitter.service';
 import { Events } from '../../event-emitter/events';
+import type { IClsStore } from '../../types/cls';
 import {
   generateTableThumbnailPath,
   getTableThumbnailToken,
@@ -31,10 +34,38 @@ export class AttachmentsStorageService {
     private readonly cacheService: CacheService,
     private readonly prismaService: PrismaService,
     private readonly eventEmitterService: EventEmitterService,
+    @BaseConfig() private readonly baseConfig: IBaseConfig,
     @StorageConfig() private readonly storageConfig: IStorageConfig,
+    private readonly cls: ClsService<IClsStore>,
     @InjectStorageAdapter() private readonly storageAdapter: StorageAdapter
   ) {
     this.urlExpireIn = second(this.storageConfig.urlExpireIn);
+  }
+
+  private toCachePreviewUrl(url: string) {
+    const storagePrefix = this.baseConfig.storagePrefix;
+    if (
+      this.storageConfig.provider !== 'local' ||
+      !storagePrefix ||
+      !url.startsWith(storagePrefix)
+    ) {
+      return url;
+    }
+
+    return url.slice(storagePrefix.length) || '/';
+  }
+
+  resolveResponsePreviewUrl(url: string) {
+    const storagePrefix = this.baseConfig.storagePrefix;
+    if (
+      this.storageConfig.provider !== 'local' ||
+      !storagePrefix ||
+      !this.cls.get('origin')?.byApi
+    ) {
+      return url;
+    }
+
+    return new URL(url, storagePrefix).toString();
   }
 
   async getPreviewUrl<T extends string | string[] = string | string[]>(
@@ -93,7 +124,9 @@ export class AttachmentsStorageService {
     const previewCache = await this.cacheService.get(`attachment:preview:${token}`);
     let url = previewCache?.url;
     if (!url) {
-      url = await this.storageAdapter.getPreviewUrl(bucket, path, expiresIn, respHeaders);
+      url = this.toCachePreviewUrl(
+        await this.storageAdapter.getPreviewUrl(bucket, path, expiresIn, respHeaders)
+      );
       await this.cacheService.set(
         `attachment:preview:${token}`,
         {
@@ -103,7 +136,7 @@ export class AttachmentsStorageService {
         cacheTtl
       );
     }
-    return url;
+    return this.resolveResponsePreviewUrl(url);
   }
 
   async getTableThumbnailUrl(path: string, mimetype: string) {

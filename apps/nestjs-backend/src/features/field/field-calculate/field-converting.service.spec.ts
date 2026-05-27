@@ -1,18 +1,24 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import { GlobalModule } from '../../../global/global.module';
-import { FieldOpenApiModule } from '../open-api/field-open-api.module';
+import type { PrismaService } from '@teable/db-main-prisma';
+import type { Knex } from 'knex';
 import { FieldConvertingService } from './field-converting.service';
 
 describe('FieldConvertingService', () => {
   let service: FieldConvertingService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, FieldOpenApiModule],
-    }).compile();
-
-    service = module.get<FieldConvertingService>(FieldConvertingService);
+  beforeEach(() => {
+    service = new FieldConvertingService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as PrismaService,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as Knex
+    );
   });
 
   it('should be defined', () => {

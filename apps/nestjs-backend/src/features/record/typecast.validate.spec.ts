@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { IUserCellValue } from '@teable/core';
-import { Colors, FieldType, UserFieldCore } from '@teable/core';
+import { Colors, FieldType, Relationship, UserFieldCore } from '@teable/core';
 import type { PrismaService } from '@teable/db-main-prisma';
 import { plainToInstance } from 'class-transformer';
 import { vi } from 'vitest';
@@ -530,6 +530,31 @@ describe('TypeCastAndValidate', () => {
       const result = await typeCastAndValidate['castToUser'](cellValues);
 
       expect(result).toEqual([bobCv, bobCv, bobCv, null, bobCv]);
+    });
+  });
+
+  describe('castToLinkOne', () => {
+    it('returns a single object for manyOne relationships even when the payload is an array', () => {
+      const field = mockDeep<IFieldInstance>({
+        type: FieldType.Link,
+        isComputed: false,
+        isMultipleCellValue: true,
+        options: {
+          relationship: Relationship.ManyOne,
+        },
+      });
+      const typeCastAndValidate = new TypeCastAndValidate({
+        services,
+        field,
+        tableId,
+        typecast: true,
+      });
+
+      const result = (typeCastAndValidate as any).castToLinkOne([{ id: 'recA' }], {
+        recA: { id: 'recA', title: 'A1' },
+      });
+
+      expect(result).toEqual({ id: 'recA', title: 'A1' });
     });
   });
 });

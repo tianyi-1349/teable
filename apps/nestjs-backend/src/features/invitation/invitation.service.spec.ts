@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getPermissions, Role } from '@teable/core';
 import { PrismaService } from '@teable/db-main-prisma';
 import { CollaboratorType, PrincipalType } from '@teable/openapi';
@@ -8,12 +8,12 @@ import { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import { getError } from '../../../test/utils/get-error';
-import { GlobalModule } from '../../global/global.module';
 import type { IClsStore } from '../../types/cls';
 import { generateInvitationCode } from '../../utils/code-generate';
 import { CollaboratorService } from '../collaborator/collaborator.service';
 import { MailSenderService } from '../mail-sender/mail-sender.service';
-import { InvitationModule } from './invitation.module';
+import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
+import { UserService } from '../user/user.service';
 import { InvitationService } from './invitation.service';
 
 const mockInvitationId = 'invxxxxxxxxx';
@@ -23,6 +23,18 @@ describe('InvitationService', () => {
   const prismaService = mockDeep<PrismaService>();
   const mailSenderService = mockDeep<MailSenderService>();
   const collaboratorService = mockDeep<CollaboratorService>();
+  const settingOpenApiService = {
+    getSetting: vi.fn(),
+  } as unknown as SettingOpenApiService;
+  const configService = {
+    get: vi.fn(() => ({ origin: 'http://localhost:3000' })),
+  } as unknown as ConfigService;
+  const userService = {
+    createUser: vi.fn(),
+  } as unknown as UserService;
+  const eventEmitter = {
+    emit: vi.fn(),
+  } as unknown as EventEmitter2;
 
   let invitationService: InvitationService;
   let clsService: ClsService<IClsStore>;
@@ -41,19 +53,42 @@ describe('InvitationService', () => {
     },
   };
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [InvitationModule, GlobalModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaService)
-      .overrideProvider(MailSenderService)
-      .useValue(mailSenderService)
-      .overrideProvider(CollaboratorService)
-      .useValue(collaboratorService)
-      .compile();
+    const store: Record<string, unknown> = {};
+    const getValue = (path: string) =>
+      path
+        .split('.')
+        .reduce<unknown>((acc, key) => (acc as Record<string, unknown> | undefined)?.[key], store);
+    const setValue = (path: string, value: unknown) => {
+      const keys = path.split('.');
+      let target = store;
+      for (const key of keys.slice(0, -1)) {
+        target[key] = (target[key] as Record<string, unknown>) ?? {};
+        target = target[key] as Record<string, unknown>;
+      }
+      target[keys[keys.length - 1]] = value;
+    };
 
-    clsService = module.get<ClsService<IClsStore>>(ClsService);
-    invitationService = module.get<InvitationService>(InvitationService);
+    clsService = {
+      get: vi.fn((path: string) => getValue(path)),
+      set: vi.fn((path: string, value: unknown) => setValue(path, value)),
+      runWith: vi.fn(async (values: Record<string, unknown>, callback: () => unknown) => {
+        Object.keys(store).forEach((key) => delete store[key]);
+        Object.assign(store, values);
+        return await callback();
+      }),
+      run: vi.fn(async (callback: () => unknown) => await callback()),
+    } as unknown as ClsService<IClsStore>;
+
+    invitationService = new InvitationService(
+      prismaService,
+      settingOpenApiService,
+      clsService,
+      configService,
+      mailSenderService,
+      collaboratorService,
+      userService,
+      eventEmitter
+    );
 
     prismaService.txClient.mockImplementation(() => {
       return prismaService;
@@ -66,6 +101,7 @@ describe('InvitationService', () => {
 
   afterEach(() => {
     mockReset(prismaService);
+    vi.clearAllMocks();
   });
 
   it('generateInvitation', async () => {

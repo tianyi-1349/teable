@@ -1,15 +1,17 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { INestApplication } from '@nestjs/common';
 import type { IButtonFieldCellValue, IFieldRo, IFieldVo, ISelectFieldOptions } from '@teable/core';
+import { CellFormat, Colors, FieldKeyType, FieldType, Relationship } from '@teable/core';
 import {
-  CellFormat,
-  Colors,
-  FieldKeyType,
-  FieldType,
-  generateWorkflowId,
-  Relationship,
-} from '@teable/core';
-import { axios, buttonClick, buttonReset, updateRecords, type ITableFullVo } from '@teable/openapi';
+  activateWorkflow,
+  axios,
+  buttonClick,
+  buttonReset,
+  createWorkflow,
+  deleteWorkflow,
+  updateRecords,
+  type ITableFullVo,
+} from '@teable/openapi';
 import { X_TEABLE_V2_HEADER } from '../src/features/canary/interceptors/v2-indicator.interceptor';
 import {
   convertField,
@@ -35,6 +37,7 @@ describe('OpenAPI RecordController (e2e)', () => {
   let app: INestApplication;
 
   const baseId = globalThis.testConfig.baseId;
+  const userEmail = globalThis.testConfig.email;
   const userId = globalThis.testConfig.userId;
 
   beforeAll(async () => {
@@ -202,13 +205,13 @@ describe('OpenAPI RecordController (e2e)', () => {
       });
 
       const res1 = await updateRecord(table.id, table.records[0].id, {
-        record: { fields: { [singleUserField.id]: 'test' } },
+        record: { fields: { [singleUserField.id]: userEmail } },
         fieldKeyType: FieldKeyType.Id,
         typecast: true,
       });
 
       const res2 = await updateRecord(table.id, table.records[0].id, {
-        record: { fields: { [multiUserField.id]: 'test@e2e.com' } },
+        record: { fields: { [multiUserField.id]: userEmail } },
         fieldKeyType: FieldKeyType.Id,
         typecast: true,
       });
@@ -220,12 +223,12 @@ describe('OpenAPI RecordController (e2e)', () => {
       });
 
       expect(res1.fields[singleUserField.id]).toMatchObject({
-        email: 'test@e2e.com',
+        email: userEmail,
         title: 'test',
       });
       expect(res2.fields[multiUserField.id]).toMatchObject([
         {
-          email: 'test@e2e.com',
+          email: userEmail,
           title: 'test',
         },
       ]);
@@ -1064,6 +1067,21 @@ describe('OpenAPI RecordController (e2e)', () => {
 
   describe('button field click and reset', () => {
     let table: ITableFullVo;
+    const workflowIds: string[] = [];
+
+    const createActiveButtonWorkflow = async () => {
+      const workflow = (
+        await createWorkflow(baseId, {
+          name: `Button workflow ${workflowIds.length + 1}`,
+          trigger: { type: 'buttonClick', config: {} },
+          actions: [{ type: 'runScript', config: { script: 'return input;' } }],
+        })
+      ).data;
+      workflowIds.push(workflow.id);
+      await activateWorkflow(baseId, workflow.id);
+      return workflow;
+    };
+
     beforeAll(async () => {
       table = await createTable(baseId, {
         name: 'table1',
@@ -1071,18 +1089,20 @@ describe('OpenAPI RecordController (e2e)', () => {
     });
 
     afterAll(async () => {
+      await Promise.all(workflowIds.map((workflowId) => deleteWorkflow(baseId, workflowId)));
       await permanentDeleteTable(baseId, table.id);
     });
 
     it('should click a button field', async () => {
+      const workflow = await createActiveButtonWorkflow();
       const field = await createField(table.id, {
         type: FieldType.Button,
         options: {
           label: 'Button',
           color: Colors.Teal,
           workflow: {
-            id: generateWorkflowId(),
-            name: 'Workflow',
+            id: workflow.id,
+            name: workflow.name,
             isActive: true,
           },
         },
@@ -1102,10 +1122,11 @@ describe('OpenAPI RecordController (e2e)', () => {
         },
       });
 
-      expect(buttonClick(table.id, table.records[0].id, field.id)).rejects.toThrow();
+      await expect(buttonClick(table.id, table.records[0].id, field.id)).rejects.toThrow();
     });
 
     it('should not click a button field with exceed max count', async () => {
+      const workflow = await createActiveButtonWorkflow();
       const field = await createField(table.id, {
         type: FieldType.Button,
         options: {
@@ -1113,8 +1134,8 @@ describe('OpenAPI RecordController (e2e)', () => {
           color: Colors.Teal,
           maxCount: 1,
           workflow: {
-            id: generateWorkflowId(),
-            name: 'Workflow',
+            id: workflow.id,
+            name: workflow.name,
             isActive: true,
           },
         },
@@ -1124,10 +1145,11 @@ describe('OpenAPI RecordController (e2e)', () => {
       const value = res.data.record.fields[field.id] as IButtonFieldCellValue;
       expect(value.count).toEqual(1);
 
-      expect(buttonClick(table.id, table.records[0].id, field.id)).rejects.toThrow();
+      await expect(buttonClick(table.id, table.records[0].id, field.id)).rejects.toThrow();
     });
 
     it('should reset a button field', async () => {
+      const workflow = await createActiveButtonWorkflow();
       const field = await createField(table.id, {
         type: FieldType.Button,
         options: {
@@ -1135,8 +1157,8 @@ describe('OpenAPI RecordController (e2e)', () => {
           color: Colors.Teal,
           resetCount: true,
           workflow: {
-            id: generateWorkflowId(),
-            name: 'Workflow',
+            id: workflow.id,
+            name: workflow.name,
             isActive: true,
           },
         },
@@ -1152,20 +1174,21 @@ describe('OpenAPI RecordController (e2e)', () => {
     });
 
     it('should not reset a button field without resetCount', async () => {
+      const workflow = await createActiveButtonWorkflow();
       const field = await createField(table.id, {
         type: FieldType.Button,
         options: {
           label: 'Button',
           color: Colors.Teal,
           workflow: {
-            id: generateWorkflowId(),
-            name: 'Workflow',
+            id: workflow.id,
+            name: workflow.name,
             isActive: true,
           },
         },
       });
 
-      expect(buttonReset(table.id, table.records[0].id, field.id)).rejects.toThrow();
+      await expect(buttonReset(table.id, table.records[0].id, field.id)).rejects.toThrow();
     });
   });
 
@@ -1366,6 +1389,7 @@ describe('OpenAPI RecordController (e2e)', () => {
           },
         });
       };
+      const expectedUpdateRecordsHeader = process.env.FORCE_V2_ALL === 'true' ? 'true' : 'false';
 
       beforeEach(async () => {
         table = await createTable(baseId, {
@@ -1431,7 +1455,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(response.status).toBe(200);
-        expect(response.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(response.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         const refreshed = await getRecords(table.id, {
           fieldKeyType: FieldKeyType.Id,
@@ -1474,7 +1498,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(primeResponse.status).toBe(200);
-        expect(primeResponse.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(primeResponse.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         await convertField(table.id, statusFieldId, {
           name: statusField.name,
@@ -1524,7 +1548,7 @@ describe('OpenAPI RecordController (e2e)', () => {
         });
 
         expect(response.status).toBe(200);
-        expect(response.headers[X_TEABLE_V2_HEADER]).toBe('false');
+        expect(response.headers[X_TEABLE_V2_HEADER]).toBe(expectedUpdateRecordsHeader);
 
         const refreshed = await getRecords(table.id, {
           fieldKeyType: FieldKeyType.Id,

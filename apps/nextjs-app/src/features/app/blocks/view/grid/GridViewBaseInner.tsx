@@ -65,6 +65,7 @@ import {
 } from '@teable/sdk';
 import { GRID_DEFAULT } from '@teable/sdk/components/grid/configs';
 import { useScrollFrameRate } from '@teable/sdk/components/grid/hooks';
+import type { IGroupHeaderMenu } from '@teable/sdk/components/grid-enhancements/store/type';
 import { ReactQueryKeys } from '@teable/sdk/config';
 import {
   useBaseId,
@@ -190,6 +191,96 @@ export function getSelectedFieldIdsFromColumns(
   }
 
   return fieldIds;
+}
+
+export function getFieldsForSingleColumn<T extends { id: string }>(
+  columns: Array<{ id?: string }>,
+  fields: T[],
+  colIndex: number
+) {
+  const fieldId = columns[colIndex]?.id;
+  return fieldId ? fields.filter((field) => field.id === fieldId) : [];
+}
+
+export function getFieldsForColumnSelection<T extends { id: string }>(
+  selection: CombinedSelection,
+  columns: Array<{ id?: string }>,
+  fields: T[]
+) {
+  const fieldIds = new Set(
+    selection.isColumnSelection
+      ? (() => {
+          const [start, end] = selection.ranges[0] ?? [];
+          if (start == null || end == null) return [];
+          const startCol = Math.min(start, end);
+          const endCol = Math.max(start, end);
+          const selectedFieldIds: string[] = [];
+
+          for (let col = startCol; col <= endCol; col++) {
+            const fieldId = columns[col]?.id;
+            if (fieldId) {
+              selectedFieldIds.push(fieldId);
+            }
+          }
+
+          return selectedFieldIds;
+        })()
+      : getSelectedFieldIdsFromColumns(selection, columns)
+  );
+  return fields.filter((field) => fieldIds.has(field.id));
+}
+
+export function getHeaderMenuPosition(bounds: Pick<IRectangle, 'x' | 'height'>) {
+  return { x: bounds.x, y: bounds.height };
+}
+
+export function getGroupHeaderMenuState(
+  groupId: string,
+  position: IPosition,
+  allGroupHeaderRefs: IGroupHeaderMenu['allGroupHeaderRefs']
+): IGroupHeaderMenu {
+  return {
+    groupId,
+    position,
+    allGroupHeaderRefs,
+  };
+}
+
+export function getHoverTooltipRequest(params: {
+  type: RegionType;
+  description?: string;
+  bounds: IRectangle;
+  componentId: string;
+  isAutoSort: boolean;
+  t: (key: string) => string;
+}) {
+  const { type, description, bounds, componentId, isAutoSort, t } = params;
+
+  if (type === RegionType.ColumnDescription && description) {
+    return {
+      id: componentId,
+      text: description,
+      position: bounds,
+    };
+  }
+
+  if (type === RegionType.ColumnPrimaryIcon) {
+    return {
+      id: componentId,
+      text: t('sdk:hidden.primaryKey'),
+      position: bounds,
+    };
+  }
+
+  if (type === RegionType.RowHeaderDragHandler && isAutoSort) {
+    return {
+      id: componentId,
+      text: t('table:view.dragToolTip'),
+      position: bounds,
+    };
+  }
+
+  return null;
 }
 
 export const buildGridRowControls = ({
@@ -679,7 +770,7 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const onContextMenu = (selection: CombinedSelection, position: IPosition) => {
     const { isCellSelection, isRowSelection, isColumnSelection, ranges } = selection;
 
-    function extract<T>(_start: number, _end: number, source: T[] | { [key: number]: T }): T[] {
+    function _extract<T>(_start: number, _end: number, source: T[] | { [key: number]: T }): T[] {
       const start = Math.min(_start, _end);
       const end = Math.max(_start, _end);
       return Array.from({ length: end - start + 1 })
@@ -799,10 +890,7 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
     }
 
     if (isColumnSelection) {
-      const [start, end] = ranges[0];
-      const selectColumns = extract(start, end, columns);
-      const indexedColumns = keyBy(selectColumns, 'id');
-      const selectFields = fields.filter((field) => indexedColumns[field.id]);
+      const selectFields = getFieldsForColumnSelection(selection, columns, fields);
       const onAutoFill = (fieldId: string) => handleAutoFillClick(fieldId);
       const onSelectionClear = () => gridRef.current?.setSelection(emptySelection);
       openHeaderMenu({
@@ -816,22 +904,16 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   };
 
   const onGroupHeaderContextMenu = (groupId: string, position: IPosition) => {
-    openGroupHeaderMenu({
-      groupId,
-      position,
-      allGroupHeaderRefs,
-    });
+    openGroupHeaderMenu(getGroupHeaderMenuState(groupId, position, allGroupHeaderRefs));
   };
 
   const onColumnHeaderMenuClick = useCallback(
     (colIndex: number, bounds: IRectangle) => {
-      const fieldId = columns[colIndex].id;
-      const { x, height } = bounds;
-      const selectedFields = fields.filter((field) => field.id === fieldId);
+      const selectedFields = getFieldsForSingleColumn(columns, fields, colIndex);
       const onAutoFill = (fieldId: string) => handleAutoFillClick(fieldId);
       openHeaderMenu({
         fields: selectedFields,
-        position: { x, y: height },
+        position: getHeaderMenuPosition(bounds),
         aiEnable: fieldAIEnable,
         onAutoFill,
       });
@@ -856,10 +938,8 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
   const onColumnHeaderClick = useCallback(
     (colIndex: number, bounds: IRectangle) => {
       if (!isTouchDevice) return;
-      const fieldId = columns[colIndex].id;
-      const { x, height } = bounds;
-      const selectedFields = fields.filter((field) => field.id === fieldId);
-      openHeaderMenu({ fields: selectedFields, position: { x, y: height } });
+      const selectedFields = getFieldsForSingleColumn(columns, fields, colIndex);
+      openHeaderMenu({ fields: selectedFields, position: getHeaderMenuPosition(bounds) });
     },
     [isTouchDevice, columns, fields, openHeaderMenu]
   );
@@ -1273,29 +1353,16 @@ export const GridViewBaseInner: React.FC<IGridViewBaseInnerProps> = (
     closeTooltip();
     closeUserPopover();
 
-    if (type === RegionType.ColumnDescription && description) {
-      openTooltip({
-        id: componentId,
-        text: description,
-        position: bounds,
-      });
-    }
+    const hoverTooltipRequest = getHoverTooltipRequest({
+      type,
+      description,
+      bounds,
+      componentId,
+      isAutoSort: Boolean(isAutoSort),
+      t,
+    });
 
-    if (type === RegionType.ColumnPrimaryIcon) {
-      openTooltip({
-        id: componentId,
-        text: t('sdk:hidden.primaryKey'),
-        position: bounds,
-      });
-    }
-
-    if (type === RegionType.RowHeaderDragHandler && isAutoSort) {
-      openTooltip({
-        id: componentId,
-        text: t('table:view.dragToolTip'),
-        position: bounds,
-      });
-    }
+    hoverTooltipRequest && openTooltip(hoverTooltipRequest);
 
     if ([RegionType.Cell, RegionType.ActiveCell].includes(type) && collaborators.length) {
       const { x, y, width, height } = bounds;

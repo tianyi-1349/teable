@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import * as fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, resolve, resolve as resolvePath } from 'node:path';
 import { PapaparseCsvParser } from '@teable/v2-adapter-csv-parser-papaparse';
 import type { IV2PostgresDbConfig } from '@teable/v2-adapter-db-postgres-pg';
@@ -71,6 +72,14 @@ const resolvePgliteDataDir = (connectionString: string): string => {
     fs.mkdirSync(parentDir, { recursive: true });
   }
   return absolute;
+};
+
+const createCiPgliteFallbackConnectionString = (): string => {
+  const dir = resolvePath(
+    tmpdir(),
+    `.teable-v2-pglite-${process.pid}-${Date.now()}-${getRandomString(6)}`
+  );
+  return `pglite://${dir}`;
 };
 
 export interface IV2NodeTestContainer {
@@ -245,19 +254,30 @@ export const createV2NodeTestContainer = async (
     process.env.TEABLE_V2_TEST_DATABASE_URL ??
     process.env.PRISMA_DATABASE_URL ??
     process.env.DATABASE_URL;
-  const shouldUsePglite = isPgliteConnection(envConnectionString);
+  let shouldUsePglite = isPgliteConnection(envConnectionString);
   const shouldStartContainer = !envConnectionString;
   let pgContainer: StartedPostgreSqlContainer | undefined;
   let connectionString = envConnectionString;
   const pgImage = process.env.TEABLE_V2_TEST_PG_IMAGE ?? 'postgres:16-alpine';
 
   if (shouldStartContainer && !shouldUsePglite) {
-    pgContainer = await new PostgreSqlContainer(pgImage)
-      .withDatabase('teable_v2_test')
-      .withUsername('teable')
-      .withPassword('teable')
-      .start();
-    connectionString = pgContainer.getConnectionUri();
+    if (process.env.CI && process.env.TESTCONTAINERS_RYUK_DISABLED == null) {
+      process.env.TESTCONTAINERS_RYUK_DISABLED = 'true';
+    }
+    try {
+      pgContainer = await new PostgreSqlContainer(pgImage)
+        .withDatabase('teable_v2_test')
+        .withUsername('teable')
+        .withPassword('teable')
+        .start();
+      connectionString = pgContainer.getConnectionUri();
+    } catch (error) {
+      if (!process.env.CI) {
+        throw error;
+      }
+      connectionString = createCiPgliteFallbackConnectionString();
+      shouldUsePglite = true;
+    }
   }
 
   if (!connectionString) {

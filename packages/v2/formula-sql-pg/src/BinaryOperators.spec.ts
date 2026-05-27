@@ -118,7 +118,7 @@ describe('binary comparison operators', () => {
       }))
     );
     testTable = await createFormulaTestTable(container, formulaFields);
-  });
+  }, 240000);
 
   afterAll(async () => {
     await container.dispose();

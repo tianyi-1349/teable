@@ -1,20 +1,12 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import { GlobalModule } from '../../global/global.module';
-import { CalculationModule } from './calculation.module';
 import { LinkService } from './link.service';
 
 describe('LinkService', () => {
   let service: LinkService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, CalculationModule],
-    }).compile();
-
-    service = module.get<LinkService>(LinkService);
+  beforeEach(() => {
+    service = new LinkService({} as never, {} as never, {} as never, {} as never, {} as never);
   });
 
   it('should be defined', () => {
