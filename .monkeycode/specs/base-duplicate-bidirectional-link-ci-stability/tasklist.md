@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 装配链红灯已本地复核关闭，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 装配链红灯已本地复核关闭，CI 已确认全绿，可交付 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -22,15 +22,13 @@
 | T6 | completed | L2 | 根据证据命中层实施最小补丁 | 已覆盖 create/convert persistence、duplicate link field、duplicate data copy 层 |
 | T7 | completed | L2 | 运行修改层相关 L2 测试 | 已记录 L2 证明句 |
 | T8 | completed | L3 | 运行主线 focused e2e | 已记录 L3 证明句，状态升级为主线绿灯 |
-| T9 | in_progress | L4 | 触发相关 GitHub Actions workflow | 记录 L4 证明句，状态升级为 CI 确认 |
-| T10 | in_progress | L3 | 清理 Gap List 并检查临时观测代码 | 当前无临时观测代码，CI gap 待关闭 |
+| T9 | completed | L4 | 触发相关 GitHub Actions workflow | 记录 L4 证明句，状态升级为 CI 确认 |
+| T10 | completed | L3 | 清理 Gap List 并检查临时观测代码 | Gap List 清零，当前无临时观测代码 |
 
 ## 下一步执行
 
-1. 提交并推送本轮 backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 最小装配修正。
-2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
-3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
-4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
+1. 归档本轮 L4 workflow 证据到交付记录。
+2. 基于当前可交付状态等待用户下一步指令。
 
 ## 证明句记录
 
@@ -92,3 +90,4 @@
 | 2026-05-27 | L2 | `pnpm test-unit --coverage --shard=3/4` | 证明 backend unit coverage shard `3/4` 本地完整通过，且 coverage 临时目录写盘问题已通过 `vitest.config.ts` 顶层预建目录与 `coverage.tempDirectory` 固化修复。 |
 | 2026-05-27 | L2 | `pnpm exec vitest run src/features/selection/selection.service.spec.ts src/features/invitation/invitation.service.spec.ts src/features/auth/strategies/local.strategy.spec.ts src/features/access-token/access-token.service.spec.ts src/share-db/share-db.spec.ts src/features/field/field-calculate/field-converting-link.service.spec.ts src/features/view/open-api/view-open-api.service.spec.ts src/features/aggregation/aggregation.service.spec.ts src/features/dashboard/dashboard.service.spec.ts src/features/oauth/oauth.service.spec.ts src/features/share/share.service.spec.ts src/features/base/base.service.spec.ts` | 证明 backend unit coverage shard `4/4` 命中的 12 个 spec 已收敛为最小依赖直接实例化，定向验证通过。 |
 | 2026-05-27 | L2 | `pnpm test-unit --coverage --shard=4/4` | 证明 backend unit coverage shard `4/4` 本地完整通过，当前 backend unit coverage 四个分片均已闭合，剩余 gap 收敛到 L4 workflow 确认。 |
+| 2026-05-27 | L4 | GitHub Actions run `26493173331` | 证明 related integration workflow 已在 CI 环境全绿通过，`1/4 v1`、`1/4 v2`、`2/4 v1`、`2/4 v2`、`3/4 v1`、`3/4 v2`、`4/4 v1`、`4/4 v2` 与 `finish` job 全部 success，Gap List 清零。 |

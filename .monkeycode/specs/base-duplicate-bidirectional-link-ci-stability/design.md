@@ -16,12 +16,12 @@
 | 字段 | 值 |
 |---|---|
 | 主线验收 | `base-duplicate` 双向 link focused e2e |
-| 当前红灯 | 无本地红灯；最新 CI 剩余待 L4 复核 |
+| 当前红灯 | 无 |
 | 失败层级 | 最新命中层已闭合：`FieldToSpecVisitor` 的 single select empty-string typecast 兼容层、backend unit spec 的测试装配层、`createRecords` 缺失 snapshot 字段回读层、`record.e2e` user typecast 歧义输入层、`test-e2e-cover` 的 worker 稳定性层、backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 的装配链层，以及 `import-base.e2e` 的 `afterAll` 清理超时层。`1/4` 最后新增命中的 `db-connection.service.spec.ts`、`base-duplicate.service.spec.ts`、`graph.service.spec.ts`、`chat.service.spec.ts` 也已收敛为最小依赖直接实例化。 |
 | 本轮假设 | single select 的 `'' + typecast` 应保持 legacy omitted 语义；backend unit spec 需绕开 `RecordOpenApiModule` 循环扫描或 `ConditionalModule` 配置等待，改为最小 provider 装配；v2 `createRecords` 返回缺失 snapshot 字段时应按需回读；coverage shard 需使用进程隔离池稳定 Prisma 生命周期，并让纯存在性 spec 直接实例化 service 以避开整模块扫描链，直到 `1/4`、`2/4`、`3/4`、`4/4` 全部分片转绿；import-base 定向场景在 CI 覆盖慢路径下需要更宽的 hook timeout 承接 base 清理时长 |
 | 目标观测点 | `FieldToSpecVisitor` 返回的 spec 类型、focused e2e record 字段值、命中 unit spec 的 module compile 或 hook timeout 结果、`createRecords` 返回 payload 的 `autoNumber`、coverage shard `1/4`、`2/4`、`3/4`、`4/4` 的最终汇总、`import-base.e2e` `afterAll` 完成时间 |
 | 允许改动层 | 只允许修改被证据命中的最小层 |
-| 本轮退出条件 | backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 完整通过并进入 L4 workflow 复核 |
+| 本轮退出条件 | backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 完整通过，且 L4 integration workflow 通过 |
 
 ## 失败链路四问
 
