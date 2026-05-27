@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `2/4` 装配链红灯已本地复核关闭，CI 重跑待确认 |
+| 当前状态 | 主线绿灯，最新 integration 新暴露的 `record-typecast`、backend unit 装配、`test-e2e-cover`、`auto-number`、`record.e2e`、`table.service.spec`、`import-base.e2e` 清理超时，以及 backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 装配链红灯已本地复核关闭，CI 重跑待确认 |
 | 当前主线 | `test/base-duplicate.e2e-spec.ts -t "should duplicate base with bidirectional link field"` |
 | 当前完成门槛 | L2 相关测试通过、L3 focused e2e 通过、L4 related workflow 通过、Gap List 清零 |
 
@@ -27,7 +27,7 @@
 
 ## 下一步执行
 
-1. 提交并推送本轮 backend unit coverage shard `2/4` 最小装配修正。
+1. 提交并推送本轮 backend unit coverage shard `1/4`、`2/4`、`3/4`、`4/4` 最小装配修正。
 2. 重新触发相关 GitHub Actions workflow，确认 CI 环境结果。
 3. 若 workflow 通过，关闭 CI gap 并进入可交付状态。
 4. 若 workflow 红灯，按失败链路四问继续收窄到最新命中层。
@@ -86,3 +86,9 @@
 | 2026-05-25 | L2 | `pnpm exec vitest run src/features/attachments/attachments.service.spec.ts src/features/field/field-calculate/field-deleting.service.spec.ts src/features/calculation/batch.service.spec.ts src/features/plugin/plugin.service.spec.ts src/features/view/view.service.spec.ts src/features/user/user.service.spec.ts` | 证明 6 个 backend unit spec 已收敛为直接实例化的最小依赖装配，普通路径通过。 |
 | 2026-05-25 | L2 | `pnpm exec vitest run --coverage --shard=2/4 src/features/attachments/attachments.service.spec.ts src/features/field/field-calculate/field-deleting.service.spec.ts src/features/calculation/batch.service.spec.ts src/features/plugin/plugin.service.spec.ts src/features/view/view.service.spec.ts src/features/user/user.service.spec.ts` | 证明 6 个 backend unit spec 在 coverage shard `2/4` 路径下同样通过，装配链已从整模块扫描收敛到最小依赖实例化。 |
 | 2026-05-25 | L2 | `pnpm test-unit --coverage --shard=2/4` | 证明 backend unit coverage shard `2/4` 本地完整通过，28 files passed，163 tests passed，当前 CI 剩余 gap 收敛到 L4 workflow 确认。 |
+| 2026-05-27 | L2 | `pnpm exec vitest run src/features/field/open-api/field-open-api.service.spec.ts src/features/aggregation/open-api/aggregation-open-api.service.spec.ts src/features/calculation/field-calculation.service.spec.ts src/features/field/field-calculate/field-creating.service.spec.ts src/features/auth/auth.service.spec.ts` | 证明 backend unit coverage shard `1/4` 命中的 5 个纯存在性 spec 已收敛为最小依赖直接实例化，定向验证通过。 |
+| 2026-05-27 | L2 | `pnpm test-unit --coverage --shard=1/4` | 证明 backend unit coverage shard `1/4` 本地完整通过，当前 `1/4` 装配链 gap 已闭合。 |
+| 2026-05-27 | L2 | `pnpm exec vitest run src/features/calculation/link.service.spec.ts src/features/auth/session/session-store.service.spec.ts src/features/auth/permission.service.spec.ts src/features/attachments/attachments-table.service.spec.ts src/features/field/field-calculate/field-converting.service.spec.ts src/features/record/record.service.spec.ts src/features/space/space.service.spec.ts` | 证明 backend unit coverage shard `3/4` 命中的 7 个 spec 已收敛为最小依赖直接实例化或实现契约对齐 mock，定向验证通过。 |
+| 2026-05-27 | L2 | `pnpm test-unit --coverage --shard=3/4` | 证明 backend unit coverage shard `3/4` 本地完整通过，且 coverage 临时目录写盘问题已通过 `vitest.config.ts` 顶层预建目录与 `coverage.tempDirectory` 固化修复。 |
+| 2026-05-27 | L2 | `pnpm exec vitest run src/features/selection/selection.service.spec.ts src/features/invitation/invitation.service.spec.ts src/features/auth/strategies/local.strategy.spec.ts src/features/access-token/access-token.service.spec.ts src/share-db/share-db.spec.ts src/features/field/field-calculate/field-converting-link.service.spec.ts src/features/view/open-api/view-open-api.service.spec.ts src/features/aggregation/aggregation.service.spec.ts src/features/dashboard/dashboard.service.spec.ts src/features/oauth/oauth.service.spec.ts src/features/share/share.service.spec.ts src/features/base/base.service.spec.ts` | 证明 backend unit coverage shard `4/4` 命中的 12 个 spec 已收敛为最小依赖直接实例化，定向验证通过。 |
+| 2026-05-27 | L2 | `pnpm test-unit --coverage --shard=4/4` | 证明 backend unit coverage shard `4/4` 本地完整通过，当前 backend unit coverage 四个分片均已闭合，剩余 gap 收敛到 L4 workflow 确认。 |

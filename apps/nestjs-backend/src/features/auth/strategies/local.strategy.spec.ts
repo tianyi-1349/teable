@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable sonarjs/no-duplicate-string */
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import { CacheService } from '../../../cache/cache.service';
-import { GlobalModule } from '../../../global/global.module';
-import { UserModule } from '../../user/user.module';
+import { UserService } from '../../user/user.service';
 import { LocalAuthService } from '../local-auth/local-auth.service';
 import { LocalStrategy } from './local.strategy';
 
@@ -14,6 +11,9 @@ describe('LocalStrategy', () => {
   let localStrategy: LocalStrategy;
   const authService = mockDeep<LocalAuthService>();
   const cacheService = mockDeep<CacheService>();
+  const userService = {
+    refreshLastSignTime: vitest.fn(),
+  } as unknown as UserService;
   const testEmail = 'test@test.com';
   const testPassword = '12345678a';
   const mokeReq = {
@@ -27,17 +27,12 @@ describe('LocalStrategy', () => {
   } as unknown as Request;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [GlobalModule, UserModule],
-      providers: [LocalStrategy, LocalAuthService],
-    })
-      .overrideProvider(LocalAuthService)
-      .useValue(authService)
-      .overrideProvider(CacheService)
-      .useValue(cacheService)
-      .compile();
-
-    localStrategy = module.get<LocalStrategy>(LocalStrategy);
+    localStrategy = new LocalStrategy(userService, authService, cacheService, {
+      signin: {
+        maxLoginAttempts: 5,
+        accountLockoutMinutes: 10,
+      },
+    } as never);
   });
 
   afterEach(() => {
@@ -47,7 +42,7 @@ describe('LocalStrategy', () => {
   });
 
   it('should throw error when lockout is disabled', async () => {
-    authService.validateUserByEmail.mockRejectedValue(new Error());
+    authService.validateUserByEmailWithTurnstile.mockRejectedValue(new Error());
     localStrategy['authConfig'].signin = {
       maxLoginAttempts: 0,
       accountLockoutMinutes: 0,
@@ -58,7 +53,7 @@ describe('LocalStrategy', () => {
   });
 
   it('should throw error when account is already locked', async () => {
-    authService.validateUserByEmail.mockRejectedValue(new Error());
+    authService.validateUserByEmailWithTurnstile.mockRejectedValue(new Error());
     localStrategy['authConfig'].signin = {
       maxLoginAttempts: 5,
       accountLockoutMinutes: 10,
@@ -74,7 +69,7 @@ describe('LocalStrategy', () => {
   });
 
   it('should increment attempt count and throw error', async () => {
-    authService.validateUserByEmail.mockRejectedValue(new Error());
+    authService.validateUserByEmailWithTurnstile.mockRejectedValue(new Error());
     localStrategy['authConfig'].signin = {
       maxLoginAttempts: 5,
       accountLockoutMinutes: 10,
@@ -89,7 +84,7 @@ describe('LocalStrategy', () => {
   });
 
   it('should lock account when max attempts reached', async () => {
-    authService.validateUserByEmail.mockRejectedValue(new Error());
+    authService.validateUserByEmailWithTurnstile.mockRejectedValue(new Error());
     localStrategy['authConfig'].signin = {
       maxLoginAttempts: 4,
       accountLockoutMinutes: 10,
@@ -105,7 +100,7 @@ describe('LocalStrategy', () => {
   });
 
   it('should handle first failed attempt', async () => {
-    authService.validateUserByEmail.mockRejectedValue(new Error());
+    authService.validateUserByEmailWithTurnstile.mockRejectedValue(new Error());
     localStrategy['authConfig'].signin = {
       maxLoginAttempts: 5,
       accountLockoutMinutes: 10,
