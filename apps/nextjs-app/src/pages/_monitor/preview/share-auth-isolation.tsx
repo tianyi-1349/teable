@@ -5,19 +5,16 @@ import { useState } from 'react';
 import { BaseShareAuthPage } from '@/features/app/blocks/share/base/BaseShareAuthPage';
 import { shareConfig } from '@/features/i18n/share.config';
 import { getTranslationsProps } from '@/lib/i18n';
-import withEnv from '@/lib/withEnv';
 
-export const getServerSideProps: GetServerSideProps = withEnv(async (context) => {
-  const { i18nNamespaces } = shareConfig;
-  context.res.setHeader('Content-Security-Policy', 'frame-ancestors *;');
+export const getServerSideProps: GetServerSideProps = async (context) => {
   return {
     props: {
-      ...(await getTranslationsProps(context, i18nNamespaces)),
+      ...(await getTranslationsProps(context, shareConfig.i18nNamespaces)),
     },
   };
-});
+};
 
-export default function ShareBaseAuth() {
+export default function ShareAuthIsolationPage() {
   const [queryClient] = useState(() => createQueryClient());
 
   return (

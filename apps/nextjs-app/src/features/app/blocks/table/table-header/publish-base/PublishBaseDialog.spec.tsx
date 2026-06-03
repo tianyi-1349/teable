@@ -132,4 +132,40 @@ describe('PublishBaseDialog', () => {
 
     expect(screen.getByText('https://example.test/t/template-1')).toBeInTheDocument();
   });
+
+  it('maps source defaultActiveNodeId to runtime defaultNodeId for validation', async () => {
+    getTemplateByBaseIdMock.mockResolvedValue({
+      data: {
+        id: 'template-1',
+        name: 'Revenue Base',
+        description: 'Template description',
+        publishInfo: {
+          nodes: ['node-1'],
+          defaultActiveNodeId: 'node-1',
+          includeData: true,
+          defaultUrl: '/base/snapshot-base-1/table/tbl-1',
+        },
+        snapshot: {
+          baseId: 'snapshot-base-1',
+        },
+      },
+    });
+
+    render(
+      <PublishBaseDialog onClose={vi.fn()}>
+        <button type="button">open publish</button>
+      </PublishBaseDialog>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'open publish' }));
+
+    await waitFor(() => {
+      expect(validatePublishedAppConfigMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          selectedNodeIds: ['node-1'],
+          defaultNodeId: 'node-1',
+        })
+      );
+    });
+  });
 });
