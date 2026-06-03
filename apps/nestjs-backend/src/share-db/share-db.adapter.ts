@@ -195,6 +195,36 @@ export class ShareDbAdapter extends ShareDb.DB {
     }, {});
   }
 
+  private getSnapshotMeta(snapshot: ISnapshotBase<unknown>): SnapshotMeta | null {
+    if (snapshot.m && typeof snapshot.m === 'object') {
+      return snapshot.m as SnapshotMeta;
+    }
+
+    if (snapshot.v === 0 || !snapshot.type) {
+      return null;
+    }
+
+    return {
+      ctime: 0,
+      mtime: 0,
+      _create: {
+        src: `legacy-${snapshot.id}`,
+        seq: 0,
+        v: 0,
+      },
+    } as SnapshotMeta;
+  }
+
+  private toShareDbSnapshot(snapshot: ISnapshotBase<unknown>) {
+    return new Snapshot(
+      snapshot.id,
+      snapshot.v,
+      snapshot.type,
+      snapshot.data,
+      this.getSnapshotMeta(snapshot)
+    );
+  }
+
   // Get the named document from the database. The callback is called with (err,
   // snapshot). A snapshot with a version of zero is returned if the document
   // has never been created in the database.
@@ -217,10 +247,7 @@ export class ShareDbAdapter extends ShareDb.DB {
         if (docType === IdPrefix.Field && this.fieldServiceInner) {
           const snapshotData = await this.fieldServiceInner.getSnapshotBulk(collectionId, ids);
           if (snapshotData.length) {
-            const snapshots = snapshotData.map(
-              (snapshot) =>
-                new Snapshot(snapshot.id, snapshot.v, snapshot.type, snapshot.data, null)
-            );
+            const snapshots = snapshotData.map((snapshot) => this.toShareDbSnapshot(snapshot));
             callback(null, this.snapshots2Map(snapshots));
           } else {
             const snapshots = ids.map((id) => new Snapshot(id, 0, null, undefined, null));
@@ -244,16 +271,7 @@ export class ShareDbAdapter extends ShareDb.DB {
         }
       );
       if (snapshotData.length) {
-        const snapshots = snapshotData.map(
-          (snapshot) =>
-            new Snapshot(
-              snapshot.id,
-              snapshot.v,
-              snapshot.type,
-              snapshot.data,
-              null // TODO: metadata
-            )
-        );
+        const snapshots = snapshotData.map((snapshot) => this.toShareDbSnapshot(snapshot));
         callback(null, this.snapshots2Map(snapshots));
       } else {
         const snapshots = ids.map((id) => new Snapshot(id, 0, null, undefined, null));

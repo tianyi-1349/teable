@@ -50,7 +50,6 @@ export class UpdateRecordsOrderOperation {
     };
   }
 
-  // TODO: filter out fields that are not in the record, filter out computed fields
   async undo(operation: IUpdateRecordsOrderOperation) {
     const { params, result } = operation;
     const { tableId, viewId, recordIds } = params;

@@ -32,6 +32,21 @@ import { FieldSupplementService } from './field-supplement.service';
 const isLink = (field: IFieldInstance): field is LinkFieldDto =>
   !field.isLookup && field.type === FieldType.Link;
 
+const buildUniqueTitleToIdMap = (records: { id: string; title: string }[]) => {
+  const titleToIdsMap = records.reduce<Record<string, string[]>>((pre, record) => {
+    pre[record.title] = pre[record.title] || [];
+    pre[record.title].push(record.id);
+    return pre;
+  }, {});
+
+  return Object.entries(titleToIdsMap).reduce<Record<string, string>>((pre, [title, ids]) => {
+    if (ids.length === 1) {
+      pre[title] = ids[0];
+    }
+    return pre;
+  }, {});
+};
+
 @Injectable()
 export class FieldConvertingLinkService {
   constructor(
@@ -319,6 +334,20 @@ export class FieldConvertingLinkService {
     return records;
   }
 
+  private async getRecordsByFieldValueIn(tableId: string, field: IFieldInstance, values: string[]) {
+    const { dbTableName } = await this.prismaService.txClient().tableMeta.findFirstOrThrow({
+      where: { id: tableId },
+      select: { dbTableName: true },
+    });
+
+    return this.fieldCalculationService.getRecordsByFieldValueIn(
+      dbTableName,
+      tableId,
+      field,
+      values
+    );
+  }
+
   async oneWayToTwoWay(oldField: LinkFieldDto, newField: LinkFieldDto) {
     // Resolve table ids
     const { foreignTableId, relationship, symmetricFieldId } = newField.options;
@@ -450,15 +479,31 @@ export class FieldConvertingLinkService {
     const lookupField = createFieldInstanceByRaw(lookupFieldRaw);
 
     const records = await this.getRecords(tableId, oldField);
-    // TODO: should not get all records in foreignTable, only get records witch title is not exist in candidate records link cell value title
-    const foreignRecords = await this.getRecords(foreignTableId, lookupField);
+    const candidateTitles = new Set<string>();
+    records.forEach((record) => {
+      const oldCellValue = record.fields[fieldId];
+      if (oldCellValue == null) {
+        return;
+      }
+      const titles = newField.isMultipleCellValue
+        ? oldField.isMultipleCellValue
+          ? (oldCellValue as unknown[]).map((item) => oldField.item2String(item))
+          : oldField.item2String(oldCellValue).split(', ')
+        : oldField.isMultipleCellValue
+          ? [oldField.item2String((oldCellValue as unknown[])[0])]
+          : [oldField.item2String(oldCellValue).split(', ')[0]];
+      titles.filter(Boolean).forEach((title) => candidateTitles.add(title));
+    });
+    const foreignRecords = await this.getRecordsByFieldValueIn(foreignTableId, lookupField, [
+      ...candidateTitles,
+    ]);
 
-    // TODO: maybe have same title in foreignTable, should use id to map
-    const primaryNameToIdMap = foreignRecords.reduce<{ [name: string]: string }>((pre, record) => {
-      const str = lookupField.cellValue2String(record.fields[lookupField.id]);
-      pre[str] = record.id;
-      return pre;
-    }, {});
+    const primaryNameToIdMap = buildUniqueTitleToIdMap(
+      foreignRecords.map((record) => ({
+        id: record.id,
+        title: lookupField.cellValue2String(record.fields[lookupField.id]),
+      }))
+    );
 
     const recordOpsMap: IOpsMap = { [tableId]: {}, [foreignTableId]: {} };
     const globalCheckSet = new Set<string>();

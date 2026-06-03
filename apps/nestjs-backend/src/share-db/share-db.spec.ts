@@ -1,17 +1,16 @@
-import { PrismaService } from '@teable/db-main-prisma';
-import { ClsService } from 'nestjs-cls';
+import type { PrismaService } from '@teable/db-main-prisma';
+import type { ClsService } from 'nestjs-cls';
 import { mockDeep } from 'vitest-mock-extended';
-import { CacheService } from '../cache/cache.service';
 import type { ICacheConfig } from '../configs/cache.config';
-import { EventEmitterService } from '../event-emitter/event-emitter.service';
-import { PermissionService } from '../features/auth/permission.service';
-import { PerformanceCacheService } from '../performance-cache';
+import type { EventEmitterService } from '../event-emitter/event-emitter.service';
+import type { PermissionService } from '../features/auth/permission.service';
+import type { SessionHandleService } from '../features/auth/session/session-handle.service';
+import type { PerformanceCacheService } from '../performance-cache';
 import type { IClsStore } from '../types/cls';
-import { RealtimeMetricsService } from './metrics/realtime-metrics.service';
-import { RepairAttachmentOpService } from './repair-attachment-op/repair-attachment-op.service';
-import { ShareDbAdapter } from './share-db.adapter';
+import type { RealtimeMetricsService } from './metrics/realtime-metrics.service';
+import type { RepairAttachmentOpService } from './repair-attachment-op/repair-attachment-op.service';
+import type { ShareDbAdapter } from './share-db.adapter';
 import { ShareDbService } from './share-db.service';
-import { SessionHandleService } from '../features/auth/session/session-handle.service';
 
 describe('ShareDb', () => {
   let provider: ShareDbService;
@@ -28,11 +27,13 @@ describe('ShareDb', () => {
     const realtimeMetrics = mockDeep<RealtimeMetricsService>();
     const cacheConfig: ICacheConfig = {
       provider: 'memory',
-      ttl: 60,
-      redis: {
+      sqlite: {
         uri: '',
       },
-    } as ICacheConfig;
+      redis: {
+        uri: undefined,
+      },
+    };
 
     prismaService.bindAfterTransaction.mockImplementation(() => undefined as never);
 
