@@ -69,6 +69,7 @@ import { err, ok } from 'neverthrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 type StartedPostgreSqlContainer = Awaited<ReturnType<PostgreSqlContainer['start']>>;
+const describePg = process.env.RUN_TESTCONTAINERS === '1' ? describe : describe.skip;
 
 import { registerV2PostgresStateAdapter } from '../di/register';
 import { convertNameToValidCharacter, joinDbTableName } from '../naming';
@@ -261,8 +262,8 @@ class FieldToSnapshotVisitor implements IFieldVisitor<IFieldSnapshot> {
   }
 }
 
-describe('PostgresTableRepository (pg)', () => {
-  let pgContainer: StartedPostgreSqlContainer;
+describePg('PostgresTableRepository (pg)', () => {
+  let pgContainer: StartedPostgreSqlContainer | undefined;
 
   beforeAll(async () => {
     pgContainer = await new PostgreSqlContainer('postgres:16-alpine')
@@ -273,7 +274,7 @@ describe('PostgresTableRepository (pg)', () => {
   });
 
   afterAll(async () => {
-    await pgContainer.stop();
+    await pgContainer?.stop();
   });
 
   it('saves and loads a table by specs', async () => {
