@@ -26,48 +26,45 @@
 2. `pnpm g:lint`
 3. `pnpm g:lint-styles`
 
-当前剩余缺口主要集中在以下六类：
+当前剩余缺口主要集中在以下五类：
 
-1. Published App Runtime 跨端闭环未完成
-2. Automation / Workflow 与官方能力仍有明显差距
+1. Published App Runtime 主线已完成，剩余真实用户态访问模型治理尾差
+2. Automation / Workflow 与官方能力仍有产品化差距
 3. V2 契约统一与执行模型统一仍在过渡期
 4. Ports / Adapters 在高层业务域的采用深度不一致
-5. 多适配器与多运行组合缺少真实 smoke 验证
-6. 若干业务细节仍停留在 TODO、边界说明或局部占位状态
+5. 多适配器与多运行组合缺少完整真实 smoke 验证
 
 ## 3. P0 清单
 
-### P0-1 Published App Runtime 跨端运行时未闭环
+### P0-1 Published App Runtime 主线已完成，剩余统一治理尾差
 
 - 类别：功能缺陷 + 能力缺口
 - 约束维度：全局性 / 一致性 / 稳定性
 - 当前证据：
   - `.monkeycode/specs/published-app-runtime/requirements.md`
   - `share-published-governance-roadmap.md`
+  - `.monkeycode/docs/published-app-runtime-pr1-pr9-acceptance-report-2026-05-20.md`
 - 当前状态：
   - backend 已具备 `publishedApps.getRuntimeManifest`、`getNavigationModel`、`getNodeRuntime` 入口
-  - 当前 runtime manifest 已具备 `defaultUrl`、`defaultNodeId`、`permissions`、`mode` 等字段骨架
+  - 当前 runtime manifest 已稳定提供 `defaultUrl`、`defaultNodeId`、`permissions`、`mode` 等字段
   - runtime 层 `defaultNodeId` 术语已与规格和前端 runtime consumer 对齐
   - authenticated `App` 路由与 share `App` 路由都已进入统一 Published Runtime 壳层
-  - 当前实现仍存在核心语义缺口：`authenticated` / `template` mode 未落地
-  - 统一 runtime 抽象、跨资源 renderer 深化和跨端 shell 完整产品化仍在路线图阶段
+  - `PublishedAppContext`、navigation model、desktop / tablet / mobile / embed / PWA shell、preview / validation、resource renderer 已落地
+  - PR1-PR9 已完成到当前规格范围内的可验收状态
+  - 当前剩余缺口集中在 share / published / template 统一访问模型治理，不再是 Published Runtime 主线能力缺失
 - 仍未完成的能力：
-  - 统一 resource resolution
-  - Published App Context
-  - desktop / tablet / mobile / embed / PWA 统一 shell
-  - table / form / dashboard / chart 在 published runtime 下的跨端 fallback
-  - publish preview 和 validation
+  - 仍缺基于真实登录、seed 数据和后端 route fixture 的全链路 e2e
+  - share / published / template 的统一访问契约仍需要真实业务 fixture 持续验证
 - 影响：
-  - published app 的跨端体验与运行语义还未形成稳定产品面
-  - share / published / template publish 的统一访问模型尚未完全落地
+  - published app 主线产品面已经成型，后续风险集中在统一契约继续扩展时的命名分叉和入口分叉
+  - share / published / template publish 的统一访问模型仍需继续收口
 - 建议动作：
-  - 先补 runtime mode 与默认节点语义收敛
-  - 再补前端 published shell 和 navigation context
-  - 再补 resource renderer 层和 mobile fallback
-  - 最后补 preview / validation / PWA 元数据
+  - 将 Published Runtime 主线从 P0 闭环项下沉为统一治理尾差项
+  - 后续聚焦真实登录、seed 数据和后端 route fixture 的全链路 e2e
+  - 继续用 `defaultUrl + defaultNodeId + permission/mode` 维护 share / published / template 统一访问模型
 - 建议验证：
   - `pnpm --filter @teable/app typecheck`
-  - published runtime 关键路由的前端测试或最小集成验证
+  - `E2E_WEBSERVER_MODE=DEV pnpm exec playwright test e2e/pages/published/published-access-model.spec.ts e2e/pages/published/published-business-flow.spec.ts e2e/pages/published/published-route-entry.spec.ts --project='Desktop Chrome'`
 
 ### P0-2 Automation / Workflow 与官方能力仍有明显差距
 
@@ -94,20 +91,22 @@
   - AI authoring 已从固定 `buttonClick + runScript` 草稿提升到最小多形态草稿生成，当前可输出多类 trigger/action 组合草稿，并支持最小多节点 actions、`fieldMappings` 与 `testPlan(input / expectedActionKinds / activationChecks)`
   - 规格文档明确保留多项未来工作
 - 仍未完成的能力：
-  - schedule 的更完整产品化能力，例如 timezone、next-run 可见性与更严格表达式校验
-  - webhook 的更深正式化，例如签名辅助工具、可复用签名 SDK 与更丰富审计/观测面
+  - schedule 的更完整产品化能力，例如更丰富日历布局展示
+  - webhook 的更深正式化，例如真实产品报表页、长周期趋势分析与产品化观测面
   - workflow action 的更深产品化能力，例如更多逻辑节点、真实分支控制与更强字段映射体验
   - AI authoring 的更深能力，例如更稳定的 activation-ready 测试编排自动执行与更强 field mapping 自动补全
 - 影响：
   - 当前 automation 已从“只有基础 CRUD / run 入口”推进到“含 AI draft 的 Phase 1.5 闭环”，距离官方产品能力仍有明显差距
   - 前后端展示能力与后端真实可执行能力仍有进一步对齐需求
 - 建议动作：
-  - 先补 schedule 的更完整产品化能力
+  - 继续补 schedule 的更丰富日历布局展示
+  - 继续扩 webhook 审计真实产品报表页与长周期趋势分析
   - 然后继续扩 workflow logic/runtime 的更深能力与 AI activation-ready 编排
 - 建议验证：
   - `pnpm --filter @teable/backend typecheck`
-  - workflow 相关后端聚焦测试
-  - 前端 workflow 页面 typecheck 与聚焦交互测试
+  - `pnpm --filter @teable/backend exec vitest run src/features/workflow/workflow-schedule.service.spec.ts src/features/workflow/workflow.service.spec.ts`
+  - `pnpm --filter @teable/app exec vitest run src/features/app/automation/Pages.spec.ts`
+  - `pnpm --filter @teable/app typecheck`
 
 ### P0-3 V2 还未成为全站统一主契约层
 
@@ -119,6 +118,7 @@
   - `ports-adapters-adoption-roadmap.md`
 - 当前状态：
   - 高价值入口已经大量进入 `packages/v2/contract-http`
+  - workflow schedule 与 webhook trigger 的 v2 handler 契约测试已补齐
   - 多个高层域的真实执行仍依赖 Nest `api/v2` 与既有 V1 service
   - `Aggregation / Search` 的基础 4 个公开入口已进入 v2，但高级聚合仍停留在 v1
   - `Undo / Redo` 的主契约链路已在 v2 完整闭环，仅流式 SSE 仍停留在 v1/openapi 路径
@@ -133,6 +133,9 @@
   - 继续按照领域收口顺序推进 V2 主执行模型
   - 新增能力优先落在 `contract-http + v2 core` 链路
 - 建议验证：
+  - `pnpm --filter @teable/v2-contract-http-implementation exec vitest run src/handlers/workflows/triggerScheduleWorkflow.spec.ts`
+  - `pnpm --filter @teable/v2-contract-http-implementation typecheck`
+  - `pnpm --filter @teable/v2-contract-http typecheck`
   - 各高层域包级 typecheck
   - `pnpm g:typecheck`
 
@@ -159,8 +162,10 @@
 - 当前状态：
   - 已共享 `defaultUrl` 语义
   - published runtime 与 template publish 已围绕默认激活节点 URL 形成最小共享语义
-  - `authenticated` mode 仍是已定义未实现路径
-  - `nodeId` / `defaultNodeId` / `defaultActiveNodeId` 的统一 contract 仍在治理中
+  - authenticated `App` 路由已经接入 `PublishedAppProvider + PublishedAppRuntime`
+  - `template` mode 已接入独立 Published Runtime 消费入口
+  - browser-level 与业务级 monitor 联动验证已补齐，share auth 真实浏览器入口也已补齐真实路由 e2e
+  - 仍缺真实登录与真实业务 fixture 的全链路 e2e
 - 影响：
   - 公开访问链路扩展时容易继续形成局部对齐逻辑
 - 建议动作：
@@ -172,7 +177,7 @@
 - 当前证据：`workflow-domain-governance-roadmap.md`
 - 当前状态：
   - 后端入口已形成第一批闭环
-  - 前端已具备 list / detail / test / run history 的最小一体化工作区
+  - 前端已具备 list / detail / test / run history 的最小一体化工作区，run history 已支持按 trigger 和 status 筛选并区分无运行记录与无筛选结果
   - workflow 页面已新增 `Apply update` 入口，可将 active workflow 的当前 draft 发布为新的 active snapshot
   - 节点级编辑当前稳定覆盖 `recordCreated` / `recordUpdated` / `recordMatchesConditions` trigger scope、Run Script、AI Generate，以及 `updateRecords` / `createRecords` / `queryRecords` 的结构化 editor + JSON editor
   - workflow 页面已支持 `test run` 自定义 JSON input 编辑，可直接验证不同触发输入形态
@@ -188,26 +193,30 @@
 - 类别：稳定性缺口
 - 当前证据：`observability-and-adapter-validation-plan.md`
 - 当前状态：
-  - 有验证计划
-  - 未见正式 smoke matrix 落地结果
+  - `multi-adapter-smoke-matrix.md` 已创建
+  - Express + PostgreSQL 已固化为当前可验证组合
+  - V2 Express/Fastify/Hono contract adapters 已通过 workflow 或 settings/templates/share 代表路由独立 smoke 验证
+  - Express + SQLite、Fastify + PostgreSQL、Fastify + SQLite 仍缺正式 smoke 入口
 - 影响：
   - 适配声明存在，真实组合稳定性缺少证据
 - 建议动作：
-  - 先落三组最小组合：Express + PostgreSQL、Express + SQLite、Fastify + PostgreSQL
-  - 产出 `multi-adapter-smoke-matrix.md`
+  - 继续补 Express + SQLite、Fastify + PostgreSQL、Fastify + SQLite 的正式 smoke 入口与 CI 化验证
 
-### P1-5 观测能力仍缺少统一产品级运行视图
+### P1-5 观测能力已完成第一版统一索引，剩余产品级深化入口
 
 - 类别：能力缺口
 - 当前证据：`observability-and-adapter-validation-plan.md`
 - 当前状态：
   - 日志、OTel、Sentry、health 已存在
-  - 产品化索引和运行面仍未成型
+  - `runtime-observability-index.md` 已创建，产品可见状态、研发运行状态、适配验证状态已完成第一版分层统一
+  - schedule next-run preview、按 cron/timezone 计算的 upcoming runs 列表和 webhook run input audit 已可见，webhook run detail 已结构化展示签名 header、时间戳 header、签名验证状态、body size 与 rate limit，run history 已支持 trigger/status/webhook audit 服务端筛选
+  - webhook 后端签名辅助工具已单点化，覆盖 payload 拼接、HMAC-SHA256、`sha256=` 前缀兼容、timestamp tolerance 和自定义签名 header 读取
+  - `@teable/openapi` 已提供 webhook 签名 helper，`triggerWebhookWorkflow` 可自动生成默认或自定义签名头
+  - 剩余缺口集中在真实用户态 e2e、webhook 审计分页/聚合报表、多适配器 smoke matrix 的 CI 化
 - 影响：
   - 研发侧可观测，产品级运行状态表达仍偏散
 - 建议动作：
-  - 产出 `runtime-observability-index.md`
-  - 把产品可见状态、研发运行状态、适配验证状态分层统一
+  - 继续把 webhook 审计分页/聚合报表和多适配器 smoke matrix CI 化纳入统一索引
 
 ### P1-6 Billing & Usage 仍是边界受限的外围查询域
 
@@ -227,19 +236,19 @@
 
 ## 5. P2 与局部工程欠账
 
-### P2-1 v2 `updateField` e2e helper 仍是预留实现
+### P2-1 v2 `updateField` e2e helper 已完成
 
 - 文件：`packages/v2/e2e/src/update-field/helpers.ts`
-- 证据：注释明确写明待 `updateField endpoint` 完整接入后实现
-- 建议动作：补齐 endpoint 后同步落地 helper 和 e2e
+- 证据：`updateField` helper 已接入真实 `/tables/updateField` HTTP endpoint，`event-shape.spec.ts` 已复用 helper
+- 建议动作：后续新增 update-field e2e 场景继续复用 helper
 
-### P2-2 record 读取职责仍待继续拆分
+### P2-2 record 低耦合读取职责已拆分，复杂查询编排进入后续边界
 
 - 文件：`apps/nestjs-backend/src/features/record/record-query.service.ts`
-- 证据：文件头 TODO 指向 read related 迁移
-- 建议动作：继续把 record read 链路向 query service / 专项读取层收束
+- 证据：低耦合读取原语已迁入 `RecordQueryService`，文件头 read related TODO 已移除
+- 建议动作：后续单独评估 `buildFilterSortQuery`、`getGroupRelatedData`、`getDocIdsByQuery` 等复杂查询编排边界
 
-### P2-3 前端若干功能存在局部待完善点
+### P2-3 前端若干功能局部欠账已部分收口
 
 - 代表文件：
   - `apps/nextjs-app/src/features/app/blocks/chart/components/chart/ChartQuery.tsx`
@@ -248,9 +257,9 @@
   - `apps/nextjs-app/src/features/app/components/plugin/hooks/useUtilsEvent.ts`
   - `apps/nextjs-app/src/features/app/components/field-setting/options/UserOptions.tsx`
 - 影响：
-  - 局部体验、交互或数据获取链路仍是最小可用态
+  - chart 初始化、combo x-axis 约束和 grid collaborator overlay 性能热点已收口
 - 建议动作：
-  - 按业务域拆成 chart / import / plugin / user options 的小批次收口
+  - 剩余 import / plugin / user options 等局部体验按业务域小批次收口
 
 ### P2-4 公式 / 计算字段 / 事件总线仍有局部增强点
 

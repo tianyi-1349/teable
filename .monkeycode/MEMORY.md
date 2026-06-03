@@ -31,6 +31,14 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[每完成一个任务同步当前完成百分比]
+- Date: 2026-05-27
+- Context: 用户要求以后每完成一个任务，都必须提示当前已完成进度的百分比，并澄清该百分比按整个任务总目标计算
+- Instructions:
+  - 每当完成一个明确任务项时，在对用户的进度同步或结果回复中给出整个任务的当前完成百分比
+  - 完成百分比应基于当前整轮任务总目标估算，并随阶段性任务完成即时更新
+  - 子任务完成时同步的是整轮任务总进度百分比
+
 [base-duplicate CI 稳定性任务使用轻量 SDD 与主线交付协议]
 - Date: 2026-05-23
 - Context: 用户明确要求本任务启动轻量 SDD 模式，并指定遵循主线交付判定协议与 GPT-5.5 主线代码实施手册
@@ -419,6 +427,32 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 守卫侧优先依赖 `@Public()` 和精确路径列表，不使用宽泛的路径前缀放行
   - 当 publishedApps 新增公开接口时，先补精确路由白名单，再补回归测试
 
+[Published Runtime 当前入口边界]
+- Date: 2026-05-27
+- Context: Agent 在核实 Published App Runtime backlog 真实状态时发现
+- Category: 代码模式
+- Instructions:
+  - Published Runtime 当前真实消费入口有两条：share 路由全链路入口，以及 authenticated `App` 路由入口
+  - `apps/nextjs-app/src/features/app/layouts/ShareBaseLayout.tsx` 已挂载 `PublishedAppProvider + PublishedAppRuntime`
+  - `apps/nextjs-app/src/features/app/layouts/BaseLayout.tsx` 当前只在 `resource.resourceType === BaseNodeResourceType.App` 时挂载 Published Runtime
+  - `template` mode 目前只保留在 manifest 类型层，后续判断缺口时应视为统一访问模型治理尾差，而不是 Published Runtime 主线整体未落地
+
+[当前轮次先做计划并在落代码前确认]
+- Date: 2026-05-27
+- Context: 用户要求先继续做计划，暂不落代码，并在真正开始代码修改前先通知确认
+- Instructions:
+  - 当前轮次先进行只读分析、实施规划和验证方案设计
+  - 在真正开始任何代码修改前，先单独通知用户并等待确认
+  - 未获得确认前，保持文档规划和方案收敛，不进入代码实施
+
+[进入实施后持续执行直到任务全部完成]
+- Date: 2026-05-27
+- Context: 用户要求在开始执行后持续彻底完成全部任务，中间不必停留询问，直到任务全部完成为止
+- Instructions:
+  - 一旦进入实施阶段，沿既定主线持续推进实现、验证、文档回写和最终收口，直到任务全部完成
+  - 中间进度同步只用于报告事实，不作为暂停点
+  - 仅在真实冲突、硬阻塞或关键事实变化导致既定方案失效时，才停下并重新确认
+
 [品牌化提示词包用于风格倾向，不覆盖产品约束]
 - Date: 2026-05-06
 - Context: Agent 为当前仓库生成可执行品牌化提示词包时固化
@@ -641,6 +675,13 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 根 `package.json` 中会并发跑 workspace 任务的脚本优先使用 `pnpm --workspace-concurrency=2`
   - 对长期运行、lint、typecheck、test-unit、build、clean 等全仓脚本，默认将并发上限控制在 2
+
+[Agent 审计并行线程上限控制为 2]
+- Date: 2026-06-03
+- Context: 用户指出并行线程不能超过 2 个，以避免占耗内存
+- Instructions:
+  - 执行全仓审计、subagent review、并行搜索或并行命令时，最多同时启动 2 个并行线程
+  - 超过 2 个独立任务时分批执行，优先保持审计质量和内存稳定性
 
 [未进 PR 的内容需按全局性一致性稳定性重检后再决定是否提交]
 - Date: 2026-05-18
