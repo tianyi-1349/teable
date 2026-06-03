@@ -8,7 +8,7 @@ describe('DeleteSelectionProgressDialog', () => {
     vi.useRealTimers();
   });
 
-  it('renders a safe zero-progress state without error details', async () => {
+  it('renders a safe zero-progress state without error details', () => {
     render(
       <DeleteSelectionProgressDialog
         open
@@ -20,8 +20,6 @@ describe('DeleteSelectionProgressDialog', () => {
         onOpenChange={() => undefined}
       />
     );
-
-    await screen.findByText('table:table.actionTips.deleting');
 
     expect(screen.getByText('table:table.actionTips.deleting')).toBeInTheDocument();
     expect(screen.getByText('table:table.actionTips.deleteStream.deleting')).toBeInTheDocument();
