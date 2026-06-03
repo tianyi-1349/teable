@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/naming-convention */
 import { mockDeep, mockReset } from 'vitest-mock-extended';
-import { CacheService } from '../../../cache/cache.service';
+import type { CacheService } from '../../../cache/cache.service';
 import type { IAuthConfig } from '../../../configs/auth.config';
 import type { ISessionData } from '../../../types/session';
 import { SessionStoreService } from './session-store.service';

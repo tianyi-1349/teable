@@ -7,7 +7,7 @@ import { Knex } from 'knex';
 import { has, intersection, isEmpty, keyBy, uniq } from 'lodash';
 import { InjectModel } from 'nest-knexjs';
 import { NotificationService } from '../../features/notification/notification.service';
-import { RecordService } from '../../features/record/record.service';
+import { RecordQueryService } from '../../features/record/record-query.service';
 import type { IChangeRecord, IChangeValue, RecordCreateEvent, RecordUpdateEvent } from '../events';
 import { Events } from '../events';
 
@@ -31,7 +31,7 @@ export class CollaboratorNotificationListener {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly notificationService: NotificationService,
-    private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     @InjectModel('CUSTOM_KNEX') private readonly knex: Knex
   ) {}
 
@@ -89,7 +89,7 @@ export class CollaboratorNotificationListener {
     );
     const recordTitles =
       recordIdsNeedingTitles.length > 0
-        ? await this.recordService.getRecordsHeadWithIds(tableId, recordIdsNeedingTitles)
+        ? await this.recordQueryService.getRecordsHeadWithIds(tableId, recordIdsNeedingTitles)
         : [];
     const recordTitlesMap = keyBy(recordTitles, 'id');
 

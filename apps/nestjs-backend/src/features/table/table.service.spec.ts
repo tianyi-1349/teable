@@ -1,9 +1,10 @@
-import { PrismaService } from '@teable/db-main-prisma';
+import type { PrismaService } from '@teable/db-main-prisma';
 import type { Knex } from 'knex';
-import { ClsService } from 'nestjs-cls';
+import type { ClsService } from 'nestjs-cls';
 import { mockDeep } from 'vitest-mock-extended';
 import type { IDbProvider } from '../../db-provider/db.provider.interface';
-import { BatchService } from '../calculation/batch.service';
+import type { IClsStore } from '../../types/cls';
+import type { BatchService } from '../calculation/batch.service';
 import { TableService } from './table.service';
 
 describe('TableService', () => {
@@ -11,7 +12,7 @@ describe('TableService', () => {
 
   beforeEach(async () => {
     service = new TableService(
-      mockDeep<ClsService>(),
+      mockDeep<ClsService<IClsStore>>(),
       mockDeep<PrismaService>(),
       mockDeep<BatchService>(),
       mockDeep<IDbProvider>(),

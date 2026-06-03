@@ -22,6 +22,8 @@ describe('FieldOpenApiService', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
+      {} as never,
       {} as never
     );
   });

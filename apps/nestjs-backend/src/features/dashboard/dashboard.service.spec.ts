@@ -1,8 +1,9 @@
-import { PrismaService } from '@teable/db-main-prisma';
-import { ClsService } from 'nestjs-cls';
+import type { PrismaService } from '@teable/db-main-prisma';
+import type { ClsService } from 'nestjs-cls';
 import { mockDeep } from 'vitest-mock-extended';
-import { BaseImportService } from '../base/base-import.service';
-import { CollaboratorService } from '../collaborator/collaborator.service';
+import type { IClsStore } from '../../types/cls';
+import type { BaseImportService } from '../base/base-import.service';
+import type { CollaboratorService } from '../collaborator/collaborator.service';
 import { DashboardService } from './dashboard.service';
 
 describe('DashboardService', () => {
@@ -11,7 +12,7 @@ describe('DashboardService', () => {
   beforeEach(async () => {
     service = new DashboardService(
       mockDeep<PrismaService>(),
-      mockDeep<ClsService>(),
+      mockDeep<ClsService<IClsStore>>(),
       mockDeep<CollaboratorService>(),
       mockDeep<BaseImportService>()
     );

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { IAttachmentCellValue, IRecord } from '@teable/core';
 import { FieldType } from '@teable/core';
-import { PrismaService } from '@teable/db-main-prisma';
+import type { PrismaService } from '@teable/db-main-prisma';
 import type { Mock } from 'vitest';
 import { vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
