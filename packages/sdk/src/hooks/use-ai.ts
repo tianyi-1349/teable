@@ -4,27 +4,69 @@ import { useTranslation } from '../context/app/i18n';
 import type { ILocaleFunction } from '../context/app/i18n';
 import { useBaseId } from './use-base-id';
 
+const aiStreamErrorKeywords = [
+  'stream_read_error',
+  'stream read error',
+  'upstream_error',
+  'execution failed',
+];
+
+const errorMessageKeys = ['message', 'code', 'type', 'error'] as const;
+
+const getErrorMessageParts = (error: unknown, depth = 0): string[] => {
+  if (depth > 4 || error == null) {
+    return [];
+  }
+
+  if (error instanceof Error) {
+    return [error.message, ...getErrorMessageParts(error.cause, depth + 1)].filter(Boolean);
+  }
+
+  if (typeof error === 'string') {
+    const parts = [error];
+
+    try {
+      parts.push(...getErrorMessageParts(JSON.parse(error), depth + 1));
+    } catch {
+      // Keep the raw string when it is not JSON.
+    }
+
+    return parts;
+  }
+
+  if (typeof error !== 'object') {
+    return [String(error)];
+  }
+
+  return errorMessageKeys.flatMap((key) =>
+    getErrorMessageParts((error as Record<string, unknown>)[key], depth + 1)
+  );
+};
+
+const isAiStreamExecutionError = (error: unknown): boolean => {
+  const normalizedMessage = getErrorMessageParts(error).join(' ').toLowerCase();
+
+  return aiStreamErrorKeywords.some((keyword) => normalizedMessage.includes(keyword));
+};
+
 const getFriendlyAiErrorMessage = (error: unknown, t: ILocaleFunction): string => {
-  if (!(error instanceof Error) || !error.message) {
+  const [rawMessage] = getErrorMessageParts(error).filter(Boolean);
+
+  if (!rawMessage) {
     return String(t('httpErrors.ai.generateFailed'));
   }
 
-  const normalizedMessage = error.message.toLowerCase();
-
-  if (
-    normalizedMessage.includes('stream_read_error') ||
-    normalizedMessage.includes('stream read error') ||
-    normalizedMessage.includes('upstream_error') ||
-    normalizedMessage.includes('execution failed')
-  ) {
+  if (isAiStreamExecutionError(error)) {
     return String(t('httpErrors.networkError'));
   }
+
+  const normalizedMessage = rawMessage.toLowerCase();
 
   if (normalizedMessage.includes('abort')) {
     return String(t('httpErrors.ai.generateStopped'));
   }
 
-  return error.message;
+  return rawMessage;
 };
 
 const getResponseErrorMessage = async (response: Response): Promise<string> => {
@@ -32,7 +74,7 @@ const getResponseErrorMessage = async (response: Response): Promise<string> => {
     const errorPayload = (await response.json()) as { message?: string; code?: string };
 
     if (typeof errorPayload.message === 'string' && errorPayload.message) {
-      return errorPayload.message;
+      return [errorPayload.code, errorPayload.message].filter(Boolean).join(' ');
     }
 
     if (typeof errorPayload.code === 'string' && errorPayload.code) {
