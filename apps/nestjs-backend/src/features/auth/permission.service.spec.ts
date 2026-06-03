@@ -1,17 +1,17 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { JwtService } from '@nestjs/jwt';
 import type { Action } from '@teable/core';
 import { Role, getPermissions } from '@teable/core';
-import { PrismaService } from '@teable/db-main-prisma';
-import { JwtService } from '@nestjs/jwt';
+import type { PrismaService } from '@teable/db-main-prisma';
 import { noop } from 'lodash';
-import { ClsService } from 'nestjs-cls';
+import type { ClsService } from 'nestjs-cls';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import { getError } from '../../../test/utils/get-error';
 import type { IClsStore } from '../../types/cls';
-import { CollaboratorModel } from '../model/collaborator';
-import { TemplateModel } from '../model/template';
+import type { CollaboratorModel } from '../model/collaborator';
+import type { TemplateModel } from '../model/template';
 import { PermissionService } from './permission.service';
 
 describe('PermissionService', () => {

@@ -22,22 +22,22 @@ import {
   getPermissions,
   Role,
 } from '@teable/core';
-import { PrismaService } from '@teable/db-main-prisma';
+import type { PrismaService } from '@teable/db-main-prisma';
 import { RangeType } from '@teable/openapi';
-import type { IThresholdConfig } from '../../configs/threshold.config';
-import { EventEmitterService } from '../../event-emitter/event-emitter.service';
-import { ClsService } from 'nestjs-cls';
+import type { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
+import type { IThresholdConfig } from '../../configs/threshold.config';
+import type { EventEmitterService } from '../../event-emitter/event-emitter.service';
 import type { IClsStore } from '../../types/cls';
 import type { IAggregationService } from '../aggregation/aggregation.service.interface';
-import { FieldCreatingService } from '../field/field-calculate/field-creating.service';
-import { FieldSupplementService } from '../field/field-calculate/field-supplement.service';
-import { FieldService } from '../field/field.service';
+import type { FieldCreatingService } from '../field/field-calculate/field-creating.service';
+import type { FieldSupplementService } from '../field/field-calculate/field-supplement.service';
+import type { FieldService } from '../field/field.service';
 import { createFieldInstanceByVo } from '../field/model/factory';
-import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
-import { RecordService } from '../record/record.service';
+import type { RecordOpenApiService } from '../record/open-api/record-open-api.service';
+import type { RecordService } from '../record/record.service';
 import { SelectionService } from './selection.service';
 
 describe('selectionService', () => {

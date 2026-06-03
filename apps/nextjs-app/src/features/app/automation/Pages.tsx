@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   IWorkflowDetailVo,
   IWorkflowNode,
+  IWorkflowRunListQuery,
   IWorkflowRunDetailVo,
+  IWorkflowRunWebhookAuditItemVo,
+  IWorkflowRunWebhookAuditSummaryVo,
+  IWorkflowRunVo,
   IWorkflowVo,
 } from '@teable/openapi';
 import {
@@ -17,6 +21,8 @@ import {
   getWorkflowList,
   getWorkflowRun,
   getWorkflowRunList,
+  getWorkflowRunSummary,
+  getWorkflowWebhookAuditList,
   testNodeWorkflow,
   testRunWorkflow,
   triggerEmailReceivedWorkflow,
@@ -75,9 +81,262 @@ type WorkflowRecordActionKind = 'updateRecords' | 'createRecords' | 'queryRecord
 type WorkflowGenericActionKind = 'sendEmail' | 'httpRequest' | 'condition' | 'loop';
 
 type IScheduleTriggerConfig = {
-  mode?: 'manual' | 'interval' | 'cron';
+  mode?: 'manual' | 'interval' | 'cron' | 'oneTime';
   intervalSeconds?: number;
   cron?: string;
+  timezone?: string;
+  runAt?: string;
+};
+
+type WorkflowRunTriggerFilterValue = 'all' | NonNullable<IWorkflowRunListQuery['triggerType']>;
+type WorkflowRunStatusFilterValue = 'all' | string;
+type WorkflowRunWebhookAuditFilterValue =
+  | 'all'
+  | 'signatureRequired'
+  | 'signatureVerified'
+  | 'timestampHeaderPresent'
+  | 'rateLimited';
+
+type IParsedWorkflowCron = {
+  minute: Set<number>;
+  hour: Set<number>;
+  day: Set<number>;
+  month: Set<number>;
+  weekday: Set<number>;
+};
+
+const cronPartCount = 5;
+const defaultScheduleTimezone = 'UTC';
+const scheduleTimezoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+const getScheduleTimezone = (timezone?: string) => timezone?.trim() || defaultScheduleTimezone;
+
+const isValidScheduleTimezone = (timezone: string) => {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const addScheduleCronRange = (
+  values: Set<number>,
+  min: number,
+  max: number,
+  start: number,
+  end: number,
+  step = 1
+) => {
+  if (start < min || end > max || start > end || step < 1) {
+    return false;
+  }
+  for (let value = start; value <= end; value += step) {
+    values.add(value);
+  }
+  return true;
+};
+
+const parseScheduleCronSegment = (
+  values: Set<number>,
+  segment: string,
+  min: number,
+  max: number
+) => {
+  const [rangePart, stepPart] = segment.split('/');
+  const step = stepPart == null ? 1 : Number(stepPart);
+  if (!Number.isInteger(step) || step < 1) {
+    return false;
+  }
+
+  if (rangePart === '*') {
+    return addScheduleCronRange(values, min, max, min, max, step);
+  }
+
+  if (rangePart.includes('-')) {
+    const [start, end] = rangePart.split('-').map(Number);
+    return (
+      Number.isInteger(start) &&
+      Number.isInteger(end) &&
+      addScheduleCronRange(values, min, max, start, end, step)
+    );
+  }
+
+  const value = Number(rangePart);
+  return Number.isInteger(value) && addScheduleCronRange(values, min, max, value, value, step);
+};
+
+const parseScheduleCronField = (
+  field: string,
+  min: number,
+  max: number
+): Set<number> | undefined => {
+  const values = new Set<number>();
+
+  for (const rawSegment of field.split(',')) {
+    const segment = rawSegment.trim();
+    if (!segment || !parseScheduleCronSegment(values, segment, min, max)) {
+      return undefined;
+    }
+  }
+
+  return values.size ? values : undefined;
+};
+
+export const parseScheduleCron = (cron: string): IParsedWorkflowCron | undefined => {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== cronPartCount) {
+    return undefined;
+  }
+
+  const [minute, hour, day, month, weekday] = parts;
+  const minuteSet = parseScheduleCronField(minute, 0, 59);
+  const hourSet = parseScheduleCronField(hour, 0, 23);
+  const daySet = parseScheduleCronField(day, 1, 31);
+  const monthSet = parseScheduleCronField(month, 1, 12);
+  const weekdaySet = parseScheduleCronField(weekday, 0, 7);
+
+  if (!minuteSet || !hourSet || !daySet || !monthSet || !weekdaySet) {
+    return undefined;
+  }
+
+  return {
+    minute: minuteSet,
+    hour: hourSet,
+    day: daySet,
+    month: monthSet,
+    weekday: weekdaySet,
+  };
+};
+
+const getScheduleTimezoneParts = (date: Date, timezone: string) => {
+  let formatter = scheduleTimezoneFormatterCache.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      minute: 'numeric',
+      hour: 'numeric',
+      day: 'numeric',
+      month: 'numeric',
+      weekday: 'short',
+      hourCycle: 'h23',
+    });
+    scheduleTimezoneFormatterCache.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(value('weekday'));
+
+  return {
+    minute: Number(value('minute')),
+    hour: Number(value('hour')),
+    day: Number(value('day')),
+    month: Number(value('month')),
+    weekday,
+  };
+};
+
+const matchesScheduleCron = (
+  cron: IParsedWorkflowCron,
+  parts: ReturnType<typeof getScheduleTimezoneParts>
+) => {
+  const weekday = parts.weekday === 0 ? 7 : parts.weekday;
+  return (
+    cron.minute.has(parts.minute) &&
+    cron.hour.has(parts.hour) &&
+    cron.day.has(parts.day) &&
+    cron.month.has(parts.month) &&
+    (cron.weekday.has(parts.weekday) || cron.weekday.has(weekday))
+  );
+};
+
+const getOneTimeScheduleNextRunAt = (config: IScheduleTriggerConfig, now: Date) => {
+  const runAt = config.runAt ? new Date(config.runAt) : undefined;
+  return runAt && Number.isFinite(runAt.getTime()) && runAt.getTime() > now.getTime()
+    ? runAt.toISOString()
+    : undefined;
+};
+
+const getIntervalScheduleNextRunAt = (config: IScheduleTriggerConfig, now: Date) => {
+  const intervalSeconds = Math.floor(config.intervalSeconds ?? 0);
+  return intervalSeconds > 0
+    ? new Date(now.getTime() + intervalSeconds * 1000).toISOString()
+    : undefined;
+};
+
+export const getScheduleNextRunAt = (config: IScheduleTriggerConfig, now = new Date()) => {
+  if (config.mode === 'oneTime') {
+    return getOneTimeScheduleNextRunAt(config, now);
+  }
+
+  if (config.mode === 'interval') {
+    return getIntervalScheduleNextRunAt(config, now);
+  }
+
+  if (config.mode !== 'cron' || !config.cron) {
+    return undefined;
+  }
+
+  const timezone = getScheduleTimezone(config.timezone);
+  if (!isValidScheduleTimezone(timezone)) {
+    return undefined;
+  }
+
+  const cron = parseScheduleCron(config.cron);
+  if (!cron) {
+    return undefined;
+  }
+
+  const nextMinute = new Date(now.getTime());
+  nextMinute.setUTCSeconds(0, 0);
+  nextMinute.setUTCMinutes(nextMinute.getUTCMinutes() + 1);
+
+  for (let offset = 0; offset < 366 * 24 * 60; offset += 1) {
+    const candidate = new Date(nextMinute.getTime() + offset * 60 * 1000);
+    const parts = getScheduleTimezoneParts(candidate, timezone);
+    if (matchesScheduleCron(cron, parts)) {
+      return candidate.toISOString();
+    }
+  }
+
+  return undefined;
+};
+
+export const getScheduleNextRunList = (
+  config: IScheduleTriggerConfig,
+  now = new Date(),
+  count = 5
+) => {
+  const limit = Math.max(0, Math.min(20, Math.floor(count)));
+  if (!limit) {
+    return [];
+  }
+
+  if (config.mode === 'interval') {
+    const intervalSeconds = Math.floor(config.intervalSeconds ?? 0);
+    if (intervalSeconds <= 0) {
+      return [];
+    }
+    return Array.from({ length: limit }, (_, index) =>
+      new Date(now.getTime() + intervalSeconds * 1000 * (index + 1)).toISOString()
+    );
+  }
+
+  const runs: string[] = [];
+  let cursor = new Date(now.getTime());
+  for (let index = 0; index < limit; index += 1) {
+    const nextRunAt = getScheduleNextRunAt(config, cursor);
+    if (!nextRunAt) {
+      break;
+    }
+    runs.push(nextRunAt);
+    if (config.mode === 'oneTime') {
+      break;
+    }
+    cursor = new Date(new Date(nextRunAt).getTime() + 60 * 1000);
+  }
+  return runs;
 };
 
 type IWebhookTriggerConfig = {
@@ -277,12 +536,24 @@ const getAutomationStatusLabel = (
   return translated === key ? status : translated;
 };
 
-const buildScheduleTriggerConfig = (
-  scheduleModeDraft: 'manual' | 'interval' | 'cron',
+export const buildScheduleTriggerConfig = (
+  scheduleModeDraft: 'manual' | 'interval' | 'cron' | 'oneTime',
   scheduleIntervalSecondsDraft: string,
-  scheduleCronDraft: string
+  scheduleCronDraft: string,
+  scheduleTimezoneDraft: string,
+  scheduleRunAtDraft = ''
 ): IScheduleTriggerConfig => {
   const nextScheduleConfig: IScheduleTriggerConfig = { mode: scheduleModeDraft };
+  const timezone = scheduleTimezoneDraft.trim();
+
+  if (scheduleModeDraft === 'oneTime') {
+    const runAt = new Date(scheduleRunAtDraft);
+    if (!scheduleRunAtDraft.trim() || !Number.isFinite(runAt.getTime())) {
+      throw new Error('invalid schedule runAt');
+    }
+    nextScheduleConfig.runAt = runAt.toISOString();
+    return nextScheduleConfig;
+  }
 
   if (scheduleModeDraft === 'interval') {
     const intervalSeconds = Number(scheduleIntervalSecondsDraft);
@@ -298,9 +569,259 @@ const buildScheduleTriggerConfig = (
       throw new Error('invalid schedule cron');
     }
     nextScheduleConfig.cron = cron;
+    if (timezone) {
+      nextScheduleConfig.timezone = timezone;
+    }
   }
 
   return nextScheduleConfig;
+};
+
+export const getScheduleNextRunPreview = (
+  scheduleModeDraft: 'manual' | 'interval' | 'cron' | 'oneTime',
+  scheduleIntervalSecondsDraft: string,
+  scheduleCronDraft: string,
+  scheduleTimezoneDraft: string,
+  scheduleRunAtDraft: string,
+  now = new Date()
+) => {
+  try {
+    const config = buildScheduleTriggerConfig(
+      scheduleModeDraft,
+      scheduleIntervalSecondsDraft,
+      scheduleCronDraft,
+      scheduleTimezoneDraft,
+      scheduleRunAtDraft
+    );
+    const nextRunAt = getScheduleNextRunAt(config, now);
+    return nextRunAt ? new Date(nextRunAt).toLocaleString() : '-';
+  } catch {
+    return '-';
+  }
+};
+
+export const getScheduleRunPreviewList = (
+  scheduleModeDraft: 'manual' | 'interval' | 'cron' | 'oneTime',
+  scheduleIntervalSecondsDraft: string,
+  scheduleCronDraft: string,
+  scheduleTimezoneDraft: string,
+  scheduleRunAtDraft: string,
+  now = new Date(),
+  count = 5
+) => {
+  try {
+    const config = buildScheduleTriggerConfig(
+      scheduleModeDraft,
+      scheduleIntervalSecondsDraft,
+      scheduleCronDraft,
+      scheduleTimezoneDraft,
+      scheduleRunAtDraft
+    );
+    return getScheduleNextRunList(config, now, count).map((runAt) =>
+      new Date(runAt).toLocaleString()
+    );
+  } catch {
+    return [];
+  }
+};
+
+type IWebhookAuditSummary = {
+  bodySizeBytes?: number;
+  signatureRequired?: boolean;
+  signatureVerified?: boolean;
+  timestampHeaderPresent?: boolean;
+  signatureHeader?: string;
+  timestampHeader?: string;
+  rateLimit?: number;
+};
+
+export const getWebhookAuditSummary = (input: unknown): IWebhookAuditSummary | undefined => {
+  if (typeof input !== 'object' || input == null) {
+    return undefined;
+  }
+  const context = (input as { __automationContext?: unknown }).__automationContext;
+  if (typeof context !== 'object' || context == null) {
+    return undefined;
+  }
+  const webhook = (context as { webhook?: unknown }).webhook;
+  if (typeof webhook !== 'object' || webhook == null) {
+    return undefined;
+  }
+  return webhook as IWebhookAuditSummary;
+};
+
+export const getWebhookAuditSummaryItems = (
+  input: unknown,
+  t: (key: string, options?: Record<string, string | number>) => string
+) => {
+  const summary = getWebhookAuditSummary(input);
+
+  if (!summary) {
+    return [];
+  }
+
+  const booleanValue = (value: boolean | undefined) =>
+    value == null ? '-' : t(value ? 'automation.page.yes' : 'automation.page.no');
+
+  return [
+    {
+      label: t('automation.page.webhookSignatureHeader'),
+      value: summary.signatureHeader ?? '-',
+    },
+    {
+      label: t('automation.page.webhookTimestampHeader'),
+      value: summary.timestampHeader ?? '-',
+    },
+    {
+      label: t('automation.page.webhookSignatureRequired'),
+      value: booleanValue(summary.signatureRequired),
+    },
+    {
+      label: t('automation.page.webhookSignatureVerified'),
+      value: booleanValue(summary.signatureVerified),
+    },
+    {
+      label: t('automation.page.webhookTimestampHeaderPresent'),
+      value: booleanValue(summary.timestampHeaderPresent),
+    },
+    {
+      label: t('automation.page.webhookBodySizeBytes'),
+      value: summary.bodySizeBytes == null ? '-' : String(summary.bodySizeBytes),
+    },
+    {
+      label: t('automation.page.webhookRateLimit'),
+      value: summary.rateLimit == null ? '-' : String(summary.rateLimit),
+    },
+  ];
+};
+
+const getWorkflowRunWebhookAuditValue = (
+  summary: IWebhookAuditSummary | undefined,
+  filter: WorkflowRunWebhookAuditFilterValue
+) => {
+  if (!summary) {
+    return false;
+  }
+  if (filter === 'signatureRequired') {
+    return summary.signatureRequired === true;
+  }
+  if (filter === 'signatureVerified') {
+    return summary.signatureVerified === true;
+  }
+  if (filter === 'timestampHeaderPresent') {
+    return summary.timestampHeaderPresent === true;
+  }
+  if (filter === 'rateLimited') {
+    return typeof summary.rateLimit === 'number' && summary.rateLimit > 0;
+  }
+  return true;
+};
+
+export const getWorkflowRunSummaryItems = (
+  summary: IWorkflowRunWebhookAuditSummaryVo | undefined,
+  t: (key: string, options?: Record<string, string | number>) => string
+) => {
+  if (!summary) {
+    return [];
+  }
+
+  return [
+    {
+      label: t('automation.page.webhookAuditTotalRuns'),
+      value: String(summary.totalRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditWebhookRuns'),
+      value: String(summary.webhookRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditSignatureRequiredRuns'),
+      value: String(summary.signatureRequiredRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditSignatureVerifiedRuns'),
+      value: String(summary.signatureVerifiedRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditSignatureFailedRuns'),
+      value: String(summary.signatureFailedRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditTimestampHeaderRuns'),
+      value: String(summary.timestampHeaderPresentRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditTimestampHeaderMissingRuns'),
+      value: String(summary.timestampHeaderMissingRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditRateLimitedRuns'),
+      value: String(summary.rateLimitedRuns),
+    },
+    {
+      label: t('automation.page.webhookAuditAverageBodySizeBytes'),
+      value: summary.averageBodySizeBytes == null ? '-' : String(summary.averageBodySizeBytes),
+    },
+    {
+      label: t('automation.page.webhookAuditMaxBodySizeBytes'),
+      value: summary.maxBodySizeBytes == null ? '-' : String(summary.maxBodySizeBytes),
+    },
+    {
+      label: t('automation.page.webhookAuditLatestWebhookRun'),
+      value: summary.latestWebhookRunAt
+        ? new Date(summary.latestWebhookRunAt).toLocaleString()
+        : '-',
+    },
+  ];
+};
+
+export const getWorkflowWebhookAuditItemSummaryItems = (
+  item: IWorkflowRunWebhookAuditItemVo,
+  t: (key: string, options?: Record<string, string | number>) => string
+) => {
+  const booleanValue = (value: boolean | undefined) =>
+    value == null ? '-' : t(value ? 'automation.page.yes' : 'automation.page.no');
+
+  return [
+    {
+      label: t('automation.page.webhookSignatureRequired'),
+      value: booleanValue(item.signatureRequired),
+    },
+    {
+      label: t('automation.page.webhookSignatureVerified'),
+      value: booleanValue(item.signatureVerified),
+    },
+    {
+      label: t('automation.page.webhookTimestampHeaderPresent'),
+      value: booleanValue(item.timestampHeaderPresent),
+    },
+    {
+      label: t('automation.page.webhookBodySizeBytes'),
+      value: item.bodySizeBytes == null ? '-' : String(item.bodySizeBytes),
+    },
+    {
+      label: t('automation.page.webhookRateLimit'),
+      value: item.rateLimit == null ? '-' : String(item.rateLimit),
+    },
+  ];
+};
+
+export const filterWorkflowRuns = <
+  TRun extends Pick<IWorkflowRunVo, 'triggerType' | 'status' | 'input'>,
+>(
+  runs: TRun[],
+  triggerType: WorkflowRunTriggerFilterValue,
+  status: WorkflowRunStatusFilterValue,
+  webhookAudit: WorkflowRunWebhookAuditFilterValue = 'all'
+) => {
+  return runs.filter((run) => {
+    const matchesTrigger = triggerType === 'all' || run.triggerType === triggerType;
+    const matchesStatus = status === 'all' || run.status === status;
+    const matchesWebhookAudit =
+      webhookAudit === 'all' ||
+      getWorkflowRunWebhookAuditValue(getWebhookAuditSummary(run.input), webhookAudit);
+    return matchesTrigger && matchesStatus && matchesWebhookAudit;
+  });
 };
 
 const buildWebhookTriggerConfig = ({
@@ -354,6 +875,8 @@ const buildUpdatedTriggerNodes = ({
   scheduleModeDraft,
   scheduleIntervalSecondsDraft,
   scheduleCronDraft,
+  scheduleTimezoneDraft,
+  scheduleRunAtDraft,
 }: {
   workflow: IWorkflowDetailVo;
   recordTriggerKindDraft: WorkflowRecordTriggerKind;
@@ -366,9 +889,11 @@ const buildUpdatedTriggerNodes = ({
   fieldMappingsDraft: string;
   activationTestInputDraft: string;
   activationChecksDraft: string;
-  scheduleModeDraft: 'manual' | 'interval' | 'cron';
+  scheduleModeDraft: 'manual' | 'interval' | 'cron' | 'oneTime';
   scheduleIntervalSecondsDraft: string;
   scheduleCronDraft: string;
+  scheduleTimezoneDraft: string;
+  scheduleRunAtDraft: string;
 }) => {
   const tableId = recordTriggerTableIdDraft.trim();
   const filter = parseUnknownRecord(recordTriggerFilterDraft);
@@ -419,7 +944,9 @@ const buildUpdatedTriggerNodes = ({
       config: buildScheduleTriggerConfig(
         scheduleModeDraft,
         scheduleIntervalSecondsDraft,
-        scheduleCronDraft
+        scheduleCronDraft,
+        scheduleTimezoneDraft,
+        scheduleRunAtDraft
       ),
     };
   });
@@ -661,9 +1188,11 @@ interface IWorkflowDetailProps {
   recordTriggerTableIdDraft: string;
   recordTriggerKindDraft: WorkflowRecordTriggerKind;
   recordTriggerFilterDraft: string;
-  scheduleModeDraft: 'manual' | 'interval' | 'cron';
+  scheduleModeDraft: 'manual' | 'interval' | 'cron' | 'oneTime';
   scheduleIntervalSecondsDraft: string;
   scheduleCronDraft: string;
+  scheduleTimezoneDraft: string;
+  scheduleRunAtDraft: string;
   isActivating: boolean;
   isApplyingUpdate: boolean;
   isDeactivating: boolean;
@@ -713,9 +1242,11 @@ interface IWorkflowDetailProps {
   onFieldMappingsDraftChange: (value: string) => void;
   onActivationTestInputDraftChange: (value: string) => void;
   onActivationChecksDraftChange: (value: string) => void;
-  onScheduleModeDraftChange: (value: 'manual' | 'interval' | 'cron') => void;
+  onScheduleModeDraftChange: (value: 'manual' | 'interval' | 'cron' | 'oneTime') => void;
   onScheduleIntervalSecondsDraftChange: (value: string) => void;
   onScheduleCronDraftChange: (value: string) => void;
+  onScheduleTimezoneDraftChange: (value: string) => void;
+  onScheduleRunAtDraftChange: (value: string) => void;
   onSaveRecordAction: () => void;
   onSaveGenericAction: () => void;
   onSaveRecordTrigger: () => void;
@@ -1074,6 +1605,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     scheduleModeDraft,
     scheduleIntervalSecondsDraft,
     scheduleCronDraft,
+    scheduleTimezoneDraft,
+    scheduleRunAtDraft,
     isActivating,
     isApplyingUpdate,
     isDeactivating,
@@ -1126,6 +1659,8 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     onScheduleModeDraftChange,
     onScheduleIntervalSecondsDraftChange,
     onScheduleCronDraftChange,
+    onScheduleTimezoneDraftChange,
+    onScheduleRunAtDraftChange,
     onSaveRecordAction,
     onSaveGenericAction,
     onSaveRecordTrigger,
@@ -1181,6 +1716,14 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
     runDetail?.steps.find(
       (step: IWorkflowRunDetailVo['steps'][number]) => step.nodeId === selectedRecordActionNodeId
     );
+  const scheduleRunPreviewList = getScheduleRunPreviewList(
+    scheduleModeDraft,
+    scheduleIntervalSecondsDraft,
+    scheduleCronDraft,
+    scheduleTimezoneDraft,
+    scheduleRunAtDraft
+  );
+  const webhookAuditSummaryItems = getWebhookAuditSummaryItems(runDetail?.input, t);
 
   return (
     <Card className="min-h-0 overflow-hidden">
@@ -1217,6 +1760,27 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                 </div>
                 <pre className="max-h-40 overflow-auto rounded border bg-background p-2 text-xs">
                   {formatJson(selectedNodeDebugRunStep.output)}
+                </pre>
+              </div>
+            )}
+            {runDetail?.triggerType === 'webhook' && runDetail.input != null && (
+              <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+                <div className="text-sm font-medium">{t('automation.page.webhookAudit')}</div>
+                {webhookAuditSummaryItems.length > 0 && (
+                  <div className="grid gap-2 text-xs sm:grid-cols-2">
+                    {webhookAuditSummaryItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between gap-3 rounded border bg-background px-2 py-1"
+                      >
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className="font-mono text-foreground">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <pre className="max-h-40 overflow-auto rounded border bg-background p-2 text-xs">
+                  {formatJson(runDetail.input)}
                 </pre>
               </div>
             )}
@@ -1318,8 +1882,17 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                     <SelectItem value="manual">{t('automation.page.manual')}</SelectItem>
                     <SelectItem value="interval">{t('automation.page.interval')}</SelectItem>
                     <SelectItem value="cron">{t('automation.page.cron')}</SelectItem>
+                    <SelectItem value="oneTime">{t('automation.page.oneTime')}</SelectItem>
                   </SelectContent>
                 </Select>
+                {scheduleModeDraft === 'oneTime' && (
+                  <Input
+                    type="datetime-local"
+                    value={scheduleRunAtDraft}
+                    onChange={(event) => onScheduleRunAtDraftChange(event.target.value)}
+                    className="text-xs"
+                  />
+                )}
                 {scheduleModeDraft === 'interval' && (
                   <Input
                     value={scheduleIntervalSecondsDraft}
@@ -1329,12 +1902,43 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
                   />
                 )}
                 {scheduleModeDraft === 'cron' && (
-                  <Input
-                    value={scheduleCronDraft}
-                    onChange={(event) => onScheduleCronDraftChange(event.target.value)}
-                    placeholder={t('automation.page.cronExample')}
-                    className="text-xs"
-                  />
+                  <div className="space-y-2">
+                    <Input
+                      value={scheduleCronDraft}
+                      onChange={(event) => onScheduleCronDraftChange(event.target.value)}
+                      placeholder={t('automation.page.cronExample')}
+                      className="text-xs"
+                    />
+                    <Input
+                      value={scheduleTimezoneDraft}
+                      onChange={(event) => onScheduleTimezoneDraftChange(event.target.value)}
+                      placeholder={t('automation.page.timezonePlaceholder')}
+                      className="text-xs"
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {t('automation.page.nextRunPreview', {
+                    value: getScheduleNextRunPreview(
+                      scheduleModeDraft,
+                      scheduleIntervalSecondsDraft,
+                      scheduleCronDraft,
+                      scheduleTimezoneDraft,
+                      scheduleRunAtDraft
+                    ),
+                  })}
+                </p>
+                {scheduleRunPreviewList.length > 0 && (
+                  <div className="rounded border bg-background p-2 text-xs text-muted-foreground">
+                    <div className="mb-1 font-medium text-foreground">
+                      {t('automation.page.scheduleCalendarPreview')}
+                    </div>
+                    <ul className="space-y-1">
+                      {scheduleRunPreviewList.map((runAt) => (
+                        <li key={runAt}>{runAt}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 <Button size="sm" variant="outline" onClick={onSaveRecordTrigger}>
                   {t('automation.page.saveTrigger')}
@@ -1847,14 +2451,46 @@ const WorkflowDetail = (props: IWorkflowDetailProps) => {
 };
 
 interface IRunHistoryProps {
-  runs: Array<{ id: string; status: string; durationMs?: number | null }>;
+  runs: IWorkflowRunVo[];
+  filteredRuns: IWorkflowRunVo[];
+  runSummary?: IWorkflowRunWebhookAuditSummaryVo;
+  webhookAuditItems: IWorkflowRunWebhookAuditItemVo[];
+  triggerFilter: WorkflowRunTriggerFilterValue;
+  statusFilter: WorkflowRunStatusFilterValue;
+  webhookAuditFilter: WorkflowRunWebhookAuditFilterValue;
   selectedRunId?: string;
   runDetail?: IWorkflowRunDetailVo;
+  onTriggerFilterChange: (value: WorkflowRunTriggerFilterValue) => void;
+  onStatusFilterChange: (value: WorkflowRunStatusFilterValue) => void;
+  onWebhookAuditFilterChange: (value: WorkflowRunWebhookAuditFilterValue) => void;
   onSelectRun: (runId: string) => void;
 }
 
-const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistoryProps) => {
+const RunHistory = ({
+  runs,
+  filteredRuns,
+  runSummary,
+  webhookAuditItems,
+  triggerFilter,
+  statusFilter,
+  webhookAuditFilter,
+  selectedRunId,
+  runDetail,
+  onTriggerFilterChange,
+  onStatusFilterChange,
+  onWebhookAuditFilterChange,
+  onSelectRun,
+}: IRunHistoryProps) => {
   const { t } = useTranslation('common');
+  const triggerOptions = useMemo(
+    () => Array.from(new Set(runs.map((run) => run.triggerType))).sort(),
+    [runs]
+  );
+  const statusOptions = useMemo(
+    () => Array.from(new Set(runs.map((run) => run.status))).sort(),
+    [runs]
+  );
+  const runSummaryItems = useMemo(() => getWorkflowRunSummaryItems(runSummary, t), [runSummary, t]);
 
   return (
     <Card className="min-h-0 overflow-hidden">
@@ -1862,7 +2498,95 @@ const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistory
         <CardTitle className="text-base">{t('automation.page.runHistory')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 overflow-auto">
-        {runs.map((run) => (
+        {runSummaryItems.length > 0 && (
+          <div className="grid gap-2 rounded-lg border bg-muted/20 p-3 text-xs sm:grid-cols-2">
+            {runSummaryItems.map((item) => (
+              <div key={item.label} className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="font-medium">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {webhookAuditItems.length > 0 && (
+          <div className="space-y-2 rounded-lg border bg-muted/10 p-3">
+            <div className="text-sm font-medium">{t('automation.page.webhookAuditDetails')}</div>
+            {webhookAuditItems.map((item) => (
+              <div
+                key={item.runId}
+                className="space-y-2 rounded-md border bg-background p-2 text-xs"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{item.runId}</span>
+                  <Badge variant="outline">{getAutomationStatusLabel(t, item.status)}</Badge>
+                </div>
+                <div className="text-muted-foreground">
+                  {new Date(item.startedTime).toLocaleString()}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {getWorkflowWebhookAuditItemSummaryItems(item, t).map((summaryItem) => (
+                    <div
+                      key={summaryItem.label}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-muted-foreground">{summaryItem.label}</span>
+                      <span className="font-medium">{summaryItem.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Select value={triggerFilter} onValueChange={onTriggerFilterChange}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('automation.page.filterByTrigger')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('automation.page.allTriggers')}</SelectItem>
+              {triggerOptions.map((triggerType) => (
+                <SelectItem key={triggerType} value={triggerType}>
+                  {getAutomationNodeKindLabel(t, triggerType)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('automation.page.filterByStatus')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('automation.page.allStatuses')}</SelectItem>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {getAutomationStatusLabel(t, status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={webhookAuditFilter} onValueChange={onWebhookAuditFilterChange}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('automation.page.filterByWebhookAudit')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('automation.page.allWebhookAuditRuns')}</SelectItem>
+              <SelectItem value="signatureRequired">
+                {t('automation.page.webhookAuditSignatureRequiredRuns')}
+              </SelectItem>
+              <SelectItem value="signatureVerified">
+                {t('automation.page.webhookAuditSignatureVerifiedRuns')}
+              </SelectItem>
+              <SelectItem value="timestampHeaderPresent">
+                {t('automation.page.webhookAuditTimestampHeaderRuns')}
+              </SelectItem>
+              <SelectItem value="rateLimited">
+                {t('automation.page.webhookAuditRateLimitedRuns')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {filteredRuns.map((run) => (
           <button
             key={run.id}
             className={cn(
@@ -1875,14 +2599,22 @@ const RunHistory = ({ runs, selectedRunId, runDetail, onSelectRun }: IRunHistory
               <span className={cn('font-medium', getStatusTone(run.status))}>
                 {getAutomationStatusLabel(t, run.status)}
               </span>
-              <span className="text-xs text-muted-foreground">{run.durationMs ?? 0} ms</span>
+              <Badge variant="outline">{getAutomationNodeKindLabel(t, run.triggerType)}</Badge>
             </div>
-            <div className="mt-2 truncate text-xs text-muted-foreground">{run.id}</div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="truncate">{run.id}</span>
+              <span>{run.durationMs ?? 0} ms</span>
+            </div>
           </button>
         ))}
         {!runs.length && (
           <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
             {t('automation.page.noRuns')}
+          </div>
+        )}
+        {Boolean(runs.length) && !filteredRuns.length && (
+          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            {t('automation.page.noFilteredRuns')}
           </div>
         )}
         {runDetail && (
@@ -1966,6 +2698,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | undefined>(selectedWorkflowId);
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
+  const [runTriggerFilter, setRunTriggerFilter] = useState<WorkflowRunTriggerFilterValue>('all');
+  const [runStatusFilter, setRunStatusFilter] = useState<WorkflowRunStatusFilterValue>('all');
+  const [runWebhookAuditFilter, setRunWebhookAuditFilter] =
+    useState<WorkflowRunWebhookAuditFilterValue>('all');
   const [draftPrompt, setDraftPrompt] = useState(t('automation.page.defaultDraftPrompt'));
   const [recordTriggerTableId, setRecordTriggerTableId] = useState('');
   const [nameDraft, setNameDraft] = useState('');
@@ -2003,11 +2739,13 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
   const [recordTriggerKindDraft, setRecordTriggerKindDraft] =
     useState<WorkflowRecordTriggerKind>('recordCreated');
   const [recordTriggerFilterDraft, setRecordTriggerFilterDraft] = useState('');
-  const [scheduleModeDraft, setScheduleModeDraft] = useState<'manual' | 'interval' | 'cron'>(
-    'manual'
-  );
+  const [scheduleModeDraft, setScheduleModeDraft] = useState<
+    'manual' | 'interval' | 'cron' | 'oneTime'
+  >('manual');
   const [scheduleIntervalSecondsDraft, setScheduleIntervalSecondsDraft] = useState('60');
   const [scheduleCronDraft, setScheduleCronDraft] = useState('*/5 * * * *');
+  const [scheduleTimezoneDraft, setScheduleTimezoneDraft] = useState('UTC');
+  const [scheduleRunAtDraft, setScheduleRunAtDraft] = useState('');
 
   const listKey = useMemo(() => workflowListQueryKey(baseId), [baseId]);
   const { data: workflows = [] } = useQuery({
@@ -2156,7 +2894,15 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
     setScheduleModeDraft(scheduleConfig.mode ?? 'manual');
     setScheduleIntervalSecondsDraft(String(scheduleConfig.intervalSeconds ?? 60));
     setScheduleCronDraft(scheduleConfig.cron ?? '*/5 * * * *');
-  }, [scheduleConfig.cron, scheduleConfig.intervalSeconds, scheduleConfig.mode]);
+    setScheduleTimezoneDraft(scheduleConfig.timezone ?? 'UTC');
+    setScheduleRunAtDraft(scheduleConfig.runAt ? scheduleConfig.runAt.slice(0, 16) : '');
+  }, [
+    scheduleConfig.cron,
+    scheduleConfig.intervalSeconds,
+    scheduleConfig.mode,
+    scheduleConfig.runAt,
+    scheduleConfig.timezone,
+  ]);
 
   useEffect(() => {
     setWebhookSecretDraft(webhookConfig.secret ?? '');
@@ -2179,17 +2925,49 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
 
   const { data: runs = [] } = useQuery({
     queryKey: selectedId
-      ? workflowRunListQueryKey(baseId, selectedId)
+      ? [
+          ...workflowRunListQueryKey(baseId, selectedId),
+          runTriggerFilter,
+          runStatusFilter,
+          runWebhookAuditFilter,
+        ]
       : ['workflow-run-list-disabled', baseId],
-    queryFn: () => getWorkflowRunList(baseId, selectedId!).then(({ data }) => data),
+    queryFn: () =>
+      getWorkflowRunList(baseId, selectedId!, {
+        ...(runTriggerFilter !== 'all' && { triggerType: runTriggerFilter }),
+        ...(runStatusFilter !== 'all' && { status: runStatusFilter }),
+        ...(runWebhookAuditFilter !== 'all' && { webhookAudit: runWebhookAuditFilter }),
+      }).then(({ data }) => data),
     enabled: Boolean(baseId && selectedId) && !isReadOnlyPreview,
   });
 
+  const { data: runSummary } = useQuery({
+    queryKey: selectedId
+      ? [...workflowRunListQueryKey(baseId, selectedId), 'summary']
+      : ['workflow-run-summary-disabled', baseId],
+    queryFn: () => getWorkflowRunSummary(baseId, selectedId!).then(({ data }) => data),
+    enabled: Boolean(baseId && selectedId) && !isReadOnlyPreview,
+  });
+
+  const { data: webhookAuditList } = useQuery({
+    queryKey: selectedId
+      ? [...workflowRunListQueryKey(baseId, selectedId), 'webhook-audit']
+      : ['workflow-webhook-audit-disabled', baseId],
+    queryFn: () =>
+      getWorkflowWebhookAuditList(baseId, selectedId!, { take: 5 }).then(({ data }) => data),
+    enabled: Boolean(baseId && selectedId) && !isReadOnlyPreview,
+  });
+
+  const filteredRuns = useMemo(
+    () => filterWorkflowRuns(runs, runTriggerFilter, runStatusFilter, runWebhookAuditFilter),
+    [runStatusFilter, runTriggerFilter, runWebhookAuditFilter, runs]
+  );
+
   useEffect(() => {
-    if (!runs.some((run) => run.id === selectedRunId)) {
-      setSelectedRunId(runs[0]?.id);
+    if (!filteredRuns.some((run) => run.id === selectedRunId)) {
+      setSelectedRunId(filteredRuns[0]?.id);
     }
-  }, [runs, selectedRunId]);
+  }, [filteredRuns, selectedRunId]);
 
   const { data: runDetail } = useQuery({
     queryKey:
@@ -2743,6 +3521,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           scheduleModeDraft,
           scheduleIntervalSecondsDraft,
           scheduleCronDraft,
+          scheduleTimezoneDraft,
+          scheduleRunAtDraft,
         });
 
         return updateWorkflow(baseId, workflow.id, { nodes });
@@ -2753,6 +3533,10 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
         }
         if (scheduleModeDraft === 'cron' && !scheduleCronDraft.trim()) {
           toast.error(t('automation.toast.scheduleCronRequired'));
+          return undefined;
+        }
+        if (scheduleModeDraft === 'oneTime') {
+          toast.error(t('automation.toast.scheduleRunAtRequired'));
           return undefined;
         }
         toast.error(t('automation.toast.triggerConfigInvalidJson'));
@@ -2901,6 +3685,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             scheduleModeDraft={scheduleModeDraft}
             scheduleIntervalSecondsDraft={scheduleIntervalSecondsDraft}
             scheduleCronDraft={scheduleCronDraft}
+            scheduleTimezoneDraft={scheduleTimezoneDraft}
+            scheduleRunAtDraft={scheduleRunAtDraft}
             isActivating={activateMutation.isPending}
             isApplyingUpdate={applyUpdateMutation.isPending}
             isDeactivating={deactivateMutation.isPending}
@@ -2953,6 +3739,8 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
             onScheduleModeDraftChange={setScheduleModeDraft}
             onScheduleIntervalSecondsDraftChange={setScheduleIntervalSecondsDraft}
             onScheduleCronDraftChange={setScheduleCronDraft}
+            onScheduleTimezoneDraftChange={setScheduleTimezoneDraft}
+            onScheduleRunAtDraftChange={setScheduleRunAtDraft}
             onSaveRecordAction={() => saveRecordActionMutation.mutate()}
             onSaveGenericAction={() => saveGenericActionMutation.mutate()}
             onSaveRecordTrigger={() => saveRecordTriggerMutation.mutate()}
@@ -2964,8 +3752,17 @@ export function AutomationPage(props: IAutomationPageProps = {}) {
           />
           <RunHistory
             runs={runs}
+            filteredRuns={filteredRuns}
+            runSummary={runSummary}
+            webhookAuditItems={webhookAuditList?.items ?? []}
+            triggerFilter={runTriggerFilter}
+            statusFilter={runStatusFilter}
+            webhookAuditFilter={runWebhookAuditFilter}
             selectedRunId={selectedRunId}
             runDetail={runDetail}
+            onTriggerFilterChange={setRunTriggerFilter}
+            onStatusFilterChange={setRunStatusFilter}
+            onWebhookAuditFilterChange={setRunWebhookAuditFilter}
             onSelectRun={setSelectedRunId}
           />
         </div>

@@ -1,9 +1,11 @@
 import type { IWorkflowDetailVo } from '@teable/openapi';
 
 export type IWorkflowScheduleConfig = {
-  mode?: 'manual' | 'interval' | 'cron';
+  mode?: 'manual' | 'interval' | 'cron' | 'oneTime';
   intervalSeconds?: number;
   cron?: string;
+  timezone?: string;
+  runAt?: string;
 };
 
 export interface IWorkflowScheduleFacade {

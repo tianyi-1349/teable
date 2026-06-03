@@ -11,6 +11,8 @@ export interface IV1WorkflowAdapter {
   listRuns(input: unknown): Promise<unknown>;
   getRun(input: unknown): Promise<unknown>;
   testRun(input: unknown): Promise<unknown>;
+  triggerWebhook(input: unknown): Promise<unknown>;
+  triggerSchedule(input: unknown): Promise<unknown>;
 }
 
 export interface IV1ShareAdapter {

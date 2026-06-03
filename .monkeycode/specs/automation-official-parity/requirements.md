@@ -52,7 +52,7 @@ The implementation shall align with these official capabilities:
 - REQ-TRG-002: The system shall support record-created triggers with optional filter conditions.
 - REQ-TRG-003: The system shall support record-updated triggers with watch fields and optional filter conditions.
 - REQ-TRG-004: The system shall support record-matches-conditions triggers only when a record transitions from not matching to matching.
-- REQ-TRG-005: The system shall support scheduled triggers for minute, hour, day, week, month, and one-time schedules.
+- REQ-TRG-005: The system shall support scheduled triggers with interval, one-time, and strict five-part cron schedules, timezone-aware cron registration, observable next-run metadata, and upcoming run previews.
 - REQ-TRG-006: The system shall support webhook triggers with generated URL, optional Bearer Token, JSON body validation, rate limit, and body size limit.
 - REQ-TRG-007: The system shall support form-submitted triggers when a form view creates a record.
 - REQ-TRG-008: The system shall support email-received triggers through IMAP/Gmail/Outlook polling.

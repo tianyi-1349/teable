@@ -3,6 +3,7 @@ import { axios } from '../../axios';
 import { registerRoute, urlBuilder } from '../../utils';
 import { z } from '../../zod';
 import { workflowRunVoSchema, type IWorkflowRunVo } from './types';
+import { createWorkflowWebhookSignatureHeaders } from './webhook-signature';
 
 export const TRIGGER_WEBHOOK_WORKFLOW = '/base/{baseId}/workflow/{workflowId}/webhook';
 
@@ -62,16 +63,33 @@ export const triggerWebhookWorkflow = async (
     webhookSecret?: string;
     webhookSignature?: string;
     webhookTimestamp?: string;
+    signatureSecret?: string;
+    rawBody?: string;
+    signatureHeader?: string;
+    timestampHeader?: string;
   }
 ) => {
+  const signatureHeaders =
+    headers?.signatureSecret && headers.rawBody
+      ? createWorkflowWebhookSignatureHeaders({
+          secret: headers.signatureSecret,
+          rawBody: headers.rawBody,
+          timestamp: headers.webhookTimestamp,
+          signatureHeader: headers.signatureHeader,
+          timestampHeader: headers.timestampHeader,
+        })
+      : undefined;
+
   return axios.post<IWorkflowRunVo>(
     urlBuilder(TRIGGER_WEBHOOK_WORKFLOW, { baseId, workflowId }),
     body,
     {
       headers: {
         ...(headers?.webhookSecret && { 'x-webhook-secret': headers.webhookSecret }),
-        ...(headers?.webhookSignature && { 'x-webhook-signature': headers.webhookSignature }),
-        ...(headers?.webhookTimestamp && { 'x-webhook-timestamp': headers.webhookTimestamp }),
+        ...(signatureHeaders ?? {
+          ...(headers?.webhookSignature && { 'x-webhook-signature': headers.webhookSignature }),
+          ...(headers?.webhookTimestamp && { 'x-webhook-timestamp': headers.webhookTimestamp }),
+        }),
       },
     }
   );

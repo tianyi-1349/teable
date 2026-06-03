@@ -58,6 +58,7 @@ import { FieldViewSyncService } from '../../field/field-calculate/field-view-syn
 import { FieldService } from '../../field/field.service';
 import type { IFieldInstance } from '../../field/model/factory';
 import { createFieldInstanceByRaw, createFieldInstanceByVo } from '../../field/model/factory';
+import { RecordQueryService } from '../../record/record-query.service';
 import { RecordService } from '../../record/record.service';
 import { createViewInstanceByRaw } from '../model/factory';
 import { ViewService } from '../view.service';
@@ -69,6 +70,7 @@ export class ViewOpenApiService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly viewService: ViewService,
     private readonly fieldService: FieldService,
     private readonly fieldViewSyncService: FieldViewSyncService,
@@ -142,7 +144,7 @@ export class ViewOpenApiService {
   @Timing()
   async manualSort(tableId: string, viewId: string, viewOrderRo: IManualSortRo) {
     const { sortObjs } = viewOrderRo;
-    const dbTableName = await this.recordService.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     const fields = await this.fieldService.getFieldsByQuery(tableId, { viewId });
     const indexField = await this.viewService.getOrCreateViewIndexField(dbTableName, viewId);
 
@@ -613,7 +615,7 @@ export class ViewOpenApiService {
    * shuffle record order
    */
   async shuffleRecords(dbTableName: string, indexField: string) {
-    const recordCount = await this.recordService.getAllRecordCount(dbTableName);
+    const recordCount = await this.recordQueryService.getAllRecordCount(dbTableName);
     if (recordCount > 100_000) {
       throw new CustomHttpException(
         `Not enough gap to shuffle the row here, record count: ${recordCount}`,
@@ -738,7 +740,7 @@ export class ViewOpenApiService {
     const recordIds = orderRo.recordIds;
     const dbTableName = table.dbTableName;
     const orderIndexesBefore = windowId
-      ? await this.recordService.getRecordIndexes(table, recordIds, viewId)
+      ? await this.recordQueryService.getRecordIndexes(table, recordIds, viewId)
       : undefined;
 
     const indexField = await this.viewService.getOrCreateViewIndexField(dbTableName, viewId);
@@ -773,7 +775,11 @@ export class ViewOpenApiService {
     });
 
     if (windowId) {
-      const orderIndexesAfter = await this.recordService.getRecordIndexes(table, recordIds, viewId);
+      const orderIndexesAfter = await this.recordQueryService.getRecordIndexes(
+        table,
+        recordIds,
+        viewId
+      );
       this.eventEmitterService.emitAsync(Events.OPERATION_RECORDS_ORDER_UPDATE, {
         tableId: table.id,
         windowId,
@@ -1008,7 +1014,7 @@ export class ViewOpenApiService {
 
     const res: IGetViewFilterLinkRecordsVo = [];
     for (const [foreignTableId, recordSet] of Object.entries(tableRecordMap)) {
-      const dbTableName = await this.recordService.getDbTableName(foreignTableId);
+      const dbTableName = await this.recordQueryService.getDbTableName(foreignTableId);
 
       const lookupedFieldRaw = lookupFieldRawsMap[foreignTableId];
       if (!lookupedFieldRaw) {

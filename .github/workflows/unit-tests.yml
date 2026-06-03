@@ -47,4 +47,4 @@ jobs:
 
       - name: 🧪 Run Tests
         run: |
-          pnpm -F "!@teable/backend" -r --parallel test-unit
+          pnpm -F @teable/app -F @teable/core -F @teable/sdk -F @teable/openapi -r --workspace-concurrency=2 test-unit

@@ -5,7 +5,7 @@ import { IllustrationPage } from './IllustrationPage';
 
 type Props = {
   statusCode?: number | null;
-  error?: Error;
+  error?: unknown;
   message?: string;
   errorId?: string;
   children?: never;

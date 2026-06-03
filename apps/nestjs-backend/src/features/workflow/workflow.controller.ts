@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type {
   IAiCreateWorkflowDraftRo,
   IDuplicateWorkflowRo,
@@ -6,7 +17,11 @@ import type {
   IWorkflowCapabilitiesVo,
   IWorkflowDetailVo,
   IWorkflowRo,
+  IWorkflowRunListQuery,
   IWorkflowRunDetailVo,
+  IWorkflowRunWebhookAuditListQuery,
+  IWorkflowRunWebhookAuditListVo,
+  IWorkflowRunWebhookAuditSummaryVo,
   IWorkflowRunVo,
   IWorkflowVo,
 } from '@teable/openapi';
@@ -16,6 +31,8 @@ import {
   testNodeWorkflowRoSchema,
   testRunWorkflowRoSchema,
   updateWorkflowRoSchema,
+  workflowRunListQuerySchema,
+  workflowRunWebhookAuditListQuerySchema,
   workflowRoSchema,
 } from '@teable/openapi';
 import type { Request } from 'express';
@@ -73,9 +90,30 @@ export class WorkflowController {
   @Permissions(automationReadPermission)
   getWorkflowRunList(
     @Param('baseId') baseId: string,
-    @Param('workflowId') workflowId: string
+    @Param('workflowId') workflowId: string,
+    @Query(new ZodValidationPipe(workflowRunListQuerySchema)) query: IWorkflowRunListQuery
   ): Promise<IWorkflowRunVo[]> {
-    return this.workflowService.getWorkflowRunList(baseId, workflowId);
+    return this.workflowService.getWorkflowRunList(baseId, workflowId, query);
+  }
+
+  @Get(`${workflowIdParam}/run-summary`)
+  @Permissions(automationReadPermission)
+  getWorkflowRunSummary(
+    @Param('baseId') baseId: string,
+    @Param('workflowId') workflowId: string
+  ): Promise<IWorkflowRunWebhookAuditSummaryVo> {
+    return this.workflowService.getWorkflowRunSummary(baseId, workflowId);
+  }
+
+  @Get(`${workflowIdParam}/webhook-audit`)
+  @Permissions(automationReadPermission)
+  getWorkflowWebhookAuditList(
+    @Param('baseId') baseId: string,
+    @Param('workflowId') workflowId: string,
+    @Query(new ZodValidationPipe(workflowRunWebhookAuditListQuerySchema))
+    query: IWorkflowRunWebhookAuditListQuery
+  ): Promise<IWorkflowRunWebhookAuditListVo> {
+    return this.workflowService.getWorkflowWebhookAuditList(baseId, workflowId, query);
   }
 
   @Get(`${workflowIdParam}/run/:runId`)
@@ -125,6 +163,7 @@ export class WorkflowController {
     @Headers('x-webhook-secret') webhookSecret?: string,
     @Headers('x-webhook-signature') webhookSignature?: string,
     @Headers('x-webhook-timestamp') webhookTimestamp?: string,
+    @Headers() headers?: Record<string, string | string[] | undefined>,
     @Req() req?: Request
   ): Promise<IWorkflowRunVo> {
     const run = await this.workflowService.createWebhookRun(
@@ -134,6 +173,7 @@ export class WorkflowController {
         secret: webhookSecret,
         signature: webhookSignature,
         timestamp: webhookTimestamp,
+        headers,
         rawBody:
           typeof req?.body === 'string' || Buffer.isBuffer(req?.body)
             ? req.body.toString()

@@ -67,6 +67,10 @@ const generateShareUrl = (
   return relativeUrl ? `${origin}${relativeUrl}` : '';
 };
 
+const mapDefaultActiveNodeIdToRuntimeDefaultNodeId = (defaultActiveNodeId?: string | null) => {
+  return defaultActiveNodeId ?? null;
+};
+
 interface IPublishBaseDialogProps {
   children: React.ReactNode;
   onClose: () => void;
@@ -127,21 +131,24 @@ export const PublishBaseDialog = (props: IPublishBaseDialogProps) => {
   });
   const isTemplatePublished = templateDetail?.isPublished;
   const isTemplateFeatured = templateDetail?.featured ?? false;
+  const runtimeDefaultNodeId = useMemo(() => {
+    return mapDefaultActiveNodeIdToRuntimeDefaultNodeId(defaultActiveNodeId);
+  }, [defaultActiveNodeId]);
   const validationResult = useMemo(() => {
     return validatePublishedAppConfig({
       selectedNodeIds,
-      defaultNodeId: defaultActiveNodeId,
+      defaultNodeId: runtimeDefaultNodeId,
       treeItems,
     });
-  }, [defaultActiveNodeId, selectedNodeIds, treeItems]);
+  }, [runtimeDefaultNodeId, selectedNodeIds, treeItems]);
   const visibleValidationIssues = validationResult.issues.filter(
     (issue) => issue.severity !== 'info' || selectedNodeIds.length > 0
   );
   const primaryBlockingIssue =
     validationResult.issues.find((issue) => issue.severity === 'fatal') ||
     validationResult.issues.find((issue) => issue.severity === 'error');
-  const defaultNodeTitle = defaultActiveNodeId
-    ? treeItems[defaultActiveNodeId]?.resourceMeta?.name
+  const defaultNodeTitle = runtimeDefaultNodeId
+    ? treeItems[runtimeDefaultNodeId]?.resourceMeta?.name
     : '';
 
   // Handle template data changes (replaces onSuccess callback removed in React Query v5)

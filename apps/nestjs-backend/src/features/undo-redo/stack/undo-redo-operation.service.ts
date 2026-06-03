@@ -10,6 +10,7 @@ import { Events, IEventRawContext } from '../../../event-emitter/events';
 import { FieldOpenApiV2Service } from '../../field/open-api/field-open-api-v2.service';
 import { FieldOpenApiService } from '../../field/open-api/field-open-api.service';
 import { RecordOpenApiService } from '../../record/open-api/record-open-api.service';
+import { RecordQueryService } from '../../record/record-query.service';
 import { RecordService } from '../../record/record.service';
 import { TableDomainQueryService } from '../../table-domain';
 import { ViewOpenApiService } from '../../view/open-api/view-open-api.service';
@@ -64,6 +65,7 @@ export class UndoRedoOperationService {
     private readonly fieldOpenApiV2Service: FieldOpenApiV2Service,
     private readonly viewOpenApiService: ViewOpenApiService,
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly viewService: ViewService,
     private readonly prismaService: PrismaService,
     private readonly tableDomainQueryService: TableDomainQueryService,
@@ -71,7 +73,7 @@ export class UndoRedoOperationService {
   ) {
     this.createRecords = new CreateRecordsOperation(
       this.recordOpenApiService,
-      this.recordService,
+      this.recordQueryService,
       this.tableDomainQueryService
     );
     this.deleteRecords = new DeleteRecordsOperation(
@@ -79,7 +81,11 @@ export class UndoRedoOperationService {
       this.prismaService,
       this.thresholdConfig
     );
-    this.updateRecords = new UpdateRecordsOperation(this.recordOpenApiService, this.recordService);
+    this.updateRecords = new UpdateRecordsOperation(
+      this.recordOpenApiService,
+      this.recordService,
+      this.tableDomainQueryService
+    );
     this.updateRecordsOrder = new UpdateRecordsOrderOperation(this.viewOpenApiService);
     this.createFields = new CreateFieldsOperation(
       this.fieldOpenApiService,

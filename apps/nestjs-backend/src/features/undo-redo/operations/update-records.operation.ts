@@ -5,6 +5,7 @@ import { OperationName } from '../../../cache/types';
 import type { ICellContext } from '../../calculation/utils/changes';
 import type { RecordOpenApiService } from '../../record/open-api/record-open-api.service';
 import type { RecordService } from '../../record/record.service';
+import type { TableDomainQueryService } from '../../table-domain';
 
 export interface IUpdateRecordsPayload {
   windowId: string;
@@ -20,8 +21,43 @@ export interface IUpdateRecordsPayload {
 export class UpdateRecordsOperation {
   constructor(
     private readonly recordOpenApiService: RecordOpenApiService,
-    private readonly recordService: RecordService
+    private readonly recordService: RecordService,
+    private readonly tableDomainQueryService: TableDomainQueryService
   ) {}
+
+  private async buildWritableRecords(
+    tableId: string,
+    recordIds: string[],
+    fieldIds: string[],
+    cellContexts: ICellContext[] | undefined,
+    ordersMap: IUpdateRecordsOperation['result']['ordersMap'] | undefined,
+    valueKey: 'oldValue' | 'newValue'
+  ) {
+    const table = await this.tableDomainQueryService.getTableDomainById(tableId);
+    const writableFieldIds = new Set(
+      table.fieldList.filter((field) => !field.isComputed).map((field) => field.id)
+    );
+    const effectiveFieldIds = fieldIds.filter((fieldId) => writableFieldIds.has(fieldId));
+    const cellContextMap = keyBy(
+      cellContexts ?? [],
+      (cellContext) => `${cellContext.recordId}-${cellContext.fieldId}`
+    );
+
+    return recordIds.flatMap((recordId) => {
+      const fields = effectiveFieldIds.reduce<Record<string, unknown>>((acc, fieldId) => {
+        const key = `${recordId}-${fieldId}`;
+        const cellContext = cellContextMap[key];
+        if (cellContext) {
+          const value = cellContext[valueKey];
+          acc[fieldId] = value == null ? null : value;
+        }
+        return acc;
+      }, {});
+      const order =
+        valueKey === 'oldValue' ? ordersMap?.[recordId]?.oldOrder : ordersMap?.[recordId]?.newOrder;
+      return Object.keys(fields).length || order ? [{ id: recordId, fields, order }] : [];
+    });
+  }
 
   async event2Operation(payload: IUpdateRecordsPayload): Promise<IUpdateRecordsOperation> {
     const { tableId, recordIds, fieldIds, cellContexts, orderIndexesAfter, orderIndexesBefore } =
@@ -58,29 +94,23 @@ export class UpdateRecordsOperation {
     };
   }
 
-  // TODO: filter out fields that are not in the record, filter out computed fields
   async undo(operation: IUpdateRecordsOperation) {
     const { params, result } = operation;
     const { tableId, recordIds, fieldIds } = params;
     const { cellContexts, ordersMap } = result;
 
-    const cellContextMap = keyBy(
+    const records = await this.buildWritableRecords(
+      tableId,
+      recordIds,
+      fieldIds,
       cellContexts,
-      (cellContext) => `${cellContext.recordId}-${cellContext.fieldId}`
+      ordersMap,
+      'oldValue'
     );
 
-    const records = recordIds.map((recordId) => ({
-      id: recordId,
-      fields: fieldIds.reduce<Record<string, unknown>>((acc, fieldId) => {
-        const key = `${recordId}-${fieldId}`;
-        const cellContext = cellContextMap[key];
-        if (cellContext) {
-          acc[fieldId] = cellContext.oldValue == null ? null : cellContext.oldValue;
-        }
-        return acc;
-      }, {}),
-      order: ordersMap?.[recordId]?.oldOrder,
-    }));
+    if (!records.length) {
+      return operation;
+    }
 
     await this.recordService.updateRecordIndexes(tableId, records);
 
@@ -97,23 +127,18 @@ export class UpdateRecordsOperation {
     const { tableId, recordIds, fieldIds } = params;
     const { cellContexts, ordersMap } = result;
 
-    const cellContextMap = keyBy(
+    const records = await this.buildWritableRecords(
+      tableId,
+      recordIds,
+      fieldIds,
       cellContexts,
-      (cellContext) => `${cellContext.recordId}-${cellContext.fieldId}`
+      ordersMap,
+      'newValue'
     );
 
-    const records = recordIds.map((recordId) => ({
-      id: recordId,
-      fields: fieldIds.reduce<Record<string, unknown>>((acc, fieldId) => {
-        const key = `${recordId}-${fieldId}`;
-        const cellContext = cellContextMap[key];
-        if (cellContext) {
-          acc[fieldId] = cellContext.newValue == null ? null : cellContext.newValue;
-        }
-        return acc;
-      }, {}),
-      order: ordersMap?.[recordId]?.newOrder,
-    }));
+    if (!records.length) {
+      return operation;
+    }
 
     await this.recordService.updateRecordIndexes(tableId, records);
 

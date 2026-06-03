@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '@teable/db-main-prisma';
-import { ClsService } from 'nestjs-cls';
+import type { PrismaService } from '@teable/db-main-prisma';
+import type { ClsService } from 'nestjs-cls';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
+import type { PerformanceCacheService } from '../../performance-cache';
 import type { IClsStore } from '../../types/cls';
-import { PerformanceCacheService } from '../../performance-cache';
-import { AccessTokenModel } from '../model/access-token';
+import type { AccessTokenModel } from '../model/access-token';
 import { AccessTokenService } from './access-token.service';
 
 describe('AccessTokenService', () => {

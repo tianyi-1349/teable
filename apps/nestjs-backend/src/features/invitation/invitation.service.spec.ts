@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { ConfigService } from '@nestjs/config';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { getPermissions, Role } from '@teable/core';
-import { PrismaService } from '@teable/db-main-prisma';
+import type { PrismaService } from '@teable/db-main-prisma';
 import { CollaboratorType, PrincipalType } from '@teable/openapi';
-import { ClsService } from 'nestjs-cls';
+import type { ClsService } from 'nestjs-cls';
 import { vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 import { getError } from '../../../test/utils/get-error';
 import type { IClsStore } from '../../types/cls';
 import { generateInvitationCode } from '../../utils/code-generate';
-import { CollaboratorService } from '../collaborator/collaborator.service';
-import { MailSenderService } from '../mail-sender/mail-sender.service';
-import { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
-import { UserService } from '../user/user.service';
+import type { CollaboratorService } from '../collaborator/collaborator.service';
+import type { MailSenderService } from '../mail-sender/mail-sender.service';
+import type { SettingOpenApiService } from '../setting/open-api/setting-open-api.service';
+import type { UserService } from '../user/user.service';
 import { InvitationService } from './invitation.service';
 
 const mockInvitationId = 'invxxxxxxxxx';

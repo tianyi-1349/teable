@@ -1,5 +1,5 @@
 import { contractColorForTheme } from '@teable/core';
-import { cloneDeep, groupBy, isEqual } from 'lodash';
+import { groupBy, isEqual } from 'lodash';
 import type { IVisibleRegion } from '../../hooks';
 import type { ICell, ICellItem, ICollaborator, ILinearRow } from '../../interface';
 import { LinearRowType } from '../../interface';
@@ -360,8 +360,11 @@ const getVisibleCollaborators = (
       }
       const visibleCell = groupedCollaborators[cell.id];
       if (visibleCell) {
-        const newCell = cloneDeep(visibleCell);
-        newCell[0].activeCell = [i, realIndex];
+        const newCell = visibleCell.map((collaborator, index) =>
+          index === 0
+            ? { ...collaborator, activeCell: [i, realIndex] as [number, number] }
+            : collaborator
+        );
         visibleCells.push(newCell);
       }
     }
@@ -370,7 +373,6 @@ const getVisibleCollaborators = (
   return visibleCells;
 };
 
-// TODO optimize the performance
 export const drawCollaborators = (ctx: CanvasRenderingContext2D, props: ILayoutDrawerProps) => {
   const {
     collaborators,

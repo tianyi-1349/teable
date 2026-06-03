@@ -2,8 +2,8 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { CellValueType, DbFieldType, FieldType, OpName } from '@teable/core';
-import { PrismaService } from '@teable/db-main-prisma';
 import type { IFieldVo, INumberFormatting, ISetFieldPropertyOpContext } from '@teable/core';
+import { PrismaService } from '@teable/db-main-prisma';
 import type { Knex } from 'knex';
 import { ClsService } from 'nestjs-cls';
 import { mockDeep } from 'vitest-mock-extended';

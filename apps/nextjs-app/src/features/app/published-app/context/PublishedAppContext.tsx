@@ -11,7 +11,7 @@ import type { TreeItemData } from '@/features/app/blocks/base/base-node/hooks';
 import { ROOT_ID } from '@/features/app/blocks/base/base-node/hooks';
 import { useBaseResource } from '@/features/app/hooks/useBaseResource';
 import { buildPublishedAppManifest } from '../manifest';
-import type { PublishedAppManifest, PublishedAppNode } from '../manifest';
+import type { PublishedAppManifest, PublishedAppNode, PublishedAppMode } from '../manifest';
 import { buildPublishedNavigation } from '../navigation';
 import type { PublishedNavigationItem, PublishedNavigationModel } from '../navigation';
 import { useIsPwaStandalone } from '../pwa/useIsPwaStandalone';
@@ -47,6 +47,7 @@ export interface PublishedAppProviderProps {
   base?: IGetBaseVo;
   shareId?: string;
   shareNodeId?: string;
+  mode?: PublishedAppMode;
   allowSave?: boolean;
   allowCopy?: boolean;
   allowEdit?: boolean;
@@ -78,6 +79,7 @@ export const PublishedAppProvider = ({
   base,
   shareId,
   shareNodeId,
+  mode,
   allowSave,
   allowCopy,
   allowEdit,
@@ -106,7 +108,7 @@ export const PublishedAppProvider = ({
         allowEdit: canEdit,
         readonly: !canEdit,
       },
-      mode: shareId ? 'share' : 'authenticated',
+      mode: mode ?? (shareId ? 'share' : 'authenticated'),
     });
   }, [
     allowCopy,
@@ -114,6 +116,7 @@ export const PublishedAppProvider = ({
     base?.icon,
     base?.name,
     canEdit,
+    mode,
     resource.baseId,
     shareId,
     shareNodeId,

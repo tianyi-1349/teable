@@ -47,7 +47,13 @@ export const AuthPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <main
+      data-testid="share-auth-view-page"
+      className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+    >
+      <span data-testid="share-id-state" className="sr-only">
+        {String(router.query.shareId ?? 'missing')}
+      </span>
       <div className="w-full max-w-md space-y-8">
         <h2 className="text-center text-3xl font-extrabold">{t('share:auth.title')}</h2>
         <form className="relative space-y-6" onSubmit={onSubmit}>
@@ -63,7 +69,7 @@ export const AuthPage = () => {
                 required
                 type="password"
                 readOnly={isLoading}
-                autoComplete={`${shareId}-password}`}
+                autoComplete={`${shareId}-password`}
               />
             </div>
           </div>
@@ -72,12 +78,15 @@ export const AuthPage = () => {
             {t('share:auth.submit')}
           </Button>
           {error && (
-            <div className="absolute -bottom-1 w-full translate-y-full text-center text-sm text-destructive">
+            <div
+              data-testid="submit-error"
+              className="absolute -bottom-1 w-full translate-y-full text-center text-sm text-destructive"
+            >
               {error}
             </div>
           )}
         </form>
       </div>
-    </div>
+    </main>
   );
 };

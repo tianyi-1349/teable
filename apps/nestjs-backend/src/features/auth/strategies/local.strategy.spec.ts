@@ -2,9 +2,9 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { Request } from 'express';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
-import { CacheService } from '../../../cache/cache.service';
-import { UserService } from '../../user/user.service';
-import { LocalAuthService } from '../local-auth/local-auth.service';
+import type { CacheService } from '../../../cache/cache.service';
+import type { UserService } from '../../user/user.service';
+import type { LocalAuthService } from '../local-auth/local-auth.service';
 import { LocalStrategy } from './local.strategy';
 
 describe('LocalStrategy', () => {

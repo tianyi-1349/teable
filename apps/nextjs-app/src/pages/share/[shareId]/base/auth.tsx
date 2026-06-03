@@ -1,12 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@teable/sdk/context';
 import type { GetServerSideProps } from 'next';
+import { useState } from 'react';
 import { BaseShareAuthPage } from '@/features/app/blocks/share/base/BaseShareAuthPage';
 import { shareConfig } from '@/features/i18n/share.config';
 import { getTranslationsProps } from '@/lib/i18n';
 import withEnv from '@/lib/withEnv';
-
-const queryClient = createQueryClient();
 
 export const getServerSideProps: GetServerSideProps = withEnv(async (context) => {
   const { i18nNamespaces } = shareConfig;
@@ -19,6 +18,8 @@ export const getServerSideProps: GetServerSideProps = withEnv(async (context) =>
 });
 
 export default function ShareBaseAuth() {
+  const [queryClient] = useState(() => createQueryClient());
+
   return (
     <QueryClientProvider client={queryClient}>
       <BaseShareAuthPage />

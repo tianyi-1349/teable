@@ -38,7 +38,6 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage/unit',
-      tempDirectory: './coverage/unit/tmp',
       include: ['src/**/*.{js,ts}'],
     },
     include: testFiles,

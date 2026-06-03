@@ -25,7 +25,6 @@ import {
   TableUpdateFieldNameSpec,
   ViewColumnMeta,
 } from '@teable/v2-core';
-import { UpdateLinkConfigSpec } from '../../../../core/src/domain/table/specs/field-updates/UpdateLinkConfigSpec';
 import type { V1TeableDatabase } from '@teable/v2-postgres-schema';
 import {
   DummyDriver,
@@ -37,6 +36,7 @@ import {
 } from 'kysely';
 import { ok } from 'neverthrow';
 import { describe, expect, it } from 'vitest';
+import { UpdateLinkConfigSpec } from '../../../../core/src/domain/table/specs/field-updates/UpdateLinkConfigSpec';
 
 import { TableMetaUpdateVisitor, type TableUpdateBuilder } from './TableMetaUpdateVisitor';
 

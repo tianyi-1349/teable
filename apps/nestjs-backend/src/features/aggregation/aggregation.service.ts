@@ -45,6 +45,7 @@ import { createFieldInstanceByRaw, type IFieldInstance } from '../field/model/fa
 import type { DateFieldDto } from '../field/model/field-dto/date-field.dto';
 import { InjectRecordQueryBuilder, IRecordQueryBuilder } from '../record/query-builder';
 import { RecordPermissionService } from '../record/record-permission.service';
+import { RecordQueryService } from '../record/record-query.service';
 import { RecordService } from '../record/record.service';
 import { TableIndexService } from '../table/table-index.service';
 import type {
@@ -68,6 +69,7 @@ export class AggregationService implements IAggregationService {
   private logger = new Logger(AggregationService.name);
   constructor(
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly tableIndexService: TableIndexService,
     private readonly prisma: PrismaService,
     @InjectModel('CUSTOM_KNEX') private readonly knex: Knex,
@@ -235,7 +237,7 @@ export class AggregationService implements IAggregationService {
     );
     const allowedFieldIds = permissionProbe.enabledFieldIds;
 
-    const searchFields = await this.recordService.getSearchFields(
+    const searchFields = await this.recordQueryService.getSearchFields(
       fieldInstanceMap,
       search,
       viewId,
@@ -541,7 +543,7 @@ export class AggregationService implements IAggregationService {
     );
 
     if (search && search[2]) {
-      const searchFields = await this.recordService.getSearchFields(
+      const searchFields = await this.recordQueryService.getSearchFields(
         fieldInstanceMap,
         search,
         viewId
@@ -780,7 +782,7 @@ export class AggregationService implements IAggregationService {
       });
     }
 
-    const searchFields = await this.recordService.getSearchFields(
+    const searchFields = await this.recordQueryService.getSearchFields(
       fieldInstanceMap,
       search,
       ignoreViewQuery ? undefined : viewId,
@@ -865,7 +867,7 @@ export class AggregationService implements IAggregationService {
         : queryProjection
       : projection;
 
-    const searchFields = await this.recordService.getSearchFields(
+    const searchFields = await this.recordQueryService.getSearchFields(
       fieldInstanceMap,
       search,
       ignoreViewQuery ? undefined : viewId,
@@ -880,7 +882,10 @@ export class AggregationService implements IAggregationService {
       Object.values(fieldInstanceMap).map((f) => [f.id, `"${f.dbFieldName}"`])
     );
 
-    const basicSortIndex = await this.recordService.getBasicOrderIndexField(dbTableName, viewId);
+    const basicSortIndex = await this.recordQueryService.getBasicOrderIndexField(
+      dbTableName,
+      viewId
+    );
 
     const filterQuery = (qb: Knex.QueryBuilder) => {
       this.dbProvider
@@ -1082,7 +1087,7 @@ export class AggregationService implements IAggregationService {
       );
     }
 
-    const fields = await this.recordService.getFieldsByProjection(tableId);
+    const fields = await this.recordQueryService.getFieldsByProjection(tableId);
     const fieldMap = fields.reduce(
       (map, field) => {
         map[field.id] = field;
@@ -1147,7 +1152,7 @@ export class AggregationService implements IAggregationService {
     }
 
     if (search) {
-      const searchFields = await this.recordService.getSearchFields(
+      const searchFields = await this.recordQueryService.getSearchFields(
         fieldMap,
         search,
         query?.viewId
