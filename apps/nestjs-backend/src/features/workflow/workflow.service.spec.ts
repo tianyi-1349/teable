@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { createHmac } from 'crypto';
 import { HttpErrorCode } from '@teable/core';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { createWorkflowWebhookSignature } from './workflow-webhook-signature';
 import { WorkflowService } from './workflow.service';
 
 describe('WorkflowService', () => {
@@ -142,6 +142,13 @@ describe('WorkflowService', () => {
             source: 'automation',
             workflowId,
             baseId,
+            webhook: expect.objectContaining({
+              bodySizeBytes: 19,
+              signatureRequired: false,
+              signatureVerified: false,
+              timestampHeaderPresent: false,
+              rateLimit: 2,
+            }),
           }),
         }),
         createdBy: userId,
@@ -149,6 +156,105 @@ describe('WorkflowService', () => {
       select: { id: true },
     });
     expect(result).toEqual({ runId });
+  });
+
+  it('records webhook signature audit metadata for successful signed runs', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [{ kind: 'webhook', config: { signatureSecret: 'sig-secret' } }],
+    });
+    cacheService.incr.mockResolvedValue(1);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+    const rawBody = '{"message":"hello"}';
+    const timestamp = `${Math.floor(Date.now() / 1000)}`;
+    const signature = createWorkflowWebhookSignature({
+      secret: 'sig-secret',
+      timestamp,
+      rawBody,
+    });
+
+    await service.createWebhookRun(
+      workflowId,
+      { message: 'hello' },
+      { signature, timestamp, rawBody }
+    );
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          input: expect.objectContaining({
+            __automationContext: expect.objectContaining({
+              webhook: expect.objectContaining({
+                signatureRequired: true,
+                signatureVerified: true,
+                timestampHeaderPresent: true,
+              }),
+            }),
+          }),
+        }),
+      })
+    );
+  });
+
+  it('accepts custom webhook signature and timestamp headers from trigger config', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      activeSnapshotId: 'wsn123',
+      nodes: [
+        {
+          kind: 'webhook',
+          config: {
+            signatureSecret: 'sig-secret',
+            signatureHeader: 'X-Custom-Signature',
+            timestampHeader: 'X-Custom-Timestamp',
+          },
+        },
+      ],
+    });
+    cacheService.incr.mockResolvedValue(1);
+    prismaService.workflowRun.create.mockResolvedValue({ id: runId });
+    const rawBody = '{"message":"hello"}';
+    const timestamp = `${Math.floor(Date.now() / 1000)}`;
+    const signature = createWorkflowWebhookSignature({
+      secret: 'sig-secret',
+      timestamp,
+      rawBody,
+    });
+    const signatureHeader = 'x-custom-signature';
+    const timestampHeader = 'x-custom-timestamp';
+
+    await service.createWebhookRun(
+      workflowId,
+      { message: 'hello' },
+      {
+        rawBody,
+        headers: {
+          [signatureHeader]: `sha256=${signature}`,
+          [timestampHeader]: timestamp,
+        },
+      }
+    );
+
+    expect(prismaService.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          input: expect.objectContaining({
+            __automationContext: expect.objectContaining({
+              webhook: expect.objectContaining({
+                signatureRequired: true,
+                signatureVerified: true,
+                timestampHeaderPresent: true,
+                signatureHeader,
+                timestampHeader,
+              }),
+            }),
+          }),
+        }),
+      })
+    );
   });
 
   it('rejects webhook run when secret does not match trigger config', async () => {
@@ -348,6 +454,217 @@ describe('WorkflowService', () => {
       expect.objectContaining({ where: { workflowId } })
     );
     expect(result).toEqual([{ id: runId, workflowId }]);
+  });
+
+  it('applies workflow run trigger and status filters at query time', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      nodes: [],
+    });
+    prismaService.workflowRun.findMany.mockResolvedValue([{ id: runId, workflowId }]);
+
+    await service.getWorkflowRunList(baseId, workflowId, {
+      triggerType: 'schedule',
+      status: 'success',
+    });
+
+    expect(prismaService.workflowRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { workflowId, triggerType: 'schedule', status: 'success' },
+      })
+    );
+  });
+
+  it('filters workflow run list by webhook audit metadata', async () => {
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      nodes: [],
+    });
+    prismaService.workflowRun.findMany.mockResolvedValue([
+      {
+        id: 'run-with-audit',
+        workflowId,
+        input: {
+          __automationContext: {
+            webhook: { signatureVerified: true, rateLimit: 0 },
+          },
+        },
+      },
+      {
+        id: 'run-without-audit-match',
+        workflowId,
+        input: {
+          __automationContext: {
+            webhook: { signatureVerified: false, rateLimit: 0 },
+          },
+        },
+      },
+    ]);
+
+    const result = await service.getWorkflowRunList(baseId, workflowId, {
+      webhookAudit: 'signatureVerified',
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'run-with-audit',
+      }),
+    ]);
+  });
+
+  it('summarizes workflow webhook audit metadata for recent runs', async () => {
+    const latestWebhookRunAt = new Date('2026-06-02T08:30:00.000Z');
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      nodes: [],
+    });
+    prismaService.workflowRun.findMany.mockResolvedValue([
+      {
+        triggerType: 'webhook',
+        startedTime: latestWebhookRunAt,
+        input: {
+          __automationContext: {
+            webhook: {
+              signatureRequired: true,
+              signatureVerified: true,
+              timestampHeaderPresent: true,
+              bodySizeBytes: 128,
+              rateLimit: 60,
+            },
+          },
+        },
+      },
+      {
+        triggerType: 'webhook',
+        startedTime: new Date('2026-06-02T08:00:00.000Z'),
+        input: {
+          __automationContext: {
+            webhook: {
+              signatureRequired: true,
+              signatureVerified: false,
+              timestampHeaderPresent: false,
+              bodySizeBytes: 32,
+              rateLimit: 0,
+            },
+          },
+        },
+      },
+      {
+        triggerType: 'schedule',
+        startedTime: new Date('2026-06-02T07:30:00.000Z'),
+        input: {},
+      },
+    ]);
+
+    const result = await service.getWorkflowRunSummary(baseId, workflowId);
+
+    expect(prismaService.workflowRun.findMany).toHaveBeenCalledWith({
+      where: { workflowId },
+      select: {
+        triggerType: true,
+        input: true,
+        startedTime: true,
+      },
+      orderBy: { startedTime: 'desc' },
+      take: 100,
+    });
+    expect(result).toEqual({
+      totalRuns: 3,
+      webhookRuns: 2,
+      signatureRequiredRuns: 2,
+      signatureVerifiedRuns: 1,
+      signatureFailedRuns: 1,
+      timestampHeaderPresentRuns: 1,
+      timestampHeaderMissingRuns: 1,
+      rateLimitedRuns: 1,
+      averageBodySizeBytes: 80,
+      maxBodySizeBytes: 128,
+      latestWebhookRunAt,
+    });
+  });
+
+  it('lists paginated workflow webhook audit metadata', async () => {
+    const firstStartedTime = new Date('2026-06-02T08:30:00.000Z');
+    const secondStartedTime = new Date('2026-06-02T08:00:00.000Z');
+    prismaService.workflow.findFirstOrThrow.mockResolvedValue({
+      id: workflowId,
+      baseId,
+      nodes: [],
+    });
+    prismaService.workflowRun.findMany.mockResolvedValue([
+      {
+        id: 'webhook-run-1',
+        status: 'succeeded',
+        startedTime: firstStartedTime,
+        input: {
+          __automationContext: {
+            webhook: {
+              signatureHeader: 'x-custom-signature',
+              timestampHeader: 'x-custom-timestamp',
+              signatureRequired: true,
+              signatureVerified: true,
+              timestampHeaderPresent: true,
+              bodySizeBytes: 128,
+              rateLimit: 60,
+            },
+          },
+        },
+      },
+      {
+        id: 'webhook-run-2',
+        status: 'failed',
+        startedTime: secondStartedTime,
+        input: {
+          __automationContext: {
+            webhook: {
+              signatureRequired: true,
+              signatureVerified: false,
+              timestampHeaderPresent: false,
+              rateLimit: 0,
+            },
+          },
+        },
+      },
+    ]);
+
+    const result = await service.getWorkflowWebhookAuditList(baseId, workflowId, {
+      take: 1,
+      cursor: 'previous-run',
+    });
+
+    expect(prismaService.workflowRun.findMany).toHaveBeenCalledWith({
+      where: { workflowId, triggerType: 'webhook' },
+      select: {
+        id: true,
+        status: true,
+        startedTime: true,
+        input: true,
+      },
+      orderBy: { startedTime: 'desc' },
+      cursor: { id: 'previous-run' },
+      skip: 1,
+      take: 2,
+    });
+    expect(result).toEqual({
+      items: [
+        {
+          runId: 'webhook-run-1',
+          status: 'succeeded',
+          startedTime: firstStartedTime,
+          signatureHeader: 'x-custom-signature',
+          timestampHeader: 'x-custom-timestamp',
+          signatureRequired: true,
+          signatureVerified: true,
+          timestampHeaderPresent: true,
+          bodySizeBytes: 128,
+          rateLimit: 60,
+        },
+      ],
+      nextCursor: 'webhook-run-2',
+    });
   });
 
   it('updates workflow draft nodes without changing active snapshot', async () => {
@@ -604,12 +921,23 @@ describe('WorkflowService', () => {
           workflowId,
           nodeType: 'trigger',
           kind: 'schedule',
-          config: { mode: 'cron', cron: '*/5 * * * *' },
+          config: {
+            mode: 'oneTime',
+            cron: '*/5 * * * *',
+            timezone: 'Asia/Shanghai',
+            runAt: '2026-05-31T00:10:00.000Z',
+          },
         },
       ],
     } as never);
 
-    expect(config).toEqual({ mode: 'cron', cron: '*/5 * * * *', intervalSeconds: undefined });
+    expect(config).toEqual({
+      mode: 'oneTime',
+      cron: '*/5 * * * *',
+      intervalSeconds: undefined,
+      timezone: 'Asia/Shanghai',
+      runAt: '2026-05-31T00:10:00.000Z',
+    });
   });
 
   it('rejects activation without a trigger', async () => {
@@ -954,9 +1282,11 @@ describe('WorkflowService', () => {
 
     const rawBody = '{"message":"hello"}';
     const expiredTimestamp = `${Math.floor(Date.now() / 1000) - 3600}`;
-    const signature = createHmac('sha256', 'sig-secret')
-      .update(`${expiredTimestamp}.${rawBody}`)
-      .digest('hex');
+    const signature = createWorkflowWebhookSignature({
+      secret: 'sig-secret',
+      timestamp: expiredTimestamp,
+      rawBody,
+    });
 
     await expect(
       service.createWebhookRun(

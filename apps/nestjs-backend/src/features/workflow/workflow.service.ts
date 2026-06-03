@@ -1,4 +1,3 @@
-import { createHmac } from 'crypto';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import {
@@ -17,6 +16,11 @@ import type {
   IWorkflowDetailVo,
   IWorkflowRo,
   IWorkflowRunDetailVo,
+  IWorkflowRunListQuery,
+  IWorkflowRunWebhookAuditItemVo,
+  IWorkflowRunWebhookAuditListQuery,
+  IWorkflowRunWebhookAuditListVo,
+  IWorkflowRunWebhookAuditSummaryVo,
   IWorkflowRunVo,
   IWorkflowVo,
 } from '@teable/openapi';
@@ -32,6 +36,10 @@ import { WorkflowAiService } from './workflow-ai.service';
 import { buildWorkflowRunSuccessData } from './workflow-run-state';
 import type { IWorkflowScheduleFacade } from './workflow-schedule.facade';
 import { WorkflowScheduleService } from './workflow-schedule.service';
+import {
+  assertWorkflowWebhookTimestamp,
+  isWorkflowWebhookSignatureMatch,
+} from './workflow-webhook-signature';
 
 type IRecordTriggerType = 'recordCreated' | 'recordUpdated' | 'recordMatchesConditions';
 type IDirectTriggerType =
@@ -55,10 +63,162 @@ type IWebhookTriggerConfig = {
   timestampToleranceSeconds?: number;
 };
 
+type IWebhookAudit = {
+  bodySizeBytes: number;
+  signatureRequired: boolean;
+  signatureVerified: boolean;
+  timestampHeaderPresent: boolean;
+  signatureHeader: string;
+  timestampHeader: string;
+  rateLimit: number;
+};
+
+type IWorkflowRunWithInput = IWorkflowRunVo & { input?: unknown };
+
+const getWebhookAudit = (input: unknown): Partial<IWebhookAudit> | undefined => {
+  if (!input || typeof input !== 'object' || !('__automationContext' in input)) {
+    return undefined;
+  }
+
+  const context = (input as { __automationContext?: unknown }).__automationContext;
+  if (!context || typeof context !== 'object' || !('webhook' in context)) {
+    return undefined;
+  }
+
+  const webhook = (context as { webhook?: unknown }).webhook;
+  return webhook && typeof webhook === 'object' ? (webhook as Partial<IWebhookAudit>) : undefined;
+};
+
+const matchesWebhookAuditFilter = (
+  run: IWorkflowRunWithInput,
+  filter?: IWorkflowRunListQuery['webhookAudit']
+) => {
+  if (!filter) {
+    return true;
+  }
+
+  const audit = getWebhookAudit(run.input);
+  if (!audit) {
+    return false;
+  }
+
+  if (filter === 'signatureRequired') {
+    return audit.signatureRequired === true;
+  }
+  if (filter === 'signatureVerified') {
+    return audit.signatureVerified === true;
+  }
+  if (filter === 'timestampHeaderPresent') {
+    return audit.timestampHeaderPresent === true;
+  }
+  return typeof audit.rateLimit === 'number' && audit.rateLimit > 0;
+};
+
+const getEmptyWebhookAuditSummary = (): IWorkflowRunWebhookAuditSummaryVo => ({
+  totalRuns: 0,
+  webhookRuns: 0,
+  signatureRequiredRuns: 0,
+  signatureVerifiedRuns: 0,
+  signatureFailedRuns: 0,
+  timestampHeaderPresentRuns: 0,
+  timestampHeaderMissingRuns: 0,
+  rateLimitedRuns: 0,
+  averageBodySizeBytes: null,
+  maxBodySizeBytes: null,
+  latestWebhookRunAt: null,
+});
+
+const toWebhookAuditSummary = (
+  runs: Array<Pick<IWorkflowRunVo, 'triggerType' | 'input' | 'startedTime'>>
+): IWorkflowRunWebhookAuditSummaryVo => {
+  let bodySizeTotal = 0;
+  let bodySizeCount = 0;
+  const summary = runs.reduce<IWorkflowRunWebhookAuditSummaryVo>((summary, run) => {
+    summary.totalRuns += 1;
+    if (run.triggerType !== 'webhook') {
+      return summary;
+    }
+
+    summary.webhookRuns += 1;
+    summary.latestWebhookRunAt ??= run.startedTime;
+
+    const audit = getWebhookAudit(run.input);
+    if (!audit) {
+      return summary;
+    }
+
+    if (audit.signatureRequired === true) {
+      summary.signatureRequiredRuns += 1;
+      if (audit.signatureVerified !== true) {
+        summary.signatureFailedRuns += 1;
+      }
+    }
+    if (audit.signatureVerified === true) {
+      summary.signatureVerifiedRuns += 1;
+    }
+    if (audit.timestampHeaderPresent === true) {
+      summary.timestampHeaderPresentRuns += 1;
+    }
+    if (audit.signatureRequired === true && audit.timestampHeaderPresent !== true) {
+      summary.timestampHeaderMissingRuns += 1;
+    }
+    if (typeof audit.rateLimit === 'number' && audit.rateLimit > 0) {
+      summary.rateLimitedRuns += 1;
+    }
+    if (typeof audit.bodySizeBytes === 'number' && audit.bodySizeBytes >= 0) {
+      bodySizeTotal += audit.bodySizeBytes;
+      bodySizeCount += 1;
+      summary.maxBodySizeBytes = Math.max(summary.maxBodySizeBytes ?? 0, audit.bodySizeBytes);
+    }
+    return summary;
+  }, getEmptyWebhookAuditSummary());
+
+  if (bodySizeCount > 0) {
+    summary.averageBodySizeBytes = Math.round(bodySizeTotal / bodySizeCount);
+  }
+
+  return summary;
+};
+
+const toWebhookAuditItem = (
+  run: Pick<IWorkflowRunVo, 'id' | 'status' | 'startedTime' | 'input'>
+): IWorkflowRunWebhookAuditItemVo => {
+  const audit = getWebhookAudit(run.input);
+
+  return {
+    runId: run.id,
+    status: run.status,
+    startedTime: run.startedTime,
+    ...(audit?.signatureHeader && { signatureHeader: audit.signatureHeader }),
+    ...(audit?.timestampHeader && { timestampHeader: audit.timestampHeader }),
+    ...(typeof audit?.signatureRequired === 'boolean' && {
+      signatureRequired: audit.signatureRequired,
+    }),
+    ...(typeof audit?.signatureVerified === 'boolean' && {
+      signatureVerified: audit.signatureVerified,
+    }),
+    ...(typeof audit?.timestampHeaderPresent === 'boolean' && {
+      timestampHeaderPresent: audit.timestampHeaderPresent,
+    }),
+    ...(typeof audit?.bodySizeBytes === 'number' && { bodySizeBytes: audit.bodySizeBytes }),
+    ...(typeof audit?.rateLimit === 'number' && { rateLimit: audit.rateLimit }),
+  };
+};
+
+type IWebhookRunOptions = {
+  secret?: string;
+  signature?: string;
+  timestamp?: string;
+  rawBody?: string;
+  headers?: Record<string, string | string[] | undefined>;
+};
+
 type IScheduleTriggerConfig = {
-  mode?: 'manual' | 'interval' | 'cron';
+  mode?: 'manual' | 'interval' | 'cron' | 'oneTime';
   intervalSeconds?: number;
   cron?: string;
+  timezone?: string;
+  runAt?: string;
 };
 
 type IWorkflowActionConfig = {
@@ -232,14 +392,72 @@ export class WorkflowService implements IWorkflowScheduleFacade {
     };
   }
 
-  async getWorkflowRunList(baseId: string, workflowId: string): Promise<IWorkflowRunVo[]> {
+  async getWorkflowRunList(
+    baseId: string,
+    workflowId: string,
+    query: IWorkflowRunListQuery = {}
+  ): Promise<IWorkflowRunVo[]> {
     await this.getWorkflow(baseId, workflowId);
-    return this.prismaService.workflowRun.findMany({
-      where: { workflowId },
+    const runs = await this.prismaService.workflowRun.findMany({
+      where: {
+        workflowId,
+        ...(query.triggerType && { triggerType: query.triggerType }),
+        ...(query.status && { status: query.status }),
+      },
       select: this.selectWorkflowRun(),
       orderBy: { startedTime: 'desc' },
       take: 100,
     });
+
+    return query.webhookAudit
+      ? runs.filter((run) => matchesWebhookAuditFilter(run, query.webhookAudit))
+      : runs;
+  }
+
+  async getWorkflowRunSummary(
+    baseId: string,
+    workflowId: string
+  ): Promise<IWorkflowRunWebhookAuditSummaryVo> {
+    await this.getWorkflow(baseId, workflowId);
+    const runs = await this.prismaService.workflowRun.findMany({
+      where: { workflowId },
+      select: {
+        triggerType: true,
+        input: true,
+        startedTime: true,
+      },
+      orderBy: { startedTime: 'desc' },
+      take: 100,
+    });
+
+    return toWebhookAuditSummary(runs);
+  }
+
+  async getWorkflowWebhookAuditList(
+    baseId: string,
+    workflowId: string,
+    query: IWorkflowRunWebhookAuditListQuery = {}
+  ): Promise<IWorkflowRunWebhookAuditListVo> {
+    await this.getWorkflow(baseId, workflowId);
+    const take = query.take ?? 20;
+    const runs = await this.prismaService.workflowRun.findMany({
+      where: { workflowId, triggerType: 'webhook' },
+      select: {
+        id: true,
+        status: true,
+        startedTime: true,
+        input: true,
+      },
+      orderBy: { startedTime: 'desc' },
+      ...(query.cursor && { cursor: { id: query.cursor }, skip: 1 }),
+      take: take + 1,
+    });
+    const items = runs.slice(0, take).map(toWebhookAuditItem);
+
+    return {
+      items,
+      nextCursor: runs.length > take ? runs[take]?.id ?? null : null,
+    };
   }
 
   async getWorkflowRun(
@@ -636,56 +854,76 @@ export class WorkflowService implements IWorkflowScheduleFacade {
     return script.slice(0, 8000);
   }
 
-  private buildWebhookSignaturePayload(input: { timestamp?: string; rawBody: string }) {
-    return [input.timestamp ?? '', input.rawBody].join('.');
-  }
-
   private verifyWebhookSignature(
     config: IWebhookTriggerConfig | null,
-    options?: {
-      signature?: string;
-      timestamp?: string;
-      rawBody?: string;
-    }
+    options?: IWebhookRunOptions
   ) {
     if (!config?.signatureSecret) {
       return;
     }
-    if (!options?.signature || !options.rawBody) {
+    const signatureContext = this.resolveWebhookSignatureContext(config, options);
+    if (!signatureContext.signature || !options?.rawBody) {
       throw new CustomHttpException(
         'Missing webhook signature headers',
         HttpErrorCode.UNAUTHORIZED
       );
     }
-    if (!options.timestamp) {
+    if (!signatureContext.timestamp) {
       throw new CustomHttpException('Missing webhook timestamp header', HttpErrorCode.UNAUTHORIZED);
     }
-    this.assertWebhookTimestamp(config, options.timestamp);
-    const normalizedSignature = options.signature.replace(/^sha256=/i, '');
-    const normalizedExpected = createHmac('sha256', config.signatureSecret)
-      .update(
-        this.buildWebhookSignaturePayload({
-          timestamp: options.timestamp,
-          rawBody: options.rawBody,
-        })
-      )
-      .digest('hex');
-    if (normalizedSignature !== normalizedExpected) {
+    this.assertWebhookTimestamp(config, signatureContext.timestamp);
+    if (
+      !isWorkflowWebhookSignatureMatch({
+        secret: config.signatureSecret,
+        signature: signatureContext.signature,
+        timestamp: signatureContext.timestamp,
+        rawBody: options.rawBody,
+      })
+    ) {
       throw new CustomHttpException('Invalid webhook signature', HttpErrorCode.UNAUTHORIZED);
     }
   }
 
+  private getWebhookHeader(
+    headers: Record<string, string | string[] | undefined> | undefined,
+    name: string
+  ) {
+    const value = headers?.[name.toLowerCase()];
+    return Array.isArray(value) ? value[0] : value;
+  }
+
+  private getWebhookSignatureHeaderName(config: IWebhookTriggerConfig | null) {
+    return config?.signatureHeader?.trim().toLowerCase() || 'x-webhook-signature';
+  }
+
+  private getWebhookTimestampHeaderName(config: IWebhookTriggerConfig | null) {
+    return config?.timestampHeader?.trim().toLowerCase() || 'x-webhook-timestamp';
+  }
+
+  private resolveWebhookSignatureContext(
+    config: IWebhookTriggerConfig | null,
+    options?: IWebhookRunOptions
+  ) {
+    const signatureHeader = this.getWebhookSignatureHeaderName(config);
+    const timestampHeader = this.getWebhookTimestampHeaderName(config);
+    return {
+      signatureHeader,
+      timestampHeader,
+      signature: options?.signature ?? this.getWebhookHeader(options?.headers, signatureHeader),
+      timestamp: options?.timestamp ?? this.getWebhookHeader(options?.headers, timestampHeader),
+    };
+  }
+
   private assertWebhookTimestamp(config: IWebhookTriggerConfig | null, timestamp: string) {
-    const value = Number(timestamp);
-    if (!Number.isFinite(value)) {
+    const toleranceSeconds = config?.timestampToleranceSeconds ?? 300;
+    const isValidTimestamp = assertWorkflowWebhookTimestamp({
+      timestamp,
+      toleranceSeconds,
+    });
+    if (!Number.isFinite(Number(timestamp))) {
       throw new CustomHttpException('Invalid webhook timestamp', HttpErrorCode.UNAUTHORIZED);
     }
-    const toleranceSeconds = config?.timestampToleranceSeconds ?? 300;
-    if (toleranceSeconds <= 0) {
-      return;
-    }
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    if (Math.abs(nowSeconds - value) > toleranceSeconds) {
+    if (!isValidTimestamp) {
       throw new CustomHttpException('Webhook timestamp expired', HttpErrorCode.UNAUTHORIZED);
     }
   }
@@ -979,6 +1217,12 @@ export class WorkflowService implements IWorkflowScheduleFacade {
           ? config.intervalSeconds
           : undefined,
       cron: typeof config.cron === 'string' && config.cron.trim() ? config.cron.trim() : undefined,
+      timezone:
+        typeof config.timezone === 'string' && config.timezone.trim()
+          ? config.timezone.trim()
+          : undefined,
+      runAt:
+        typeof config.runAt === 'string' && config.runAt.trim() ? config.runAt.trim() : undefined,
     };
   }
 
@@ -997,7 +1241,7 @@ export class WorkflowService implements IWorkflowScheduleFacade {
   async createWebhookRun(
     workflowId: string,
     input: unknown,
-    options?: { secret?: string; signature?: string; timestamp?: string; rawBody?: string }
+    options?: IWebhookRunOptions
   ): Promise<{ runId: string }> {
     const workflow = await this.getDirectTriggerWorkflow(workflowId, 'webhook');
     const triggerConfig = (workflow.nodes[0]?.config as IWebhookTriggerConfig | null) ?? null;
@@ -1005,7 +1249,9 @@ export class WorkflowService implements IWorkflowScheduleFacade {
     this.verifyWebhookSignature(triggerConfig, options);
     this.assertWebhookBodySize(triggerConfig, input);
     await this.assertWebhookRateLimit(workflow.id);
-    return this.createDirectTriggerRunFromWorkflow(workflow, 'webhook', input);
+    return this.createDirectTriggerRunFromWorkflow(workflow, 'webhook', input, {
+      webhook: this.buildWebhookAudit(triggerConfig, input, options),
+    });
   }
 
   async createScheduleRun(workflowId: string, input: unknown): Promise<{ runId: string }> {
@@ -1074,10 +1320,30 @@ export class WorkflowService implements IWorkflowScheduleFacade {
     }
   }
 
+  private buildWebhookAudit(
+    config: IWebhookTriggerConfig | null,
+    input: unknown,
+    options?: IWebhookRunOptions
+  ): IWebhookAudit {
+    const signatureContext = this.resolveWebhookSignatureContext(config, options);
+    return {
+      bodySizeBytes: Buffer.byteLength(JSON.stringify(input ?? null), 'utf8'),
+      signatureRequired: Boolean(config?.signatureSecret),
+      signatureVerified: Boolean(
+        config?.signatureSecret && signatureContext.signature && options?.rawBody
+      ),
+      timestampHeaderPresent: Boolean(signatureContext.timestamp),
+      signatureHeader: signatureContext.signatureHeader,
+      timestampHeader: signatureContext.timestampHeader,
+      rateLimit: this.thresholdConfig.webhook.workflowRateLimit,
+    };
+  }
+
   private async createDirectTriggerRunFromWorkflow(
     workflow: { id: string; baseId: string; activeSnapshotId: string | null },
     triggerType: IDirectTriggerType,
-    input: unknown
+    input: unknown,
+    context?: { webhook?: IWebhookAudit }
   ): Promise<{ runId: string }> {
     const run = await this.prismaService.workflowRun.create({
       data: {
@@ -1092,6 +1358,7 @@ export class WorkflowService implements IWorkflowScheduleFacade {
             workflowId: workflow.id,
             baseId: workflow.baseId,
             timestamp: new Date().toISOString(),
+            ...(context?.webhook && { webhook: context.webhook }),
           },
         } as Prisma.InputJsonValue,
         createdBy: this.userId,

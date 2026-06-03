@@ -2,6 +2,19 @@ import { z } from '../../zod';
 
 export const workflowNodeTypeSchema = z.enum(['trigger', 'action', 'logic']);
 
+export const workflowRunTriggerTypeSchema = z.enum([
+  'buttonClick',
+  'recordCreated',
+  'recordUpdated',
+  'recordMatchesConditions',
+  'schedule',
+  'webhook',
+  'formSubmitted',
+  'emailReceived',
+  'manualTest',
+  'manualNodeTest',
+]);
+
 export const workflowWebhookTriggerConfigSchema = z.object({
   secret: z.string().optional(),
   signatureSecret: z.string().optional(),
@@ -12,9 +25,11 @@ export const workflowWebhookTriggerConfigSchema = z.object({
 });
 
 export const workflowScheduleTriggerConfigSchema = z.object({
-  mode: z.enum(['manual', 'interval', 'cron']).optional(),
+  mode: z.enum(['manual', 'interval', 'cron', 'oneTime']).optional(),
   intervalSeconds: z.number().int().positive().optional(),
   cron: z.string().optional(),
+  timezone: z.string().optional(),
+  runAt: z.string().datetime().optional(),
 });
 
 export const workflowRunScriptActionConfigSchema = z.object({
@@ -141,7 +156,7 @@ export const workflowRunVoSchema = z.object({
   id: z.string(),
   workflowId: z.string(),
   snapshotId: z.string().nullable().optional(),
-  triggerType: z.string(),
+  triggerType: workflowRunTriggerTypeSchema.or(z.string()),
   status: z.string(),
   input: z.unknown().optional(),
   output: z.unknown().optional(),
@@ -159,6 +174,46 @@ export const workflowRunDetailVoSchema = workflowRunVoSchema.extend({
 });
 
 export type IWorkflowRunDetailVo = z.infer<typeof workflowRunDetailVoSchema>;
+
+export const workflowRunWebhookAuditSummaryVoSchema = z.object({
+  totalRuns: z.number().int().nonnegative(),
+  webhookRuns: z.number().int().nonnegative(),
+  signatureRequiredRuns: z.number().int().nonnegative(),
+  signatureVerifiedRuns: z.number().int().nonnegative(),
+  signatureFailedRuns: z.number().int().nonnegative(),
+  timestampHeaderPresentRuns: z.number().int().nonnegative(),
+  timestampHeaderMissingRuns: z.number().int().nonnegative(),
+  rateLimitedRuns: z.number().int().nonnegative(),
+  averageBodySizeBytes: z.number().nonnegative().nullable(),
+  maxBodySizeBytes: z.number().int().nonnegative().nullable(),
+  latestWebhookRunAt: z.string().or(z.date()).nullable(),
+});
+
+export type IWorkflowRunWebhookAuditSummaryVo = z.infer<
+  typeof workflowRunWebhookAuditSummaryVoSchema
+>;
+
+export const workflowRunWebhookAuditItemVoSchema = z.object({
+  runId: z.string(),
+  status: z.string(),
+  startedTime: z.string().or(z.date()),
+  signatureHeader: z.string().optional(),
+  timestampHeader: z.string().optional(),
+  signatureRequired: z.boolean().optional(),
+  signatureVerified: z.boolean().optional(),
+  timestampHeaderPresent: z.boolean().optional(),
+  bodySizeBytes: z.number().int().nonnegative().optional(),
+  rateLimit: z.number().int().nonnegative().optional(),
+});
+
+export type IWorkflowRunWebhookAuditItemVo = z.infer<typeof workflowRunWebhookAuditItemVoSchema>;
+
+export const workflowRunWebhookAuditListVoSchema = z.object({
+  items: z.array(workflowRunWebhookAuditItemVoSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type IWorkflowRunWebhookAuditListVo = z.infer<typeof workflowRunWebhookAuditListVoSchema>;
 
 export const workflowRoSchema = z.object({
   name: z.string().trim().min(1),
