@@ -25,6 +25,8 @@ import { ComboYAxisEditor } from './ComboYAxisEditor';
 import type { ComboYAxis } from './utils';
 import { getComboXAxisDefaultDisplay, getComboYAxisDefaultDisplay } from './utils';
 
+const MAX_X_AXIS_COUNT = 1;
+
 export const ComboForm = (props: {
   type: IComboType;
   config: IComboConfig;
@@ -102,8 +104,7 @@ export const ComboForm = (props: {
   const yAxisLen = config.yAxis?.length ?? 0;
   const hiddenDeleteXAxisBtn = xAxisLen && xAxisLen < 2;
   const hiddenDeleteYAxisBtn = yAxisLen && yAxisLen < 2;
-  // TODO: Support multiple x-axis
-  const hiddenAddXAxisBtn = canAddXColumns.length === 0 || xAxisLen === 1;
+  const hiddenAddXAxisBtn = canAddXColumns.length === 0 || xAxisLen >= MAX_X_AXIS_COUNT;
   const hiddenAddYAxisBtn = canAddYColumns.length === 0;
 
   return (

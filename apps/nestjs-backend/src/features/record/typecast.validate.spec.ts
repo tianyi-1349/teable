@@ -14,6 +14,7 @@ import type { FieldConvertingService } from '../field/field-calculate/field-conv
 import type { IFieldInstance } from '../field/model/factory';
 import type { SingleSelectFieldDto } from '../field/model/field-dto/single-select-field.dto';
 import type { UserFieldDto } from '../field/model/field-dto/user-field.dto';
+import type { RecordQueryService } from './record-query.service';
 import type { RecordService } from './record.service';
 import { TypeCastAndValidate } from './typecast.validate';
 
@@ -28,6 +29,7 @@ describe('TypeCastAndValidate', () => {
   const prismaService = mockDeep<PrismaService>();
   const fieldConvertingService = mockDeep<FieldConvertingService>();
   const recordService = mockDeep<RecordService>();
+  const recordQueryService = mockDeep<RecordQueryService>();
   const attachmentsStorageService = mockDeep<AttachmentsStorageService>();
   const collaboratorService = mockDeep<CollaboratorService>();
   const dataLoaderService = mockDeep<DataLoaderService>();
@@ -36,6 +38,7 @@ describe('TypeCastAndValidate', () => {
     prismaService,
     fieldConvertingService,
     recordService,
+    recordQueryService,
     attachmentsStorageService,
     collaboratorService,
     dataLoaderService,
@@ -46,6 +49,7 @@ describe('TypeCastAndValidate', () => {
     mockReset(fieldConvertingService);
     mockReset(prismaService);
     mockReset(recordService);
+    mockReset(recordQueryService);
     mockReset(collaboratorService);
     mockReset(dataLoaderService);
   });
@@ -274,7 +278,8 @@ describe('TypeCastAndValidate', () => {
     });
 
     it('should create new options and update field', async () => {
-      fieldConvertingService.stageAnalysis.mockImplementation(() => Promise.resolve({}) as any);
+      const newField = { id: field.id, options: { choices: [] } };
+      fieldConvertingService.stageAnalysis.mockResolvedValue({ newField } as any);
 
       await typeCastAndValidate['createOptionsIfNotExists'](['1', '2']);
 
@@ -291,6 +296,7 @@ describe('TypeCastAndValidate', () => {
           }),
         })
       );
+      expect(fieldConvertingService.stageAlter).toBeCalledWith(tableId, newField, field);
     });
 
     it('should return if no options', async () => {

@@ -31,12 +31,14 @@ import type { LinkFieldDto } from '../field/model/field-dto/link-field.dto';
 import type { MultipleSelectFieldDto } from '../field/model/field-dto/multiple-select-field.dto';
 import type { SingleSelectFieldDto } from '../field/model/field-dto/single-select-field.dto';
 import { UserFieldDto } from '../field/model/field-dto/user-field.dto';
+import type { RecordQueryService } from './record-query.service';
 import type { RecordService } from './record.service';
 
 interface IServices {
   prismaService: PrismaService;
   fieldConvertingService: FieldConvertingService;
   recordService: RecordService;
+  recordQueryService: RecordQueryService;
   attachmentsStorageService: AttachmentsStorageService;
   collaboratorService: CollaboratorService;
   dataLoaderService: DataLoaderService;
@@ -223,7 +225,6 @@ export class TypeCastAndValidate {
       color: colors[index],
     }));
 
-    // TODO: seems not necessary
     const { newField } = await this.services.fieldConvertingService.stageAnalysis(
       this.tableId,
       id,
@@ -533,7 +534,7 @@ export class TypeCastAndValidate {
 
     // id[]
     if (typeof titles[0] === 'string' && titles[0].startsWith('rec')) {
-      const linkRecords = await this.services.recordService.getRecordsHeadWithIds(
+      const linkRecords = await this.services.recordQueryService.getRecordsHeadWithIds(
         (this.field as LinkFieldDto).options.foreignTableId,
         titles
       );
@@ -541,7 +542,7 @@ export class TypeCastAndValidate {
     }
 
     // title[]
-    const linkRecords = await this.services.recordService.getRecordsHeadWithTitles(
+    const linkRecords = await this.services.recordQueryService.getRecordsHeadWithTitles(
       (this.field as LinkFieldDto).options.foreignTableId,
       titles
     );
@@ -629,43 +630,56 @@ export class TypeCastAndValidate {
         ? relationship === Relationship.ManyMany || relationship === Relationship.OneMany
         : this.field.isMultipleCellValue;
     if (isMultipleCellValue && !isSingleRelationship) {
-      if (typeof cellValue === 'string') {
-        return cellValue
-          .split(',')
-          .map((v) => v.trim())
-          .map((v) => linkTableRecordMap[v])
-          .filter(Boolean);
-      }
-      if (Array.isArray(cellValue)) {
-        return cellValue
-          .map((v) => {
-            if (typeof v === 'string') {
-              return linkTableRecordMap[v];
-            }
-            if (isObject(v) && 'id' in v && typeof v.id === 'string') {
-              return linkTableRecordMap[v.id];
-            }
-            return null;
-          })
-          .filter(Boolean) as ILinkCellValue[];
-      }
+      return this.castToLinkMany(cellValue, linkTableRecordMap);
+    }
+
+    return this.castToLinkSingle(cellValue, linkTableRecordMap);
+  }
+
+  private castToLinkMany(
+    cellValue: unknown,
+    linkTableRecordMap: Record<string, { id: string; title?: string }>
+  ): ILinkCellValue[] | null {
+    if (typeof cellValue === 'string') {
+      return cellValue
+        .split(',')
+        .map((v) => v.trim())
+        .map((v) => linkTableRecordMap[v])
+        .filter(Boolean);
     }
 
     if (Array.isArray(cellValue)) {
-      const [firstValue] = cellValue;
-      if (typeof firstValue === 'string') {
-        return linkTableRecordMap[firstValue] || null;
-      }
-      if (isObject(firstValue) && 'id' in firstValue && typeof firstValue.id === 'string') {
-        return linkTableRecordMap[firstValue.id] || null;
-      }
-      return null;
+      return cellValue
+        .map((v) => this.getLinkCellValue(v, linkTableRecordMap))
+        .filter((value): value is ILinkCellValue => Boolean(value));
+    }
+
+    return null;
+  }
+
+  private castToLinkSingle(
+    cellValue: unknown,
+    linkTableRecordMap: Record<string, { id: string; title?: string }>
+  ): ILinkCellValue | null {
+    if (Array.isArray(cellValue)) {
+      return this.getLinkCellValue(cellValue[0], linkTableRecordMap);
+    }
+
+    return this.getLinkCellValue(cellValue, linkTableRecordMap);
+  }
+
+  private getLinkCellValue(
+    cellValue: unknown,
+    linkTableRecordMap: Record<string, { id: string; title?: string }>
+  ): ILinkCellValue | null {
+    if (typeof cellValue === 'string') {
+      return linkTableRecordMap[cellValue] || null;
     }
 
     if (isObject(cellValue) && 'id' in cellValue && typeof cellValue.id === 'string') {
       return linkTableRecordMap[cellValue.id] || null;
     }
 
-    return linkTableRecordMap[cellValue as string] || null;
+    return null;
   }
 }

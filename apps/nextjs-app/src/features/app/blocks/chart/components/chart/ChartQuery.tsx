@@ -14,12 +14,15 @@ export const ChartQuery = () => {
   const { t } = useTranslation('chart');
 
   useEffect(() => {
-    if (tab === 'query') {
-      // TODO: refactor query builder, remove setTimeout
-      setTimeout(() => {
-        queryBuilderRef.current?.initContext();
-      });
+    if (tab !== 'query') {
+      return;
     }
+
+    const frameId = requestAnimationFrame(() => {
+      queryBuilderRef.current?.initContext();
+    });
+
+    return () => cancelAnimationFrame(frameId);
   }, [tab]);
 
   return (
