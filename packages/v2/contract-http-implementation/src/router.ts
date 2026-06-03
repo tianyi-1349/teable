@@ -190,6 +190,8 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
         listRuns: 'partial',
         getRun: 'partial',
         testRun: 'partial',
+        triggerWebhook: 'partial',
+        triggerSchedule: 'partial',
       },
       comments: {
         list: 'v1',
@@ -1077,6 +1079,12 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
   );
   const workflowsTestRun = os.workflows.testRun.handler(
     createV1AdapterHandler('workflows', 'testRun', workflowAdapterMessage)
+  );
+  const workflowsTriggerWebhook = os.workflows.triggerWebhook.handler(
+    createV1AdapterHandler('workflows', 'triggerWebhook', workflowAdapterMessage)
+  );
+  const workflowsTriggerSchedule = os.workflows.triggerSchedule.handler(
+    createV1AdapterHandler('workflows', 'triggerSchedule', workflowAdapterMessage)
   );
 
   const tablesGetRowCount = os.tables.getRowCount.handler(async ({ input }: OrpcHandlerOptions) => {
@@ -1974,6 +1982,8 @@ export const createV2OrpcRouter = (options: IV2OrpcRouterOptions = {}) => {
       listRuns: workflowsListRuns,
       getRun: workflowsGetRun,
       testRun: workflowsTestRun,
+      triggerWebhook: workflowsTriggerWebhook,
+      triggerSchedule: workflowsTriggerSchedule,
     },
   });
 };

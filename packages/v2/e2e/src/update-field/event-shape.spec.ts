@@ -1,27 +1,7 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import { updateFieldOkResponseSchema } from '@teable/v2-contract-http';
+import type { IUpdateFieldResponseDataDto } from '@teable/v2-contract-http';
 import { afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { getSharedTestContext, type SharedTestContext } from '../shared/globalTestContext';
-
-type UpdateFieldResponseData = {
-  table: {
-    id: string;
-    fields: Array<{ id: string; name: string; type: string }>;
-  };
-  events: Array<{
-    name: string;
-    occurredAt: string;
-    fieldId?: string;
-    updatedProperties?: string[];
-    changes?: Record<
-      string,
-      {
-        oldValue: unknown;
-        newValue: unknown;
-      }
-    >;
-  }>;
-};
+import { updateFieldWithEvents } from './helpers';
 
 describe('update-field: event shape', () => {
   let ctx: SharedTestContext;
@@ -34,7 +14,7 @@ describe('update-field: event shape', () => {
     return `fld${suffix}`;
   };
 
-  const assertBaseEventShape = (events: UpdateFieldResponseData['events']) => {
+  const assertBaseEventShape = (events: IUpdateFieldResponseDataDto['events']) => {
     expect(events.length).toBeGreaterThan(0);
     for (const event of events) {
       expect(typeof event.name).toBe('string');
@@ -42,32 +22,6 @@ describe('update-field: event shape', () => {
       expect(typeof event.occurredAt).toBe('string');
       expect(Number.isNaN(Date.parse(event.occurredAt))).toBe(false);
     }
-  };
-
-  const updateFieldRaw = async (payload: {
-    tableId: string;
-    fieldId: string;
-    field: Record<string, unknown>;
-  }): Promise<UpdateFieldResponseData> => {
-    const response = await fetch(`${ctx.baseUrl}/tables/updateField`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`updateField failed: ${text}`);
-    }
-
-    const rawBody = await response.json();
-    const parsed = updateFieldOkResponseSchema.safeParse(rawBody);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success || !parsed.data.ok) {
-      throw new Error('Failed to parse updateField response');
-    }
-
-    return parsed.data.data as UpdateFieldResponseData;
   };
 
   beforeAll(async () => {
@@ -100,7 +54,7 @@ describe('update-field: event shape', () => {
       field: { id: fieldId, type: 'number', name: 'Score' },
     });
 
-    const result = await updateFieldRaw({
+    const result = await updateFieldWithEvents(ctx, {
       tableId,
       fieldId,
       field: { name: 'Final Score' },
@@ -140,7 +94,7 @@ describe('update-field: event shape', () => {
       },
     });
 
-    const result = await updateFieldRaw({
+    const result = await updateFieldWithEvents(ctx, {
       tableId,
       fieldId,
       field: {
@@ -184,7 +138,7 @@ describe('update-field: event shape', () => {
       { fields: { [fieldId]: '456' } },
     ]);
 
-    const result = await updateFieldRaw({
+    const result = await updateFieldWithEvents(ctx, {
       tableId,
       fieldId,
       field: { type: 'number' },
@@ -222,7 +176,7 @@ describe('update-field: event shape', () => {
       { fields: { [fieldId]: 'Beta' } },
     ]);
 
-    const result = await updateFieldRaw({
+    const result = await updateFieldWithEvents(ctx, {
       tableId,
       fieldId,
       field: { type: 'singleSelect' },

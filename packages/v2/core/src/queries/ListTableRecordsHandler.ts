@@ -38,6 +38,7 @@ import {
   isRecordFilterFieldReferenceValue,
   isRecordFilterGroup,
   isRecordFilterNot,
+  recordFilterValueSchema,
   type RecordFilter,
   type RecordFilterCondition,
   type RecordFilterNode,
@@ -81,9 +82,16 @@ const normalizeRecordFilterMeValue = (
         return ok(node);
       }
 
+      const normalizedValueResult = recordFilterValueSchema.safeParse(
+        normalizeMeValue(node.value, actorId)
+      );
+      if (!normalizedValueResult.success) {
+        return err(domainError.validation({ message: 'Invalid record filter value' }));
+      }
+
       return ok({
         ...node,
-        value: normalizeMeValue(node.value, actorId),
+        value: normalizedValueResult.data,
       });
     }
 
@@ -159,7 +167,7 @@ const normalizeFieldConditionFilterMeValue = (
   for (const item of filter.filterSet) {
     const normalizedItem = normalizeItem(item);
     if (normalizedItem.isErr()) {
-      return normalizedItem;
+      return err(normalizedItem.error);
     }
     filterSet.push(normalizedItem.value);
   }

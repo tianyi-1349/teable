@@ -1,22 +1,11 @@
-/**
- * Helper utilities for update-field e2e tests.
- *
- * NOTE: The updateField HTTP endpoint is not yet implemented in v2-contract-http.
- * These helpers will need to be connected once the endpoint is added.
- */
-
-/**
- * Update a field in a table.
- *
- * TODO: Implement once updateField endpoint is added to v2-contract-http
- */
-import { updateFieldOkResponseSchema } from '@teable/v2-contract-http';
+import {
+  type IUpdateFieldResponseDataDto,
+  updateFieldOkResponseSchema,
+} from '@teable/v2-contract-http';
 import type { IUpdateFieldCommandInput } from '@teable/v2-core';
 import type { SharedTestContext } from '../shared/globalTestContext';
 
 export const updateField = async (ctx: SharedTestContext, payload: IUpdateFieldCommandInput) => {
-  // NOTE: The updateField HTTP endpoint is not yet implemented in v2-contract-http.
-  // TODO: Implement once updateField endpoint is added to v2-contract-http
   const response = await fetch(`${ctx.baseUrl}/tables/updateField`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -32,6 +21,27 @@ export const updateField = async (ctx: SharedTestContext, payload: IUpdateFieldC
     throw new Error('Failed to parse update field response');
   }
   return parsed.data.data.table;
+};
+
+export const updateFieldWithEvents = async (
+  ctx: SharedTestContext,
+  payload: IUpdateFieldCommandInput
+): Promise<IUpdateFieldResponseDataDto> => {
+  const response = await fetch(`${ctx.baseUrl}/tables/updateField`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update field: ${errorText}`);
+  }
+  const rawBody = await response.json();
+  const parsed = updateFieldOkResponseSchema.safeParse(rawBody);
+  if (!parsed.success || !parsed.data.ok) {
+    throw new Error('Failed to parse update field response');
+  }
+  return parsed.data.data;
 };
 
 /**

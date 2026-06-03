@@ -24,8 +24,8 @@ import {
   TableName,
   TimeZone,
 } from '@teable/v2-core';
-import { LinkField } from '../../../core/src/domain/table/fields/types/LinkField';
 import { describe, expect, it } from 'vitest';
+import { LinkField } from '../../../core/src/domain/table/fields/types/LinkField';
 
 import { TableFieldPersistenceBuilder } from './TableFieldPersistenceBuilder';
 
