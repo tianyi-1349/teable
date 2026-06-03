@@ -12,7 +12,6 @@ import type {
   IFilter,
   IFilterItem,
   IFilterSet,
-  IGridColumnMeta,
   IGroup,
   ILinkFieldOptions,
   ILinkCellValue,
@@ -23,8 +22,6 @@ import type {
 import {
   and,
   CellFormat,
-  CellValueType,
-  DbFieldType,
   DriverClient,
   FieldKeyType,
   FieldType,
@@ -56,9 +53,9 @@ import type {
   IRecordsVo,
   UpdateRecordAction,
 } from '@teable/openapi';
-import { DEFAULT_MAX_SEARCH_FIELD_COUNT, GroupPointType, UploadType } from '@teable/openapi';
+import { GroupPointType, UploadType } from '@teable/openapi';
 import { Knex } from 'knex';
-import { get, difference, keyBy, orderBy, uniqBy, toNumber } from 'lodash';
+import { difference, keyBy } from 'lodash';
 import { InjectModel } from 'nest-knexjs';
 import { ClsService } from 'nestjs-cls';
 import { CacheService } from '../../cache/cache.service';
@@ -95,6 +92,7 @@ import {
   decorateRecordsAttachmentFields,
 } from './record-attachment-preview';
 import { RecordPermissionService } from './record-permission.service';
+import { RecordQueryService } from './record-query.service';
 import { assertAllRecordIdsFound, buildSnapshotsFromDbRecords } from './record-snapshot-mapping';
 import { buildViewProjection } from './record-view-projection';
 
@@ -131,6 +129,7 @@ export class RecordService {
     private readonly cacheService: CacheService,
     private readonly attachmentStorageService: AttachmentsStorageService,
     private readonly recordPermissionService: RecordPermissionService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly tableIndexService: TableIndexService,
     @InjectModel('CUSTOM_KNEX') private readonly knex: Knex,
     @InjectDbProvider() private readonly dbProvider: IDbProvider,
@@ -222,22 +221,13 @@ export class RecordService {
     }, {});
   }
 
-  async getAllRecordCount(dbTableName: string) {
-    const sqlNative = this.knex(dbTableName).count({ count: '*' }).toSQL().toNative();
-
-    const queryResult = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ count?: number }[]>(sqlNative.sql, ...sqlNative.bindings);
-    return Number(queryResult[0]?.count ?? 0);
-  }
-
   async getDbValueMatrix(
     dbTableName: string,
     userFields: IUserFields,
     rowIndexFieldNames: string[],
     createRecordsRo: ICreateRecordsRo
   ) {
-    const rowCount = await this.getAllRecordCount(dbTableName);
+    const rowCount = await this.recordQueryService.getAllRecordCount(dbTableName);
     const dbValueMatrix: unknown[][] = [];
     for (let i = 0; i < createRecordsRo.records.length; i++) {
       const recordData = createRecordsRo.records[i].fields;
@@ -259,23 +249,6 @@ export class RecordService {
       dbValueMatrix.push([...recordValues, ...rowIndexValues, ...systemValues]);
     }
     return dbValueMatrix;
-  }
-
-  async getDbTableName(tableId: string) {
-    const tableMeta = await this.prismaService
-      .txClient()
-      .tableMeta.findUniqueOrThrow({
-        where: { id: tableId },
-        select: { dbTableName: true },
-      })
-      .catch(() => {
-        throw new CustomHttpException('Table not found', HttpErrorCode.NOT_FOUND, {
-          localization: {
-            i18nKey: 'httpErrors.table.notFound',
-          },
-        });
-      });
-    return tableMeta.dbTableName;
   }
 
   private async getLinkCellIds(tableId: string, field: IFieldInstance, recordId: string) {
@@ -527,7 +500,7 @@ export class RecordService {
     if (filter || orderBy?.length || groupBy?.length || search) {
       // Always load full field metadata so filters can reference denied fields for read,
       // while projection limits applied later keep them hidden from results.
-      const fields = await this.getFieldsByProjection(tableId, undefined);
+      const fields = await this.recordQueryService.getFieldsByProjection(tableId, undefined);
       const allowedSet = projection?.length ? new Set(projection) : undefined;
       return fields.reduce(
         (map, field) => {
@@ -725,7 +698,7 @@ export class RecordService {
       filter: extraFilter,
       search: originSearch,
     } = query;
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     const { viewCte, builder, enabledFieldIds } = await this.recordPermissionService.wrapView(
       tableId,
       this.knex.queryBuilder(),
@@ -763,23 +736,6 @@ export class RecordService {
       fieldMap,
       enabledFieldIds,
     };
-  }
-
-  async getBasicOrderIndexField(dbTableName: string, viewId: string | undefined) {
-    if (!viewId) {
-      return '__auto_number';
-    }
-    const columnName = `${ROW_ORDER_FIELD_PREFIX}_${viewId}`;
-    const exists = await this.dbProvider.checkColumnExist(
-      dbTableName,
-      columnName,
-      this.prismaService.txClient()
-    );
-
-    if (exists) {
-      return columnName;
-    }
-    return '__auto_number';
   }
 
   /**
@@ -825,7 +781,10 @@ export class RecordService {
       enabledFieldIds,
     } = await this.prepareQuery(tableId, query);
 
-    const basicSortIndex = await this.getBasicOrderIndexField(dbTableName, query.viewId);
+    const basicSortIndex = await this.recordQueryService.getBasicOrderIndexField(
+      dbTableName,
+      query.viewId
+    );
 
     const restrictRecordIds =
       query.selectedRecordIds && !query.filterLinkCellCandidate
@@ -893,7 +852,7 @@ export class RecordService {
     }
 
     if (search && search[2] && fieldMap) {
-      const searchFields = await this.getSearchFields(
+      const searchFields = await this.recordQueryService.getSearchFields(
         fieldMap,
         search,
         query?.viewId,
@@ -1076,18 +1035,8 @@ export class RecordService {
     return record.fields[fieldId];
   }
 
-  async getMaxRecordOrder(dbTableName: string) {
-    const sqlNative = this.knex(dbTableName).max('__auto_number', { as: 'max' }).toSQL().toNative();
-
-    const result = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ max?: number }[]>(sqlNative.sql, ...sqlNative.bindings);
-
-    return Number(result[0]?.max ?? 0) + 1;
-  }
-
   async batchDeleteRecords(tableId: string, recordIds: string[]) {
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     // get version by recordIds, __id as id, __version as version
     const nativeQuery = this.knex(dbTableName)
       .select('__id as id', '__version as version')
@@ -1124,65 +1073,6 @@ export class RecordService {
     await this.batchDel(tableId, recordIds);
   }
 
-  private async getViewIndexColumns(dbTableName: string) {
-    const columnInfoQuery = this.dbProvider.columnInfo(dbTableName);
-    const columns = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ name: string }[]>(columnInfoQuery);
-    return columns
-      .filter((column) => column.name.startsWith(ROW_ORDER_FIELD_PREFIX))
-      .map((column) => column.name);
-  }
-
-  @Timing()
-  async getRecordIndexes(
-    table: TableDomain,
-    recordIds: string[],
-    viewId?: string
-  ): Promise<Record<string, number>[] | undefined> {
-    const dbTableName = table.dbTableName;
-    const allViewIndexColumns = await this.getViewIndexColumns(dbTableName);
-    const viewIndexColumns = viewId
-      ? (() => {
-          const viewIndexColumns = allViewIndexColumns.filter((column) => column.endsWith(viewId));
-          return viewIndexColumns.length === 0 ? ['__auto_number'] : viewIndexColumns;
-        })()
-      : allViewIndexColumns;
-
-    if (!viewIndexColumns.length) {
-      return;
-    }
-
-    // get all viewIndexColumns value for __id in recordIds
-    const indexQuery = this.knex(dbTableName)
-      .select(
-        viewIndexColumns.reduce<Record<string, string>>((acc, columnName) => {
-          if (columnName === '__auto_number') {
-            acc[viewId as string] = '__auto_number';
-            return acc;
-          }
-          const theViewId = columnName.substring(ROW_ORDER_FIELD_PREFIX.length + 1);
-          acc[theViewId] = columnName;
-          return acc;
-        }, {})
-      )
-      .select('__id')
-      .whereIn('__id', recordIds)
-      .toQuery();
-    const indexValues = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<Record<string, number>[]>(indexQuery);
-
-    const indexMap = indexValues.reduce<Record<string, Record<string, number>>>((map, cur) => {
-      const id = cur.__id;
-      delete cur.__id;
-      map[id] = cur;
-      return map;
-    }, {});
-
-    return recordIds.map((recordId) => indexMap[recordId]);
-  }
-
   async updateRecordIndexes(
     tableId: string,
     recordsWithOrder: {
@@ -1190,8 +1080,8 @@ export class RecordService {
       order?: Record<string, number>;
     }[]
   ) {
-    const dbTableName = await this.getDbTableName(tableId);
-    const viewIndexColumns = await this.getViewIndexColumns(dbTableName);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
+    const viewIndexColumns = await this.recordQueryService.getViewIndexFields(dbTableName);
     if (!viewIndexColumns.length) {
       return;
     }
@@ -1249,7 +1139,7 @@ export class RecordService {
     const userId = user.id;
     await this.creditCheck(table.id);
     const dbTableName = table.dbTableName;
-    const fields = await this.getFieldsByProjection(table.id);
+    const fields = await this.recordQueryService.getFieldsByProjection(table.id);
     const writableCreatedTimeFieldNames = await this.getWritableCreatedTimeFieldNames(
       dbTableName,
       fields
@@ -1314,7 +1204,7 @@ export class RecordService {
       select: { dbTableName: true, base: { select: { space: { select: { credit: true } } } } },
     });
 
-    const rowCount = await this.getAllRecordCount(table.dbTableName);
+    const rowCount = await this.recordQueryService.getAllRecordCount(table.dbTableName);
 
     const maxRowCount =
       table.base.space.credit == null
@@ -1336,19 +1226,6 @@ export class RecordService {
         }
       );
     }
-  }
-
-  private async getAllViewIndexesField(dbTableName: string) {
-    const query = this.dbProvider.columnInfo(dbTableName);
-    const columns = await this.prismaService.txClient().$queryRawUnsafe<{ name: string }[]>(query);
-    return columns
-      .filter((column) => column.name.startsWith(ROW_ORDER_FIELD_PREFIX))
-      .map((column) => column.name)
-      .reduce<{ [viewId: string]: string }>((acc, cur) => {
-        const viewId = cur.substring(ROW_ORDER_FIELD_PREFIX.length + 1);
-        acc[viewId] = cur;
-        return acc;
-      }, {});
   }
 
   private hasPersistedLinkColumn(field: FieldCore) {
@@ -1387,7 +1264,7 @@ export class RecordService {
     await this.creditCheck(table.id);
 
     const { dbTableName, name: tableName } = table;
-    const maxRecordOrder = await this.getMaxRecordOrder(dbTableName);
+    const maxRecordOrder = await this.recordQueryService.getMaxRecordOrder(dbTableName);
     const writableCreatedTimeFieldNames = await this.getWritableCreatedTimeFieldNames(
       dbTableName,
       fields
@@ -1398,7 +1275,7 @@ export class RecordService {
       select: { id: true },
     });
 
-    const allViewIndexes = await this.getAllViewIndexesField(dbTableName);
+    const allViewIndexes = await this.recordQueryService.getAllViewIndexesField(dbTableName);
 
     const validationFields = fields
       .filter((f) => !f.isComputed)
@@ -1555,28 +1432,10 @@ export class RecordService {
   }
 
   private async batchDel(tableId: string, recordIds: string[]) {
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
 
     const nativeQuery = this.knex(dbTableName).whereIn('__id', recordIds).del().toQuery();
     await this.prismaService.txClient().$executeRawUnsafe(nativeQuery);
-  }
-
-  public async getFieldsByProjection(
-    tableId: string,
-    projection?: { [fieldNameOrId: string]: boolean },
-    fieldKeyType: FieldKeyType = FieldKeyType.Id
-  ) {
-    let fields = await this.dataLoaderService.field.load(tableId);
-    if (projection) {
-      const projectionFieldKeys = Object.entries(projection)
-        .filter(([, v]) => v)
-        .map(([k]) => k);
-      if (projectionFieldKeys.length) {
-        fields = fields.filter((field) => projectionFieldKeys.includes(field[fieldKeyType]));
-      }
-    }
-
-    return fields.map((field) => createFieldInstanceByRaw(field));
   }
 
   private async getCachePreviewUrlTokenMap(
@@ -1722,7 +1581,11 @@ export class RecordService {
     }
   ): Promise<ISnapshotBase<IRecord>[]> {
     const { tableId, recordIds, projection, fieldKeyType, cellFormat } = query;
-    const fields = await this.getFieldsByProjection(tableId, projection, fieldKeyType);
+    const fields = await this.recordQueryService.getFieldsByProjection(
+      tableId,
+      projection,
+      fieldKeyType
+    );
     const fieldIds = fields.map((f) => f.id);
 
     const { qb: queryBuilder } = await this.recordQueryBuilder.createRecordQueryBuilder(
@@ -1806,7 +1669,7 @@ export class RecordService {
     cellFormat = CellFormat.Json,
     useQueryModel = false
   ) {
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     const { viewCte, builder, enabledFieldIds } = await this.recordPermissionService.wrapView(
       tableId,
       this.knex.queryBuilder(),
@@ -1836,7 +1699,7 @@ export class RecordService {
     cellFormat = CellFormat.Json,
     useQueryModel = false
   ): Promise<ISnapshotBase<IRecord>[]> {
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     return this.getSnapshotBulkInner(this.knex.queryBuilder(), dbTableName, {
       tableId,
       recordIds,
@@ -1971,104 +1834,6 @@ export class RecordService {
     return { ids, extra: { groupPoints, allGroupHeaderRefs } };
   }
 
-  async getSearchFields(
-    originFieldInstanceMap: Record<string, IFieldInstance>,
-    search?: [string, string?, boolean?],
-    viewId?: string,
-    projection?: string[]
-  ) {
-    const maxSearchFieldCount = process.env.MAX_SEARCH_FIELD_COUNT
-      ? toNumber(process.env.MAX_SEARCH_FIELD_COUNT)
-      : DEFAULT_MAX_SEARCH_FIELD_COUNT;
-    let viewColumnMeta: IGridColumnMeta | null = null;
-    const fieldInstanceMap = projection?.length === 0 ? {} : { ...originFieldInstanceMap };
-    if (!search) {
-      return [] as IFieldInstance[];
-    }
-
-    const isSearchAllFields = !search?.[1];
-
-    if (viewId) {
-      const { columnMeta: viewColumnRawMeta } =
-        (await this.prismaService.view.findUnique({
-          where: { id: viewId, deletedTime: null },
-          select: { columnMeta: true },
-        })) || {};
-
-      viewColumnMeta = viewColumnRawMeta ? JSON.parse(viewColumnRawMeta) : null;
-
-      if (viewColumnMeta) {
-        Object.entries(viewColumnMeta).forEach(([key, value]) => {
-          if (get(value, ['hidden'])) {
-            delete fieldInstanceMap[key];
-          }
-        });
-      }
-    }
-
-    if (projection?.length) {
-      Object.keys(fieldInstanceMap).forEach((fieldId) => {
-        if (!projection.includes(fieldId)) {
-          delete fieldInstanceMap[fieldId];
-        }
-      });
-    }
-
-    return uniqBy(
-      orderBy(
-        Object.values(fieldInstanceMap)
-          .map((field) => ({
-            ...field,
-            isStructuredCellValue: field.isStructuredCellValue,
-          }))
-          .filter((field) => {
-            if (!viewColumnMeta) {
-              return true;
-            }
-            return !viewColumnMeta?.[field.id]?.hidden;
-          })
-          .filter((field) => {
-            if (!projection) {
-              return true;
-            }
-            return projection.includes(field.id);
-          })
-          .filter((field) => {
-            if (isSearchAllFields) {
-              return true;
-            }
-
-            const searchArr = search?.[1]?.split(',') || [];
-            return searchArr.includes(field.id);
-          })
-          .filter((field) => {
-            if (field.type === FieldType.Button) {
-              return false;
-            }
-            if (field.cellValueType === CellValueType.Boolean) {
-              return false;
-            }
-            if (
-              isSearchAllFields &&
-              field.cellValueType === CellValueType.Number &&
-              isNaN(Number(search[0]))
-            ) {
-              return false;
-            }
-            return true;
-          })
-          .map((field) => {
-            return {
-              ...field,
-              order: viewColumnMeta?.[field.id]?.order ?? Number.MIN_SAFE_INTEGER,
-            };
-          }),
-        ['order', 'createTime']
-      ),
-      'id'
-    ).slice(0, maxSearchFieldCount) as unknown as IFieldInstance[];
-  }
-
   private async getSearchHitIndex(
     tableId: string,
     query: IGetRecordsRo,
@@ -2093,7 +1858,7 @@ export class RecordService {
       },
       {} as Record<string, IFieldInstance>
     );
-    const searchFields = await this.getSearchFields(
+    const searchFields = await this.recordQueryService.getSearchFields(
       fieldInstanceMap,
       search,
       ignoreViewQuery ? undefined : viewId,
@@ -2174,7 +1939,7 @@ export class RecordService {
       filterLinkCellSelected,
     } = query;
 
-    const fields = await this.getFieldsByProjection(
+    const fields = await this.recordQueryService.getFieldsByProjection(
       tableId,
       this.convertProjection(projection),
       fieldKeyType
@@ -2233,44 +1998,6 @@ export class RecordService {
       );
     }
     return createFieldInstanceByRaw(field[0]);
-  }
-
-  async getRecordsHeadWithTitles(tableId: string, titles: string[]) {
-    const dbTableName = await this.getDbTableName(tableId);
-    const field = await this.getPrimaryField(tableId);
-
-    // only text field support type cast to title
-    if (field.dbFieldType !== DbFieldType.Text) {
-      return [];
-    }
-
-    const queryBuilder = this.knex(dbTableName)
-      .select({ title: field.dbFieldName, id: '__id' })
-      .whereIn(field.dbFieldName, titles);
-
-    const querySql = queryBuilder.toQuery();
-
-    return this.prismaService.txClient().$queryRawUnsafe<{ id: string; title: string }[]>(querySql);
-  }
-
-  async getRecordsHeadWithIds(tableId: string, recordIds: string[]) {
-    const dbTableName = await this.getDbTableName(tableId);
-    const field = await this.getPrimaryField(tableId);
-
-    const queryBuilder = this.knex(dbTableName)
-      .select({ title: field.dbFieldName, id: '__id' })
-      .whereIn('__id', recordIds);
-
-    const querySql = queryBuilder.toQuery();
-
-    const result = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ id: string; title: unknown }[]>(querySql);
-
-    return result.map((r) => ({
-      id: r.id,
-      title: field.cellValue2String(r.title),
-    }));
   }
 
   async filterRecordIdsByFilter(
@@ -2483,7 +2210,7 @@ export class RecordService {
     );
 
     if (search && search[2]) {
-      const searchFields = await this.getSearchFields(
+      const searchFields = await this.recordQueryService.getSearchFields(
         fieldInstanceMap,
         search,
         viewId,
@@ -2558,7 +2285,7 @@ export class RecordService {
       };
     }
 
-    const dbTableName = await this.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
 
     const filterStr = viewRaw?.filter;
     const mergedFilter = mergeWithDefaultFilter(filterStr, filter);
@@ -2585,7 +2312,11 @@ export class RecordService {
       });
 
     if (search && search[2]) {
-      const searchFields = await this.getSearchFields(fieldInstanceMap, search, viewId);
+      const searchFields = await this.recordQueryService.getSearchFields(
+        fieldInstanceMap,
+        search,
+        viewId
+      );
       const tableIndex = await this.tableIndexService.getActivatedTableIndexes(tableId);
       queryBuilder.where((builder) => {
         this.dbProvider.searchQuery(builder, searchFields, tableIndex, search, { selectionMap });
@@ -2645,14 +2376,7 @@ export class RecordService {
     recordId: string,
     query: IGetRecordsRo
   ): Promise<IRecordStatusVo> {
-    const dbTableName = await this.getDbTableName(tableId);
-    const queryBuilder = this.knex(dbTableName).select('__id').where('__id', recordId).limit(1);
-
-    const result = await this.prismaService
-      .txClient()
-      .$queryRawUnsafe<{ __id: string }[]>(queryBuilder.toQuery());
-
-    const isDeleted = result.length === 0;
+    const isDeleted = !(await this.recordQueryService.hasRecord(tableId, recordId));
 
     if (isDeleted) {
       return { isDeleted, isVisible: false };

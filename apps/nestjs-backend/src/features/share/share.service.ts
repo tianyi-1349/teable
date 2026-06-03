@@ -39,6 +39,7 @@ import { FieldService } from '../field/field.service';
 import type { IFieldInstance } from '../field/model/factory';
 import { createFieldInstanceByVo } from '../field/model/factory';
 import { RecordOpenApiService } from '../record/open-api/record-open-api.service';
+import { RecordQueryService } from '../record/record-query.service';
 import { RecordService } from '../record/record.service';
 import { SelectionService } from '../selection/selection.service';
 import type { IShareViewInfo } from './share-auth.service';
@@ -55,6 +56,7 @@ export class ShareService {
     private readonly prismaService: PrismaService,
     private readonly fieldService: FieldService,
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     @InjectAggregationService() private readonly aggregationService: IAggregationService,
     private readonly recordOpenApiService: RecordOpenApiService,
     private readonly selectionService: SelectionService,
@@ -461,7 +463,7 @@ export class ShareService {
     query?: { skip?: number; take?: number; search?: string }
   ) {
     const { skip = 0, take = 50, search } = query ?? {};
-    const dbTableName = await this.recordService.getDbTableName(tableId);
+    const dbTableName = await this.recordQueryService.getDbTableName(tableId);
     const queryBuilder = this.knex(dbTableName);
     const { isMultipleCellValue, dbFieldName } = userField;
 

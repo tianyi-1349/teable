@@ -17,6 +17,7 @@ import { composeOpMaps, type IOpsMap } from '../../calculation/utils/compose-map
 import { TableDomainQueryService } from '../../table-domain';
 import { ViewOpenApiService } from '../../view/open-api/view-open-api.service';
 import { ComputedOrchestratorService } from '../computed/services/computed-orchestrator.service';
+import { RecordQueryService } from '../record-query.service';
 import { RecordService } from '../record.service';
 import { IUpdateRecordsInternalRo } from '../type';
 import { RecordModifySharedService } from './record-modify.shared.service';
@@ -26,6 +27,7 @@ export class RecordUpdateService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly systemFieldService: SystemFieldService,
     private readonly viewOpenApiService: ViewOpenApiService,
     private readonly batchService: BatchService,
@@ -84,7 +86,7 @@ export class RecordUpdateService {
     const scopedRecords = this.filterRecordsByFieldKeys(records, fieldIds);
     const orderIndexesBefore =
       order != null && effectiveWindowId
-        ? await this.recordService.getRecordIndexes(
+        ? await this.recordQueryService.getRecordIndexes(
             table,
             records.map((r) => r.id),
             (order as IRecordInsertOrderRo).viewId
@@ -164,7 +166,7 @@ export class RecordUpdateService {
     const recordIds = records.map((r) => r.id);
     if (effectiveWindowId) {
       const orderIndexesAfter =
-        order && (await this.recordService.getRecordIndexes(table, recordIds, order.viewId));
+        order && (await this.recordQueryService.getRecordIndexes(table, recordIds, order.viewId));
 
       this.eventEmitterService.emitAsync(Events.OPERATION_RECORDS_UPDATE, {
         tableId,

@@ -7,6 +7,14 @@ import { InjectModel } from 'nest-knexjs';
 import { concatMap, lastValueFrom, map, range, toArray } from 'rxjs';
 import { ThresholdConfig, IThresholdConfig } from '../../configs/threshold.config';
 import { Timing } from '../../utils/timing';
+import {
+  AUTO_NUMBER_FIELD_NAME,
+  CREATED_BY_FIELD_NAME,
+  CREATED_TIME_FIELD_NAME,
+  ID_FIELD_NAME,
+  LAST_MODIFIED_BY_FIELD_NAME,
+  LAST_MODIFIED_TIME_FIELD_NAME,
+} from '../field/constant';
 import type { IFieldInstance, IFieldMap } from '../field/model/factory';
 import { InjectRecordQueryBuilder, IRecordQueryBuilder } from '../record/query-builder';
 import type { IFkRecordMap } from './link.service';
@@ -114,6 +122,43 @@ export class FieldCalculationService {
     return this.prismaService
       .txClient()
       .$queryRawUnsafe<{ [dbFieldName: string]: unknown }[]>(query);
+  }
+
+  async getRecordsByFieldValueIn(
+    dbTableName: string,
+    tableId: string,
+    field: IFieldInstance,
+    values: string[]
+  ): Promise<IRecord[]> {
+    const uniqueValues = [...new Set(values)].filter(Boolean);
+    if (!uniqueValues.length || field.isComputed || field.type === FieldType.Link) {
+      return [];
+    }
+
+    const { qb } = await this.recordQueryBuilder.createRecordQueryBuilder(dbTableName, {
+      tableId,
+      viewId: undefined,
+      useQueryModel: true,
+    });
+    const alias = dbTableName;
+    const query = qb
+      .clearSelect()
+      .select([
+        `${alias}.${ID_FIELD_NAME}`,
+        `${alias}.${AUTO_NUMBER_FIELD_NAME}`,
+        `${alias}.${CREATED_TIME_FIELD_NAME}`,
+        `${alias}.${LAST_MODIFIED_TIME_FIELD_NAME}`,
+        `${alias}.${CREATED_BY_FIELD_NAME}`,
+        `${alias}.${LAST_MODIFIED_BY_FIELD_NAME}`,
+        `${alias}.${field.dbFieldName}`,
+      ])
+      .whereIn(`${alias}.${field.dbFieldName}`, uniqueValues)
+      .toQuery();
+    const records = await this.prismaService
+      .txClient()
+      .$queryRawUnsafe<{ [dbFieldName: string]: unknown }[]>(query);
+
+    return records.map((record) => this.referenceService.recordRaw2Record([field], record));
   }
 
   async getRecordsBatchByFields(

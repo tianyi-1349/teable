@@ -28,6 +28,7 @@ import { DataLoaderService } from '../../data-loader/data-loader.service';
 import { FieldConvertingService } from '../../field/field-calculate/field-converting.service';
 import { ViewOpenApiService } from '../../view/open-api/view-open-api.service';
 import { ViewService } from '../../view/view.service';
+import { RecordQueryService } from '../record-query.service';
 import type { IRecordInnerRo } from '../record.service';
 import { RecordService } from '../record.service';
 import { TypeCastAndValidate } from '../typecast.validate';
@@ -40,6 +41,7 @@ export class RecordModifySharedService {
     private readonly fieldConvertingService: FieldConvertingService,
     private readonly viewOpenApiService: ViewOpenApiService,
     private readonly viewService: ViewService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly attachmentsStorageService: AttachmentsStorageService,
     private readonly collaboratorService: CollaboratorService,
     private readonly cls: ClsService<IClsStore>,
@@ -163,6 +165,7 @@ export class RecordModifySharedService {
           prismaService: this.prismaService,
           fieldConvertingService: this.fieldConvertingService,
           recordService: this.recordService,
+          recordQueryService: this.recordQueryService,
           attachmentsStorageService: this.attachmentsStorageService,
           collaboratorService: this.collaboratorService,
           dataLoaderService: this.dataLoaderService,

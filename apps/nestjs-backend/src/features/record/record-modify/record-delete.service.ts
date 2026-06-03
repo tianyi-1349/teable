@@ -8,6 +8,7 @@ import type { IClsStore } from '../../../types/cls';
 import { LinkService } from '../../calculation/link.service';
 import { TableDomainQueryService } from '../../table-domain';
 import { ComputedOrchestratorService } from '../computed/services/computed-orchestrator.service';
+import { RecordQueryService } from '../record-query.service';
 import { RecordService } from '../record.service';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class RecordDeleteService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordService: RecordService,
+    private readonly recordQueryService: RecordQueryService,
     private readonly linkService: LinkService,
     private readonly eventEmitterService: EventEmitterService,
     private readonly computedOrchestrator: ComputedOrchestratorService,
@@ -62,7 +64,7 @@ export class RecordDeleteService {
       }
 
       const orders = windowId
-        ? await this.recordService.getRecordIndexes(table, recordIds)
+        ? await this.recordQueryService.getRecordIndexes(table, recordIds)
         : undefined;
 
       // Publish computed/link changes with old/new around the actual delete
